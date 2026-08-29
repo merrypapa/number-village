@@ -11,7 +11,6 @@ import * as THREE from 'three';
 export const OUTLINE_COLOR = 0x4a3663;   // 애니 느낌 검은 테두리 색
 export const OUTLINE_WIDTH = 0.032;      // 테두리 두께 (0이면 테두리 없음)
 export const DARK_COLOR    = 0x3a2b52;   // 눈동자·속눈썹 같은 어두운 부분
-export const CHEEK_COLOR   = 0xff92b6;   // 볼터치 분홍
 export const SPARK_COLOR   = 0xfff3ad;   // 반짝이 별 색
 const TOON_STEPS = [0.70, 1.0];    // 그림자 단계 (애니처럼 뚝뚝 끊기는 명암)
 
@@ -51,10 +50,8 @@ export const GEO = {
 // -----------------------------------------------------------
 export const MAT_WHITE   = new THREE.MeshBasicMaterial({ color: 0xfdfdff });  // 흰자는 그늘지면 안 예쁘다
 export const MAT_DARK    = new THREE.MeshBasicMaterial({ color: DARK_COLOR }); // 눈동자·속눈썹도 항상 또렷하게
-export const MAT_CHEEK   = new THREE.MeshBasicMaterial({ color: CHEEK_COLOR });
 export const MAT_OUTLINE = new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR, side: THREE.BackSide });
 export const MAT_SPARK   = new THREE.MeshBasicMaterial({ color: SPARK_COLOR });
-export const MAT_SHINE   = new THREE.MeshBasicMaterial({ color: 0xffffff }); // 눈 하이라이트(빛 안 받고 항상 하얗게)
 export const MAT_GLOSS   = new THREE.MeshBasicMaterial({           // 머리·몸의 반들반들한 광택
   color: 0xffffff, transparent: true, opacity: 0.24, depthWrite: false,
 });
@@ -75,18 +72,6 @@ export function glowMat(color) {
     }));
   }
   return _glowCache.get(color);
-}
-
-const _filmCache = new Map();
-/** 날개용 반투명 재료 */
-export function filmMat(color) {
-  if (!_filmCache.has(color)) {
-    _filmCache.set(color, new THREE.MeshBasicMaterial({
-      color, transparent: true, opacity: 0.62,
-      side: THREE.DoubleSide, depthWrite: false,
-    }));
-  }
-  return _filmCache.get(color);
 }
 
 // -----------------------------------------------------------

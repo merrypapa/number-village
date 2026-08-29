@@ -7,10 +7,11 @@
 // ===========================================================
 import * as THREE from 'three';
 import {
-  GEO, MAT_SPARK, MAT_GLOSS, bodyMat, glowMat, filmMat, makeOutline, noShadow, shade,
+  GEO, MAT_SPARK, MAT_GLOSS, bodyMat, glowMat, makeOutline, noShadow, shade,
 } from './character-parts.js';
 import { addFace } from './character-face.js';
 import { makeDeco, makeTailCharm } from './character-deco.js';
+import { wingTexture } from './character-wingtex.js';
 
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
@@ -66,37 +67,36 @@ function makeHead(def, full) {
 }
 
 // -----------------------------------------------------------
-//  날개 (좌우 한 쌍씩, 반투명 + 진한 테두리)
+//  날개 — Canvas에 그린 날개 그림을 판에 붙인다
 // -----------------------------------------------------------
-function makeWings(def, full) {
-  const color = def.wing ?? shade(def.color, 0.72);
-  const mat = filmMat(color);
-  const rimMat = filmMat(shade(color, -0.35));
-  const pivots = [];
+const WING_GEO = new THREE.PlaneGeometry(1, 1);
+const _wingMat = new Map();
 
-  // [좌우위치, 높이, 크기, 기울기]
-  const SHAPE = [[0.32, 0.34, [0.38, 0.74], -0.42], [0.29, -0.12, [0.28, 0.46], -0.18]];
+function wingMaterial(color) {
+  if (!_wingMat.has(color)) {
+    _wingMat.set(color, new THREE.MeshBasicMaterial({
+      map: wingTexture(color), transparent: true, depthWrite: false,
+      side: THREE.DoubleSide, opacity: 0.92,
+    }));
+  }
+  return _wingMat.get(color);
+}
+
+function makeWings(def) {
+  const mat = wingMaterial(def.wing ?? shade(def.color, 0.72));
+  const pivots = [];
 
   for (const s of [-1, 1]) {
     const pivot = new THREE.Group();
-    pivot.position.set(s * 0.10, 0.92, -0.32);
+    pivot.position.set(s * 0.09, 0.60, -0.30);
     pivot.userData.side = s;
 
-    for (let i = 0; i < (full ? 2 : 1); i++) {
-      const [dx, dy, sc, tilt] = SHAPE[i];
-      if (full) {   // 테두리를 뒤에 한 겹 깔아 날개 모양을 또렷하게
-        const rim = new THREE.Mesh(GEO.blob, rimMat);
-        rim.scale.set(sc[0] + 0.06, sc[1] + 0.06, 0.02);
-        rim.position.set(s * dx, dy, -0.02);
-        rim.rotation.z = -s * tilt;
-        pivot.add(noShadow(rim));
-      }
-      const w = new THREE.Mesh(GEO.blob, mat);
-      w.scale.set(sc[0], sc[1], 0.03);
-      w.position.set(s * dx, dy, 0);
-      w.rotation.z = -s * tilt;
-      pivot.add(noShadow(w));
-    }
+    const w = new THREE.Mesh(WING_GEO, mat);
+    w.scale.set(s * 1.15, 1.15, 1);      // s를 곱해서 반대쪽은 좌우를 뒤집는다
+    w.position.set(s * 0.52, 0.52, 0);
+    w.renderOrder = 1;
+    pivot.add(noShadow(w));
+
     pivots.push(pivot);
   }
   return pivots;
@@ -191,8 +191,8 @@ export function makePing(def, detail = 'full') {
   // 발 (몸과 다른 색이라 신발처럼 보인다)
   for (const s of [-1, 1]) {
     const foot = new THREE.Mesh(GEO.blob, glowMat(accent));
-    foot.scale.set(0.24, 0.16, 0.32);
-    foot.position.set(s * 0.16, 0.115, 0.06);
+    foot.scale.set(0.23, 0.16, 0.31);
+    foot.position.set(s * 0.21, 0.115, 0.05);
     foot.castShadow = true;
     g.add(foot);
   }
@@ -210,7 +210,7 @@ export function makePing(def, detail = 'full') {
   }
   g.add(tail);
 
-  const wings = makeWings(def, full);
+  const wings = makeWings(def);
   for (const w of wings) g.add(w);
 
   const head = makeHead(def, full);
@@ -228,7 +228,7 @@ export function makePing(def, detail = 'full') {
       : Math.abs(Math.sin(tt * 2.2)) * (HOP_HEIGHT * 0.24);
 
     const flap = Math.sin(tt * WING_FLAP);
-    for (const w of wings) w.rotation.y = w.userData.side * (0.30 + flap * 0.40);
+    for (const w of wings) w.rotation.y = w.userData.side * (0.62 + flap * 0.30);
 
     head.rotation.z = Math.sin(tt * 1.7) * 0.06;
     head.position.y = HEAD_Y + Math.sin(tt * 2.6) * 0.018;
