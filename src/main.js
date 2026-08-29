@@ -24,9 +24,10 @@ scene.fog = new THREE.Fog(0xbfe8ff, 120, 220);
 
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 500);
 
-// 조명 — 밝고 부드럽게
-scene.add(new THREE.HemisphereLight(0xffffff, 0x9fe08a, 1.1));
-const sun = new THREE.DirectionalLight(0xfff6e0, 1.6);
+// 조명 — 3개를 겹쳐서 입체감을 만든다
+//  1) 하늘빛(전체를 은은하게)  2) 해(그림자를 만드는 주인공)  3) 뒤에서 비추는 빛(테두리를 살림)
+scene.add(new THREE.HemisphereLight(0xdff0ff, 0x9fe08a, 0.72));
+const sun = new THREE.DirectionalLight(0xfff6e0, 1.75);
 sun.position.set(40, 70, 30);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
@@ -34,6 +35,10 @@ sun.shadow.camera.left = -90; sun.shadow.camera.right = 90;
 sun.shadow.camera.top = 90;   sun.shadow.camera.bottom = -90;
 sun.shadow.camera.far = 200;
 scene.add(sun);
+
+const rim = new THREE.DirectionalLight(0xcfe4ff, 0.55);   // 뒤쪽에서 살짝
+rim.position.set(-30, 25, -40);
+scene.add(rim);
 
 const world = buildWorld(scene);
 
@@ -44,10 +49,16 @@ const stage = document.getElementById('charStage');
 const sRenderer = new THREE.WebGLRenderer({ canvas: stage, antialias: true, alpha: true });
 sRenderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 const sScene = new THREE.Scene();
-sScene.add(new THREE.HemisphereLight(0xffffff, 0xffd6e8, 1.4));
-const sLight = new THREE.DirectionalLight(0xffffff, 1.2);
-sLight.position.set(3, 6, 5);
-sScene.add(sLight);
+sScene.add(new THREE.HemisphereLight(0xeaf4ff, 0xffd6e8, 0.70));
+const sKey = new THREE.DirectionalLight(0xfff4e6, 1.45);   // 주광
+sKey.position.set(4.5, 5.0, 4.2);
+sScene.add(sKey);
+const sRim = new THREE.DirectionalLight(0xbfe0ff, 0.9);    // 뒤에서 테두리를 밝히는 빛
+sRim.position.set(-4.5, 3.0, -5);
+sScene.add(sRim);
+const sFill = new THREE.DirectionalLight(0xffe8f4, 0.35);  // 반대쪽 그늘을 살짝 채우기
+sFill.position.set(-5, 0.5, 4);
+sScene.add(sFill);
 const sCam = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
 
 let pickIndex = 0;

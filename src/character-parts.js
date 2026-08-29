@@ -13,6 +13,22 @@ export const OUTLINE_WIDTH = 0.032;      // 테두리 두께 (0이면 테두리 
 export const DARK_COLOR    = 0x3a2b52;   // 눈동자·속눈썹 같은 어두운 부분
 export const CHEEK_COLOR   = 0xff92b6;   // 볼터치 분홍
 export const SPARK_COLOR   = 0xfff3ad;   // 반짝이 별 색
+const TOON_STEPS = [0.70, 1.0];    // 그림자 단계 (애니처럼 뚝뚝 끊기는 명암)
+
+// -----------------------------------------------------------
+//  셀 셰이딩용 그라데이션 — 그림자가 부드럽게 번지지 않고
+//  애니처럼 딱딱 끊어지게 만들어 준다. (그림 파일 없이 코드로 생성)
+// -----------------------------------------------------------
+function makeToonGradient(steps) {
+  const data = new Uint8Array(steps.map(v => Math.round(v * 255)));
+  const tex = new THREE.DataTexture(data, steps.length, 1, THREE.RedFormat);
+  tex.minFilter = THREE.NearestFilter;
+  tex.magFilter = THREE.NearestFilter;
+  tex.generateMipmaps = false;
+  tex.needsUpdate = true;
+  return tex;
+}
+const GRADIENT = makeToonGradient(TOON_STEPS);
 
 // -----------------------------------------------------------
 //  공용 도형 (한 번만 만들고 계속 재사용)
@@ -33,17 +49,20 @@ export const GEO = {
 // -----------------------------------------------------------
 //  공용 재료
 // -----------------------------------------------------------
-export const MAT_WHITE   = new THREE.MeshToonMaterial({ color: 0xffffff });
-export const MAT_DARK    = new THREE.MeshToonMaterial({ color: DARK_COLOR });
-export const MAT_CHEEK   = new THREE.MeshToonMaterial({ color: CHEEK_COLOR });
+export const MAT_WHITE   = new THREE.MeshBasicMaterial({ color: 0xfdfdff });  // 흰자는 그늘지면 안 예쁘다
+export const MAT_DARK    = new THREE.MeshBasicMaterial({ color: DARK_COLOR }); // 눈동자·속눈썹도 항상 또렷하게
+export const MAT_CHEEK   = new THREE.MeshBasicMaterial({ color: CHEEK_COLOR });
 export const MAT_OUTLINE = new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR, side: THREE.BackSide });
 export const MAT_SPARK   = new THREE.MeshBasicMaterial({ color: SPARK_COLOR });
 export const MAT_SHINE   = new THREE.MeshBasicMaterial({ color: 0xffffff }); // 눈 하이라이트(빛 안 받고 항상 하얗게)
+export const MAT_GLOSS   = new THREE.MeshBasicMaterial({           // 머리·몸의 반들반들한 광택
+  color: 0xffffff, transparent: true, opacity: 0.24, depthWrite: false,
+});
 
 const _bodyCache = new Map();
 /** 몸통용 재료 (같은 색이면 같은 재료를 돌려준다) */
 export function bodyMat(color) {
-  if (!_bodyCache.has(color)) _bodyCache.set(color, new THREE.MeshToonMaterial({ color }));
+  if (!_bodyCache.has(color)) _bodyCache.set(color, new THREE.MeshToonMaterial({ color, gradientMap: GRADIENT }));
   return _bodyCache.get(color);
 }
 
@@ -51,7 +70,9 @@ const _glowCache = new Map();
 /** 보석·장식용 재료 (스스로 살짝 빛나는 느낌) */
 export function glowMat(color) {
   if (!_glowCache.has(color)) {
-    _glowCache.set(color, new THREE.MeshToonMaterial({ color, emissive: color, emissiveIntensity: 0.45 }));
+    _glowCache.set(color, new THREE.MeshToonMaterial({
+      color, gradientMap: GRADIENT, emissive: color, emissiveIntensity: 0.45,
+    }));
   }
   return _glowCache.get(color);
 }
@@ -60,8 +81,8 @@ const _filmCache = new Map();
 /** 날개용 반투명 재료 */
 export function filmMat(color) {
   if (!_filmCache.has(color)) {
-    _filmCache.set(color, new THREE.MeshToonMaterial({
-      color, transparent: true, opacity: 0.82,
+    _filmCache.set(color, new THREE.MeshBasicMaterial({
+      color, transparent: true, opacity: 0.62,
       side: THREE.DoubleSide, depthWrite: false,
     }));
   }
