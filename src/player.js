@@ -10,13 +10,15 @@ const RUN_SPEED  = 20;      // Shift 눌렀을 때
 const TURN_SPEED = 10;      // 몸이 도는 속도
 const CAM_DIST   = 14;      // 카메라 거리
 const CAM_HEIGHT = 7;       // 카메라 높이
+const LOOK_HEIGHT = 4;      // 카메라가 바라보는 높이 (키우면 하늘이 더 보인다)
+const BODY_R     = 0.8;     // 몸 굵기 (이만큼 물건에서 떨어져 선다)
 
 const _dir = new THREE.Vector3();
 const _camTarget = new THREE.Vector3();
 const _look = new THREE.Vector3();
 
-export function createPlayer(model, camera, spawn) {
-  model.position.copy(spawn);
+export function createPlayer(model, camera, world) {
+  model.position.copy(world.spawn);
 
   const keys = new Set();
   let camYaw = 0;            // 카메라 좌우 각도
@@ -54,11 +56,16 @@ export function createPlayer(model, camera, spawn) {
 
     if (moving) {
       // 카메라가 보는 방향 기준으로 이동
+      //   카메라는 플레이어 뒤쪽에 있고, 화면 안쪽(앞)은 (sin, cos) 방향이다.
+      //   화면 오른쪽은 (-cos, sin) 방향.  위 화살표는 iz = -1 이므로 부호에 주의!
       const cos = Math.cos(camYaw), sin = Math.sin(camYaw);
-      _dir.set(ix * cos - iz * sin, 0, ix * sin + iz * cos).normalize();
+      _dir.set(-ix * cos - iz * sin, 0, ix * sin - iz * cos).normalize();
 
       const speed = keys.has('ShiftLeft') || keys.has('ShiftRight') ? RUN_SPEED : WALK_SPEED;
       model.position.addScaledVector(_dir, speed * dt);
+
+      // 나무나 집을 뚫고 지나가지 않게 밀어낸다
+      world.collide(model.position, BODY_R);
 
       // 마을 밖으로 못 나가게
       const r = Math.hypot(model.position.x, model.position.z);
@@ -85,7 +92,8 @@ export function createPlayer(model, camera, spawn) {
       model.position.z - Math.cos(camYaw) * CAM_DIST
     );
     camera.position.lerp(_camTarget, Math.min(1, 6 * dt));
-    _look.copy(model.position).y += 2;
+    // 조금 위를 보게 해서 하늘(고래)도 보이게 한다
+    _look.copy(model.position).y += LOOK_HEIGHT;
     camera.lookAt(_look);
 
     // 3) 캐릭터 애니메이션

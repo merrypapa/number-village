@@ -1,10 +1,15 @@
 // ===========================================================
-//  마을 만들기 — 바닥, 성, 집, 나무, 분수
-//  Phase 3에서 무지개 다리 / 사탕 정원 / 숫자 언덕을 추가할 예정
+//  마을 만들기 — 바닥, 성, 집, 나무, 분수, 놀이터
+//  부딪히는 물건(장애물)도 여기서 같이 등록한다.
 // ===========================================================
 import * as THREE from 'three';
+import { buildSky } from './sky.js';
+import { buildPlayground } from './playground.js';
 
 export const WORLD_RADIUS = 90;   // 마을 반지름 (밖으로 못 나감)
+
+// 놀이터가 놓일 자리 ← 아이가 옮기고 싶으면 여기 숫자만 바꾸면 된다
+const PLAYGROUND_POS = { x: 42, z: 40 };
 
 const M = {
   grass:  new THREE.MeshToonMaterial({ color: 0x9fe08a }),
@@ -95,8 +100,41 @@ function makeFountain() {
   return g;
 }
 
-/** 마을 전체를 만들어 scene에 추가한다. 스폰 위치를 돌려준다. */
+// -----------------------------------------------------------
+//  부딪히기 (충돌)
+//  장애물은 두 가지 모양만 쓴다:
+//    동그란 것 { x, z, r }   /   네모난 것 { x, z, hw, hd }
+// -----------------------------------------------------------
+function pushOut(o, pos, radius) {
+  const dx = pos.x - o.x;
+  const dz = pos.z - o.z;
+
+  if (o.hw !== undefined) {                       // 네모난 장애물 (성)
+    const overlapX = o.hw + radius - Math.abs(dx);
+    const overlapZ = o.hd + radius - Math.abs(dz);
+    if (overlapX <= 0 || overlapZ <= 0) return;
+    // 덜 밀어내도 되는 쪽으로 밀어낸다
+    if (overlapX < overlapZ) pos.x += (dx >= 0 ? 1 : -1) * overlapX;
+    else                     pos.z += (dz >= 0 ? 1 : -1) * overlapZ;
+    return;
+  }
+
+  const min = o.r + radius;                       // 동그란 장애물
+  const d = Math.hypot(dx, dz);
+  if (d >= min) return;
+  if (d < 0.001) { pos.x += min; return; }        // 정확히 한가운데면 옆으로 살짝
+  pos.x = o.x + (dx / d) * min;
+  pos.z = o.z + (dz / d) * min;
+}
+
+// -----------------------------------------------------------
+//  마을 전체 만들기
+// -----------------------------------------------------------
+/** 마을을 만들어 scene에 추가한다. 스폰 위치와 부딪힘 함수를 돌려준다. */
 export function buildWorld(scene) {
+  const obstacles = [];        // 부딪히는 물건 목록
+  const reserved = [];         // 나무를 심으면 안 되는 자리
+
   // 바닥
   const ground = new THREE.Mesh(
     new THREE.CircleGeometry(WORLD_RADIUS + 8, 48), M.grass
@@ -113,53 +151,90 @@ export function buildWorld(scene) {
   scene.add(plaza);
 
   // 분수
-  const f = makeFountain();
-  scene.add(f);
+  scene.add(makeFountain());
+  obstacles.push({ x: 0, z: 0, r: 4.2 });
+  reserved.push({ x: 0, z: 0, r: 14 });
 
-  // 성 (북쪽)
+  // 성 (북쪽) — 탑까지 덮는 네모로 막는다
   const castle = makeCastle();
   castle.position.set(0, 0, -48);
   scene.add(castle);
+  obstacles.push({ x: 0, z: -48, hw: 13.5, hd: 10.5 });
+  reserved.push({ x: 0, z: -48, r: 22 });
 
   // 우리 집 (남쪽) — 아이가 색을 고를 수 있게 roofC
   const home = makeHouse(M.roofC, 7, 4.5, 7);
   home.position.set(0, 0, 34);
   home.userData.isHome = true;
   scene.add(home);
+  obstacles.push({ x: 0, z: 34, r: 4.7 });
+  reserved.push({ x: 0, z: 34, r: 10 });
 
   // 친구들 집 6채 (광장 둘레)
   const roofs = [M.roofA, M.roofB, M.roofC];
   for (let i = 0; i < 6; i++) {
     const a = (i / 6) * Math.PI * 2 + 0.5;
     const h = makeHouse(roofs[i % 3]);
-    h.position.set(Math.cos(a) * 38, 0, Math.sin(a) * 38);
+    const hx = Math.cos(a) * 38, hz = Math.sin(a) * 38;
+    h.position.set(hx, 0, hz);
     h.rotation.y = -a + Math.PI / 2;
     scene.add(h);
+    obstacles.push({ x: hx, z: hz, r: 4.1 });
+    reserved.push({ x: hx, z: hz, r: 9 });
   }
 
-  // 나무 40그루
+  // 놀이터
+  const playground = buildPlayground(PLAYGROUND_POS.x, PLAYGROUND_POS.z);
+  scene.add(playground.group);
+  obstacles.push(...playground.obstacles);
+  reserved.push({ x: PLAYGROUND_POS.x, z: PLAYGROUND_POS.z, r: 15 });
+
+  // 나무 40그루 — 건물이나 놀이터 위에는 심지 않는다
   for (let i = 0; i < 40; i++) {
-    const a = Math.random() * Math.PI * 2;
-    const r = 26 + Math.random() * (WORLD_RADIUS - 30);
+    let x = 0, z = 0, ok = false;
+    for (let tryCount = 0; tryCount < 20 && !ok; tryCount++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 26 + Math.random() * (WORLD_RADIUS - 30);
+      x = Math.cos(a) * r;
+      z = Math.sin(a) * r;
+      ok = reserved.every(s => Math.hypot(x - s.x, z - s.z) > s.r);
+    }
+    if (!ok) continue;
+
     const t = makeTree(Math.random() < 0.3);
-    t.position.set(Math.cos(a) * r, 0, Math.sin(a) * r);
-    t.scale.setScalar(0.8 + Math.random() * 0.5);
+    const s = 0.8 + Math.random() * 0.5;
+    t.position.set(x, 0, z);
+    t.scale.setScalar(s);
     t.rotation.y = Math.random() * 6;
     scene.add(t);
+    obstacles.push({ x, z, r: 1.0 * s });
   }
 
-  // 구름
-  const cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const clouds = new THREE.Group();
-  for (let i = 0; i < 14; i++) {
-    const c = new THREE.Group();
-    for (let j = 0; j < 3; j++) {
-      c.add(mesh(G.ball, cloudMat, j * 4 - 4, Math.random() * 1.5, 0, 5 + Math.random() * 3));
+  // 하늘 (구름 + 고래)
+  const sky = buildSky(scene);
+
+  /** 장애물을 뚫고 들어갔으면 바깥으로 밀어낸다. pos는 그 자리에서 고쳐진다. */
+  function collide(pos, radius) {
+    for (const o of obstacles) pushOut(o, pos, radius);
+  }
+
+  /** (x, z)가 장애물 안이면 true — NPC를 세울 자리를 고를 때 쓴다. */
+  function isBlocked(x, z, radius) {
+    for (const o of obstacles) {
+      if (o.hw !== undefined) {
+        if (Math.abs(x - o.x) < o.hw + radius && Math.abs(z - o.z) < o.hd + radius) return true;
+      } else if (Math.hypot(x - o.x, z - o.z) < o.r + radius) {
+        return true;
+      }
     }
-    c.position.set((Math.random() - 0.5) * 220, 40 + Math.random() * 20, (Math.random() - 0.5) * 220);
-    clouds.add(c);
+    return false;
   }
-  scene.add(clouds);
 
-  return { spawn: new THREE.Vector3(0, 0, 14), clouds, home };
+  /** 매 프레임 움직이는 것들 (구름, 고래, 그네, 시소) */
+  function update(dt, t) {
+    sky.update(dt, t);
+    playground.update(t);
+  }
+
+  return { spawn: new THREE.Vector3(0, 0, 14), home, collide, isBlocked, update };
 }
