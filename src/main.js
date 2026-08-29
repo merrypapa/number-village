@@ -84,8 +84,8 @@ function startGame(def) {
   const model = createCharacter(def);
   model.traverse(o => { if (o.isMesh) o.castShadow = true; });
   scene.add(model);
-  player = createPlayer(model, camera, world.spawn);
-  npcs = createNPCs(scene, def.id);
+  player = createPlayer(model, camera, world);
+  npcs = createNPCs(scene, def.id, world);
 
   document.getElementById('select').classList.remove('on');
   document.getElementById('hud').classList.add('on');
@@ -121,8 +121,8 @@ function loop() {
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
 
-  // 구름 흐르기
-  world.clouds.rotation.y += dt * 0.008;
+  // 구름 흐르기, 하늘 고래, 그네·시소 움직이기
+  world.update(dt, t);
 
   if (playing && player) {
     player.update(dt, t);

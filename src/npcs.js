@@ -14,6 +14,7 @@ const REST_MAX      = 3;       // 도착 후 쉬는 시간 (최대, 초)
 const WANDER_RADIUS = WORLD_RADIUS - 8;  // NPC가 돌아다니는 반경
 const NEAR_DIST     = 6;       // 이 거리 안이면 '!' 표시
 const SKIP_DIST     = 45;      // 이 거리보다 멀면 애니메이션 업데이트 생략
+const NPC_RADIUS    = 0.7;     // NPC 몸 굵기 (물건에 부딪히는 크기)
 const BUBBLE_TIME   = 3;       // 말풍선 유지 시간 (초)
 const GREET_REACT   = 1.0;     // 인사할 때 폴짝/흔들기 반응 시간 (초)
 
@@ -111,8 +112,15 @@ function makeBubbleSprite() {
     ctx.fillStyle = '#fff';
     ctx.fill(); ctx.stroke();
 
+    // 긴 대사도 말풍선 밖으로 넘치지 않게 글자 크기를 줄인다
     ctx.fillStyle = '#3a2a55';
-    ctx.font = 'bold 34px "Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+    let size = 34;
+    const font = (px) => `bold ${px}px "Apple SD Gothic Neo","Malgun Gothic",sans-serif`;
+    ctx.font = font(size);
+    while (ctx.measureText(text).width > w - 56 && size > 16) {
+      size -= 2;
+      ctx.font = font(size);
+    }
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(text, w / 2, h / 2 - 6);
     tex.needsUpdate = true;
@@ -122,18 +130,23 @@ function makeBubbleSprite() {
 
 // -----------------------------------------------------------
 //  마을 안 랜덤 지점 (원형 지역 안에서 고르게 분포)
+//  나무나 집 안쪽은 피해서 고른다. out 벡터에 담아준다.
 // -----------------------------------------------------------
-function randomSpot() {
-  const a = Math.random() * Math.PI * 2;
-  const r = WANDER_RADIUS * Math.sqrt(Math.random());
-  return new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r);
+function pickSpot(world, out) {
+  for (let i = 0; i < 15; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = WANDER_RADIUS * Math.sqrt(Math.random());
+    const x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if (!world.isBlocked(x, z, NPC_RADIUS)) return out.set(x, 0, z);
+  }
+  return out.set(0, 0, 18);   // 못 찾으면 광장 근처로
 }
 
 // -----------------------------------------------------------
 //  공개 API
 // -----------------------------------------------------------
 /** NPC들을 만들어 마을에 배치한다. playerCharId는 NPC 목록에서 제외할 캐릭터 id. */
-export function createNPCs(scene, playerCharId, count = NPC_COUNT) {
+export function createNPCs(scene, playerCharId, world, count = NPC_COUNT) {
   const pool = CHARACTERS.filter(c => c.id !== playerCharId);
   const npcs = [];
 
@@ -141,7 +154,7 @@ export function createNPCs(scene, playerCharId, count = NPC_COUNT) {
     const def = pool[Math.floor(Math.random() * pool.length)];
     const model = createCharacter(def);
     model.traverse(o => { if (o.isMesh) o.castShadow = true; });
-    model.position.copy(randomSpot());
+    pickSpot(world, model.position);
     scene.add(model);
 
     const height = model.userData.height || 1.4;
@@ -161,10 +174,11 @@ export function createNPCs(scene, playerCharId, count = NPC_COUNT) {
 
     npcs.push({
       def, model, height,
-      target: randomSpot(),
+      target: pickSpot(world, new THREE.Vector3()),
       resting: false,
       restTimer: 0,
       greetTimer: 0,
+      stuckTimer: 0,      // 뭔가에 막혀서 못 가고 있는 시간
       exclaim,
     });
   }
@@ -192,7 +206,7 @@ export function createNPCs(scene, playerCharId, count = NPC_COUNT) {
       if (npc.resting) {
         npc.restTimer -= dt;
         if (npc.restTimer <= 0) {
-          npc.target = randomSpot();
+          pickSpot(world, npc.target);
           npc.resting = false;
         }
       } else {
@@ -203,14 +217,25 @@ export function createNPCs(scene, playerCharId, count = NPC_COUNT) {
           npc.resting = true;
           npc.restTimer = REST_MIN + Math.random() * (REST_MAX - REST_MIN);
         } else {
+          const fromX = npc.model.position.x, fromZ = npc.model.position.z;
           _tmpDir.normalize();
           npc.model.position.addScaledVector(_tmpDir, WALK_SPEED * dt);
+          world.collide(npc.model.position, NPC_RADIUS);   // 물건은 뚫고 가지 않는다
+
           const want = Math.atan2(_tmpDir.x, _tmpDir.z);
           let diff = want - npc.model.rotation.y;
           while (diff > Math.PI) diff -= Math.PI * 2;
           while (diff < -Math.PI) diff += Math.PI * 2;
           npc.model.rotation.y += diff * Math.min(1, 6 * dt);
           moving = true;
+
+          // 뭔가에 막혀 제자리걸음이면 잠시 뒤 다른 곳으로 목적지를 바꾼다
+          const gone = Math.hypot(npc.model.position.x - fromX, npc.model.position.z - fromZ);
+          npc.stuckTimer = gone < WALK_SPEED * dt * 0.3 ? npc.stuckTimer + dt : 0;
+          if (npc.stuckTimer > 0.8) {
+            pickSpot(world, npc.target);
+            npc.stuckTimer = 0;
+          }
         }
       }
 
