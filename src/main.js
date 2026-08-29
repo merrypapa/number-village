@@ -59,8 +59,8 @@ function showPreview() {
   preview = createCharacter(def);
   sScene.add(preview);
   const h = preview.userData.height || 2;
-  sCam.position.set(0, h * 0.6, h * 2.6 + 2.2);
-  sCam.lookAt(0, h * 0.45, 0);
+  sCam.position.set(0, h * 0.55, h * 1.9 + 1.4);
+  sCam.lookAt(0, h * 0.52, 0);
   document.getElementById('charName').textContent = def.name;
 }
 showPreview();
@@ -82,7 +82,7 @@ let playing = false;
 
 function startGame(def) {
   const model = createCharacter(def);
-  model.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  model.traverse(o => { if (o.isMesh && !o.userData.noShadow) o.castShadow = true; });
   scene.add(model);
   player = createPlayer(model, camera, world);
   npcs = createNPCs(scene, def.id, world);

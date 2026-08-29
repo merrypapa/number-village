@@ -152,8 +152,8 @@ export function createNPCs(scene, playerCharId, world, count = NPC_COUNT) {
 
   for (let i = 0; i < count; i++) {
     const def = pool[Math.floor(Math.random() * pool.length)];
-    const model = createCharacter(def);
-    model.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    const model = createCharacter(def, 'simple');
+    model.traverse(o => { if (o.isMesh && !o.userData.noShadow) o.castShadow = true; });
     pickSpot(world, model.position);
     scene.add(model);
 
