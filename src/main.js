@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { CHARACTERS, createCharacter } from './characters.js';
 import { buildWorld } from './world.js';
 import { createPlayer } from './player.js';
+import { createNPCs } from './npcs.js';
 
 // -----------------------------------------------------------
 //  렌더러 / 씬 / 카메라
@@ -76,6 +77,7 @@ document.getElementById('playBtn').onclick = () => startGame(CHARACTERS[pickInde
 //  게임 시작
 // -----------------------------------------------------------
 let player = null;
+let npcs = null;
 let playing = false;
 
 function startGame(def) {
@@ -83,6 +85,7 @@ function startGame(def) {
   model.traverse(o => { if (o.isMesh) o.castShadow = true; });
   scene.add(model);
   player = createPlayer(model, camera, world.spawn);
+  npcs = createNPCs(scene, def.id);
 
   document.getElementById('select').classList.remove('on');
   document.getElementById('hud').classList.add('on');
@@ -100,10 +103,10 @@ function toast(text) {
   toastTimer = setTimeout(() => el.classList.remove('on'), 2000);
 }
 
-// 인사 버튼 (Phase 4에서 NPC 대화로 확장)
+// 인사 버튼 — 가장 가까운 친구가 반응한다
 function sayHi() {
-  if (!playing) return;
-  toast('안녕! 👋');
+  if (!playing || !npcs) return;
+  npcs.greetNearest(player.model.position, nameWithParticle => toast(`${nameWithParticle} 만났어요!`));
 }
 document.getElementById('hi').onclick = sayHi;
 addEventListener('keydown', e => { if (e.code === 'Space') sayHi(); });
@@ -123,6 +126,7 @@ function loop() {
 
   if (playing && player) {
     player.update(dt, t);
+    npcs?.update(dt, t, player.model.position);
     renderer.render(scene, camera);
   } else {
     preview.rotation.y += dt * 0.7;
