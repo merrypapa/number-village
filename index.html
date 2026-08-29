@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>숫자마을 대모험</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#bfe8ff;
+    font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; }
+  canvas { display:block; }
+
+  /* ---- 화면(스크린) 공통 ---- */
+  .screen { position:fixed; inset:0; display:none; flex-direction:column;
+    align-items:center; justify-content:center; z-index:10; }
+  .screen.on { display:flex; }
+
+  /* ---- 캐릭터 선택 ---- */
+  #select { background:linear-gradient(180deg,#cbeaff 0%,#ffe8f4 100%); }
+  #select h1 { font-size:clamp(28px,6vw,52px); color:#5b3d8f; margin-bottom:8px;
+    text-shadow:0 3px 0 #fff; }
+  #charName { font-size:clamp(24px,5vw,40px); color:#e0518f; font-weight:800; margin:10px 0; }
+  #charStage { width:min(80vw,420px); height:min(45vh,360px); }
+  .row { display:flex; align-items:center; gap:20px; }
+  .arrow { width:72px; height:72px; border:none; border-radius:50%; background:#fff;
+    box-shadow:0 6px 0 #d8bfe8; font-size:36px; color:#7a4fb0; cursor:pointer; }
+  .arrow:active { transform:translateY(4px); box-shadow:0 2px 0 #d8bfe8; }
+  #playBtn { margin-top:22px; padding:18px 46px; border:none; border-radius:999px;
+    background:#ff8fc0; color:#fff; font-size:clamp(20px,4vw,30px); font-weight:800;
+    box-shadow:0 8px 0 #e0518f; cursor:pointer; }
+  #playBtn:active { transform:translateY(5px); box-shadow:0 3px 0 #e0518f; }
+
+  /* ---- 게임 중 HUD ---- */
+  #hud { position:fixed; inset:0; pointer-events:none; z-index:5; display:none; }
+  #hud.on { display:block; }
+  #bookBtn { position:absolute; top:16px; right:16px; width:64px; height:64px;
+    border:none; border-radius:20px; background:#fff9; font-size:32px;
+    pointer-events:auto; cursor:pointer; }
+  #hi { position:absolute; right:24px; bottom:28px; width:104px; height:104px;
+    border:none; border-radius:50%; background:#ff8fc0; color:#fff; font-size:44px;
+    box-shadow:0 6px 0 #e0518f; pointer-events:auto; cursor:pointer; }
+  #hi:active { transform:translateY(4px); box-shadow:0 2px 0 #e0518f; }
+  #toast { position:absolute; left:50%; top:18%; transform:translateX(-50%);
+    background:#fff; color:#5b3d8f; font-size:28px; font-weight:800;
+    padding:14px 28px; border-radius:24px; box-shadow:0 6px 18px #0003;
+    opacity:0; transition:opacity .3s; }
+  #toast.on { opacity:1; }
+  #hint { position:absolute; left:50%; bottom:20px; transform:translateX(-50%);
+    color:#fff; font-size:15px; text-shadow:0 1px 3px #0006; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<!-- 캐릭터 선택 화면 -->
+<div id="select" class="screen on">
+  <h1>누구랑 놀까?</h1>
+  <div class="row">
+    <button class="arrow" id="prev">◀</button>
+    <canvas id="charStage"></canvas>
+    <button class="arrow" id="next">▶</button>
+  </div>
+  <div id="charName">하나</div>
+  <button id="playBtn">이 친구로 놀기!</button>
+</div>
+
+<!-- 게임 HUD -->
+<div id="hud">
+  <button id="bookBtn">📖</button>
+  <button id="hi">👋</button>
+  <div id="toast"></div>
+  <div id="hint">방향키로 움직이고, 스페이스로 인사해요</div>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
