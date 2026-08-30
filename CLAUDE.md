@@ -50,3 +50,16 @@ Three.js는 `index.html`의 importmap에서 CDN으로 불러온다.
 현재 진행 상황은 `docs/진행상황.md`에 기록한다 (없으면 만든다).
 새 세션을 시작하면 그 파일을 먼저 읽고, 다음 Phase만 진행한다.
 여러 Phase를 한 번에 하지 않는다.
+
+## 멀티 에이전트로 계속 업그레이드하기
+자세한 설명은 `docs/멀티에이전트.md`에 있다.
+
+- 다음에 만들 것은 `docs/작업큐.md`에 있다. 아이 요청은 그 파일 맨 위에 적는다.
+- `/업그레이드` 슬래시 커맨드가 한 사이클(기획 → 구현 → 검수 → 실행검사 → 커밋)을 돈다.
+- **에이전트마다 고칠 수 있는 파일이 정해져 있다. 넘어가지 않는다.**
+  - `character-artist` → `src/characters.js`, `src/character-*.js`
+  - `world-builder` → `src/world.js`, `src/playground.js`, `src/sky.js`
+  - `gameplay-ui` → `src/main.js`, `player.js`, `npcs.js`, `ui.js`, `save.js`, `index.html`
+  - `rule-reviewer`, `qa-runner`는 **코드를 고치지 않는다.** 판정만 한다.
+- 한 사이클 = 작업 하나 = 커밋 하나. 여러 개를 한 번에 하지 않는다.
+- 만든 사람이 자기 코드를 검사하지 않는다. 검수는 항상 다른 에이전트가 한다.
