@@ -6,7 +6,7 @@
 //  ★ 움직이는 물건은 group.userData.tick = (t) => {…} 에 적어둔다.
 // ===========================================================
 import * as THREE from 'three';
-import { C, part, glow, toon, makeHeart } from './castle-props.js';
+import { C, part, glow, toon, canvasTex, makeHeart } from './castle-props.js';
 
 // -----------------------------------------------------------
 //  👑 왕관 — 왕좌에 앉으면 머리 위로 내려온다
@@ -32,7 +32,8 @@ export function makeBed() {
   const g = new THREE.Group();
   g.add(part('box', C.wood,  0, 0.5, 0, 6.4, 1.0, 8.4));          // 침대 틀
   g.add(part('box', C.cream, 0, 1.25, 0, 6.0, 0.6, 8.0));         // 매트리스
-  g.add(part('box', C.pink,  0, 1.6, 0.8, 6.1, 0.3, 6.2));        // 이불
+  const quilt = part('box', C.pink, 0, 1.6, 0.7, 6.1, 0.3, 6.4);  // 이불 (베개 쪽까지 덮는다)
+  g.add(quilt);
   for (const s of [-1, 1]) {
     g.add(part('box', C.cream, s * 1.5, 1.75, -2.9, 2.4, 0.5, 1.6));   // 베개
   }
@@ -47,6 +48,112 @@ export function makeBed() {
   const heart = makeHeart(C.red, 0.9);
   heart.position.set(0, 6.9, 0);
   g.add(heart);
+  g.userData.quilt = quilt;      // 잠잘 때 이불을 끌어올린다 (castle-rides.js)
+  return g;
+}
+
+// -----------------------------------------------------------
+//  📖 책상과 의자 — 앉아서 공부한다
+//     +z 쪽에 의자가 있다. 앉으면 책상(-z)을 바라본다.
+//     의자 방석 높이 = CHAIR_Y, 의자 자리 = 책상에서 +z로 CHAIR_Z
+// -----------------------------------------------------------
+export const CHAIR_Y = 1.15;
+export const CHAIR_Z = 1.9;
+
+export function makeDesk() {
+  const g = new THREE.Group();
+
+  // 책상
+  g.add(part('box', C.wood, 0, 1.5, 0, 5.2, 0.3, 2.6));            // 상판
+  g.add(part('box', C.woodDark, 0, 1.62, 0, 5.4, 0.1, 2.8));
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    g.add(part('cyl', C.woodDark, sx * 2.2, 0.68, sz * 0.95, 0.34, 1.35, 0.34));
+  }
+  g.add(part('box', C.wood, 1.5, 1.05, 0, 1.9, 0.7, 2.2));         // 서랍
+  g.add(part('ball', C.gold, 1.5, 1.05, 1.15, 0.28));              // 손잡이
+
+  // 펼쳐진 공책 두 장
+  for (const sx of [-1, 1]) {
+    const page = part('box', C.cream, -0.7 + sx * 0.62, 1.68, 0.15, 1.2, 0.06, 1.5);
+    page.rotation.z = sx * -0.06;
+    g.add(page);
+  }
+  for (let i = 0; i < 3; i++) {                                    // 공책 줄
+    g.add(part('box', 0xb9a4e8, -0.7, 1.72, -0.3 + i * 0.35, 2.2, 0.02, 0.06));
+  }
+
+  // 연필꽂이와 연필
+  g.add(part('cyl', C.mint, 1.75, 1.95, -0.7, 0.7, 0.7, 0.7));
+  const pencils = [0xffd45e, 0xff7a9c, 0x8fd0ff];
+  for (let i = 0; i < 3; i++) {
+    const pen = part('cyl', pencils[i], 1.75 + (i - 1) * 0.18, 2.5, -0.7, 0.14, 1.5, 0.14);
+    pen.rotation.z = (i - 1) * 0.12;
+    g.add(pen);
+  }
+
+  // 책상 램프 (공부할 때 밝아진다)
+  g.add(part('cyl', C.goldDark, -1.9, 1.75, -0.8, 0.8, 0.2, 0.8));
+  const pole = part('cyl', C.goldDark, -1.9, 2.4, -0.75, 0.16, 1.4, 0.16);
+  pole.rotation.x = 0.2;
+  g.add(pole);
+  const shade = part('cone', C.mint, -1.9, 3.1, -0.55, 1.3, 1.0, 1.3);
+  shade.rotation.x = Math.PI + 0.35;
+  g.add(shade);
+  const bulb = part('ball', 0xfff3c8, -1.9, 2.85, -0.45, 0.55, 0.45, 0.55, glow(0xfff3c8));
+  bulb.castShadow = false;
+  g.add(bulb);
+
+  // 의자
+  const chair = new THREE.Group();
+  chair.position.z = CHAIR_Z;
+  chair.add(part('box', C.pink, 0, CHAIR_Y - 0.1, 0, 2.0, 0.3, 1.9));   // 방석
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    chair.add(part('cyl', C.wood, sx * 0.75, 0.5, sz * 0.7, 0.3, 1.0, 0.3));
+  }
+  chair.add(part('box', C.wood, 0, 2.0, 0.9, 2.0, 2.0, 0.25));          // 등받이
+  chair.add(part('ball', C.gold, 0, 3.05, 0.9, 0.45));
+  g.add(chair);
+
+  g.userData.bulb = bulb;     // 공부할 때 밝아진다 (castle-rides.js가 움직인다)
+  return g;
+}
+
+// -----------------------------------------------------------
+//  ✨ 두둥실 떠오르는 글자 (잠잘 때 Z, 공부할 때 숫자)
+//     userData.play(t, 켤까?) 로 켜고 끈다
+// -----------------------------------------------------------
+export function makeFloaters(texts, color = '#fff6c0', size = 1.2) {
+  const g = new THREE.Group();
+  const items = [];
+  for (let i = 0; i < texts.length; i++) {
+    const tex = canvasTex(128, (ctx, s) => {
+      ctx.font = 'bold 96px "Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 12; ctx.strokeStyle = 'rgba(60,40,90,0.55)';
+      ctx.strokeText(texts[i], s / 2, s / 2);
+      ctx.fillStyle = color;
+      ctx.fillText(texts[i], s / 2, s / 2);
+    });
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: tex, transparent: true, depthWrite: false,
+    }));
+    sp.renderOrder = 12;
+    g.add(sp);
+    items.push(sp);
+  }
+  g.visible = false;
+
+  g.userData.play = (t, on) => {
+    g.visible = on;
+    if (!on) return;
+    for (let i = 0; i < items.length; i++) {
+      const u = (t * 0.4 + i / items.length) % 1;          // 0 → 1을 되풀이
+      items[i].position.set(Math.sin((u + i) * 2.6) * 0.6, u * 2.8, 0);
+      items[i].material.opacity = Math.sin(u * Math.PI) * 0.95;
+      const k = size * (0.55 + u * 0.8);
+      items[i].scale.set(k, k, 1);
+    }
+  };
   return g;
 }
 

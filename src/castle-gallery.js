@@ -17,7 +17,9 @@ import { C, part, makeHeart } from './castle-props.js';
 const STAND_H   = 1.02;    // 받침대 높이 (친구는 이 위에 선다)
 const REACH     = 2.4;     // 이만큼 가까이 가면 '부르기' 버튼이 나온다
 // 어디에 줄을 세울지는 castle-interior.js가 정해준다 (기본값은 아래)
-const DEFAULTS = { wallX: -32.4, rowHalf: 14, zCenter: -2 };
+//   gap     : 친구와 친구 사이 간격 ← 다닥다닥 붙으면 이 값을 키운다
+//   maxHalf : 줄이 아무리 길어도 이 길이(절반)를 넘지 않는다 (벽을 넘지 않게)
+const DEFAULTS = { wallX: -32.4, gap: 3.0, maxHalf: 19, zCenter: -4 };
 
 // -----------------------------------------------------------
 //  이름표 (Canvas 글씨 → 항상 화면을 바라보는 스프라이트)
@@ -47,7 +49,7 @@ function nameSprite(text) {
 // -----------------------------------------------------------
 /**
  * playerCharId : 지금 내가 고른 캐릭터 (나 자신은 진열대에서 빼둔다)
- * opts          : { wallX, rowHalf, zCenter } — 줄을 세울 자리
+ * opts          : { wallX, gap, maxHalf, zCenter } — 줄을 세울 자리와 간격
  * 돌려주는 것 —
  *   group     : 화면에 넣을 3D 덩어리
  *   obstacles : 부딪히는 자리 (받침대)
@@ -55,15 +57,19 @@ function nameSprite(text) {
  *   update(t) : 매 프레임 — 서 있는 친구들을 둥실둥실 움직인다
  */
 export function buildGallery(playerCharId, opts = {}) {
-  const { wallX: WALL_X, rowHalf: ROW_HALF, zCenter: ROW_Z } = { ...DEFAULTS, ...opts };
+  const { wallX: WALL_X, gap: GAP, maxHalf: MAX_HALF, zCenter: ROW_Z } =
+    { ...DEFAULTS, ...opts };
   const defs = CHARACTERS.filter(c => c.type === 'model' && c.id !== playerCharId);
+  // 친구 수에 맞춰 줄 길이를 정한다. 친구가 많아지면 간격이 좁아지지만
+  // 줄이 벽을 넘어가지는 않는다 (maxHalf에서 멈춘다)
+  const ROW_HALF = Math.min(MAX_HALF, Math.max(1, (defs.length - 1) * GAP / 2));
   const group = new THREE.Group();
   const obstacles = [];
   const spots = [];
   const statues = [];
 
   // 진열대 앞에 깔린 붉은 융단
-  const carpet = part('box', C.red, WALL_X + 0.8, 0.05, ROW_Z, 5.6, 0.1, ROW_HALF * 2 + 4);
+  const carpet = part('box', C.red, WALL_X + 0.8, 0.05, ROW_Z, 5.6, 0.1, ROW_HALF * 2 + 3);
   carpet.castShadow = false;
   group.add(carpet);
 

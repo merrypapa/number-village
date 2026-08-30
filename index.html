@@ -130,6 +130,9 @@
           width:92px; height:92px; font-size:24px; font-weight:800;
           background:#ffd93d; color:#7a4a00; box-shadow:0 6px 0 #d9a800;
           display:none; }
+  /* 글자가 길면(공부하기·일어나기) 글씨를 줄여서 동그라미 안에 넣는다 */
+  #ride[data-len="4"] { font-size:19px; }
+  #ride[data-len="5"] { font-size:16px; }
   #hi:active   { transform:translateY(4px); box-shadow:0 2px 0 #e0518f; }
   #jump:active { transform:translateY(4px); box-shadow:0 2px 0 #3aa9e0; }
   #ride:active { transform:translateY(4px); box-shadow:0 2px 0 #d9a800; }
@@ -154,6 +157,8 @@
              bottom:calc(124px + env(safe-area-inset-bottom)); }
     #ride  { width:74px;  height:74px;  font-size:20px;
              bottom:calc(212px + env(safe-area-inset-bottom)); }
+    #ride[data-len="4"] { font-size:15px; }
+    #ride[data-len="5"] { font-size:13px; }
   }
   /* 공간이 바뀔 때 화면을 잠깐 덮는 막 (성에 들어가고 나올 때) */
   #fade { position:fixed; inset:0; z-index:30; background:#fff;

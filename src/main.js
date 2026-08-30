@@ -60,11 +60,25 @@ const select = createSelectScreen(def => startGame(def));
 const title = createTitleScreen(renderer, envMap);
 let onTitle = true;
 
+/**
+ * 화면이 바뀔 때 새 화면의 버튼을 잠깐(0.4초) 막는다.
+ *  ★ 손가락을 한 번 눌렀을 뿐인데 두 화면이 연달아 넘어가던 문제를 막는다.
+ *    (누르는 순간 pointerdown으로 화면을 바꾸면, 손가락을 뗄 때 생기는 click을
+ *     그 자리에 새로 나타난 버튼이 받아버린다 — 폰·태블릿에서 특히 잘 생긴다)
+ */
+function blockTaps(el, ms = 400) {
+  el.style.pointerEvents = 'none';
+  setTimeout(() => { el.style.pointerEvents = ''; }, ms);
+}
+
 function leaveTitle() {
   if (!onTitle) return;
   onTitle = false;
   document.getElementById('title').classList.remove('on');
-  document.getElementById('pick').classList.add('on');
+  const pick = document.getElementById('pick');
+  pick.classList.add('on');
+  blockTaps(pick);                     // 친구 카드가 곧바로 눌리지 않게
+  select.lock();                       // (기기에 따라 위 방법이 안 통할 때를 대비)
 }
 document.getElementById('title').addEventListener('pointerdown', leaveTitle);
 addEventListener('keydown', e => {
@@ -82,6 +96,7 @@ let charId = null;
 // -----------------------------------------------------------
 //  공간(area) — 마을과 성 안. 문으로 오간다.
 //  공간 하나는 { scene, spawn, collide, isBlocked, update, rides, doors } 모양이다.
+//  성 안처럼 층이 있는 공간은 groundY(x, z, 지금높이)도 있다 (계단·2층).
 //  성 안처럼 층이 있는 공간은 groundY(x, z, 지금높이)도 있다 (계단·2층).
 //  성 안은 처음 들어갈 때 한 번만 만든다 (처음 로딩을 빠르게).
 // -----------------------------------------------------------
@@ -149,14 +164,18 @@ let actionLabel = '';
 
 function updateActionButton() {
   let want = '';                                   // 빈 글씨면 버튼을 숨긴다
-  if (player.ride) want = player.ride.autoEnd ? '' : '내리기';   // 미끄럼틀은 끝까지 탄다
-  else if (player.nearRide) want = '타기';
+  //  놀이기구가 verb / offVerb를 적어두면 그 말을 쓴다 (잠자기·공부하기 등)
+  if (player.ride) want = player.ride.autoEnd ? '' : (player.ride.offVerb || '내리기');
+  else if (player.nearRide) want = player.nearRide.verb || '타기';
   else if (player.nearSpot) want = player.nearSpot.npc ? '보내기' : '부르기';
 
   if (want === actionLabel) return;                // 바뀔 때만 손댄다
   actionLabel = want;
   actionBtn.style.display = want ? 'flex' : 'none';
-  if (want) actionBtn.textContent = want;
+  if (want) {
+    actionBtn.textContent = want;
+    actionBtn.dataset.len = String(want.length);   // 긴 글씨는 CSS가 작게 줄인다
+  }
 }
 
 // -----------------------------------------------------------

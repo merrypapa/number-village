@@ -19,111 +19,30 @@ import {
   makeCandleStand, makePlant, makeNumberBlocks, makeBalloons, makeRockingHorse,
 } from './castle-props.js';
 import {
-  makeCrown, makeBed, makeTelescope, makeTreasureChest, makeGoldPile,
+  makeCrown, makeBed, makeDesk, makeTelescope, makeTreasureChest, makeGoldPile,
   makeChandelier, makeBanner, makeArmorStand, makeStarMap, makeCushion,
   makeCastleSlide,
 } from './castle-props2.js';
 import {
-  HALF_X, HALF_Z, HEIGHT, FLOOR2, F1, F2, ROOMS, SLIDE_GAP,
+  HALF_X, HALF_Z, HEIGHT, FLOOR2, F1, F2, ROOMS,
   groundY, buildStructure,
 } from './castle-layout.js';
 import { buildShell, buildSparkles } from './castle-shell.js';
 import { buildGallery } from './castle-gallery.js';
+import {
+  SLIDE, makeThroneRide, makeRockingHorseRide, makeSlideRide,
+  makeBedRide, makeDeskRide,
+} from './castle-rides.js';
 
 // -----------------------------------------------------------
-//  ★ 아이랑 같이 바꿔볼 값
+//  ★ 아이랑 같이 바꿔볼 값 — 물건을 놓는 자리
+//    (타는 방법·앉는 자세는 src/castle-rides.js에 있다)
 // -----------------------------------------------------------
-const THRONE = { x: 0, z: -34 };   // 왕좌가 있는 자리
-const SEAT_Y = 2.9;                // 왕좌 방석 높이 (castle-props.js의 왕좌와 맞춘다)
-const HORSE  = { x: 27, z: 34 };   // 흔들목마 자리 (파티방)
-const HORSE_Y = 2.6;               // 흔들목마 안장 높이
-
-// 🛝 2층 → 1층 미끄럼틀 (남쪽 블록 난간 틈에서 홀로 내려온다)
-const SLIDE = { x: (SLIDE_GAP.x0 + SLIDE_GAP.x1) / 2, z: SLIDE_GAP.z, len: 12, bottom: 0.6 };
-
-// -----------------------------------------------------------
-//  👑 왕좌에 앉기 — 앉으면 왕관이 머리 위로 내려온다
-// -----------------------------------------------------------
-function makeThroneRide(x, z, crown) {
-  const ride = {
-    kind: 'throne', label: '왕좌에 앉았어요! 👑',
-    enter: { x, z: z + 6.2 }, exit: { x, z: z + 6.6 },
-    duration: 30, autoEnd: false, rider: null,
-    pose(t, o) {
-      o.x = x; o.z = z - 1.0;
-      o.y = SEAT_Y + Math.sin(t * 1.6) * 0.05;
-      o.yaw = Math.sin(t * 0.7) * 0.12;
-      o.tilt = -0.04;
-      return o;
-    },
-  };
-  // 왕관 — 아무도 안 앉으면 등받이 위에서 빙글빙글, 앉으면 머리 위로 내려온다
-  ride.crownTick = (t) => {
-    if (ride.rider) {
-      // 앉은 친구 머리 크기에 맞춰 왕관도 커지고 작아진다
-      const h = ride.rider.userData.height || 1.8;
-      crown.scale.setScalar(h * 0.42);
-      crown.position.set(x, SEAT_Y + h + 0.05 + Math.sin(t * 1.6) * 0.05, z - 1.0);
-      crown.rotation.y = ride.rider.rotation.y;
-    } else {
-      crown.scale.setScalar(1);
-      crown.position.set(x, 9.6 + Math.sin(t * 1.2) * 0.15, z - 2.7);
-      crown.rotation.y = t * 0.4;
-    }
-  };
-  return ride;
-}
-
-// -----------------------------------------------------------
-//  🐴 흔들목마 타기
-// -----------------------------------------------------------
-function makeRockingHorseRide(x, z) {
-  return {
-    kind: 'rocking', label: '흔들목마를 타요! 🐴',
-    enter: { x: x + 3.2, z }, exit: { x: x + 3.6, z },
-    duration: 12, autoEnd: false, rider: null,
-    pose(t, o) {
-      const swing = Math.sin(t * 1.8) * 0.13;      // 목마와 똑같은 각도로 흔들린다
-      o.x = x;
-      o.z = z + HORSE_Y * Math.sin(swing);
-      o.y = HORSE_Y * Math.cos(swing);
-      o.yaw = 0;
-      o.tilt = swing;
-      return o;
-    },
-  };
-}
-
-// -----------------------------------------------------------
-//  🛝 2층에서 1층으로 내려오는 미끄럼틀
-//     -z 방향으로 내려간다. 다 내려오면 저절로 내린다.
-// -----------------------------------------------------------
-function makeSlideRide() {
-  const DUR = 3.6;
-  const top = FLOOR2 + 0.6;
-  const slope = Math.atan2(top - SLIDE.bottom, SLIDE.len);
-  return {
-    kind: 'slide', label: '2층에서 슝~ 내려가요! 🛝',
-    enter: { x: SLIDE.x, z: SLIDE.z + 2.4 }, enterY: FLOOR2,   // 2층 난간 틈 앞
-    exit:  { x: SLIDE.x, z: SLIDE.z - SLIDE.len - 4.5 },   // 1층 홀에 내려선다
-    duration: DUR, autoEnd: true, camBase: true, rider: null,
-    pose(t, o) {
-      const u = Math.min(1, Math.max(0, (t - 0.45) / (DUR - 1.15)));
-      const e = u * u;                             // 점점 빨라진다
-      o.x = SLIDE.x;
-      o.z = SLIDE.z - SLIDE.len * e;
-      o.y = top - (top - SLIDE.bottom) * e;
-      o.yaw = Math.PI;                             // 내려가는 쪽(-z)을 본다
-      o.tilt = u < 1 ? slope : 0;
-      if (u >= 1) {                                // 다 내려와서 폴짝
-        const b = Math.max(0, Math.sin((t - (DUR - 0.7)) * 4.5));
-        o.z -= 2.6 + b * 1.2;
-        o.y = SLIDE.bottom + b * 1.1;
-      }
-      return o;
-    },
-  };
-}
+const THRONE = { x: 0,   z: -34 };   // 👑 왕좌
+const HORSE  = { x: 27,  z: 34 };    // 🐴 흔들목마 (1층 파티방)
+const BED    = { x: 22,  z: 28 };    // 🛏 침대 (2층 공주 침실)
+const DESK   = { x: -32.4, z: 31 };  // 📖 책상 (2층 별 전망대 · 책장 옆)
+const SHELF2 = { x: -32.8, z: 24 };  // 📚 2층 책장
 
 // -----------------------------------------------------------
 //  성 안 공간 만들기
@@ -138,7 +57,8 @@ export function buildCastleInterior(envMap, playerCharId) {
   scene.environment = envMap || null;
 
   // 조명 — 따뜻하고 아늑하게
-  scene.add(new THREE.HemisphereLight(0xfff0f8, 0x8a6bd0, 1.2));
+  const hemi = new THREE.HemisphereLight(0xfff0f8, 0x8a6bd0, 1.2);
+  scene.add(hemi);
   const win = new THREE.DirectionalLight(0xfff2d0, 1.05);
   win.position.set(-40, 44, -18);
   win.castShadow = true;
@@ -214,7 +134,9 @@ export function buildCastleInterior(envMap, playerCharId) {
   place(makeBalloons([C.pink, 0xffd45e, 0x8fd0ff]), -11, -14);
 
   // 🧚 요정 친구 진열대 (서쪽 회랑) — 부르면 깨어나서 돌아다닌다
-  const gallery = buildGallery(playerCharId, { wallX: -32.4, rowHalf: 14, zCenter: -2 });
+  //  gap = 친구 사이 간격. 다닥다닥 붙지 않게 3칸씩 띄운다 (벽은 넘지 않는다)
+  const gallery = buildGallery(playerCharId,
+    { wallX: -32.4, gap: 3.4, maxHalf: 20, zCenter: -5 });
   scene.add(gallery.group);
   obstacles.push(...gallery.obstacles);
 
@@ -269,11 +191,12 @@ export function buildCastleInterior(envMap, playerCharId) {
   // 🪜 계단참 · 발코니 (동쪽 팔) — 깃발과 갑옷
   place(makeArmorStand(), 30, -16, Math.PI, { r: 1.1, ...F2 }, FLOOR2);
   place(makeArmorStand(), 19, -16, Math.PI, { r: 1.1, ...F2 }, FLOOR2);
-  place(makePlant(), 19, 10, 0, { r: 1.6, ...F2 }, FLOOR2);
+  //  ★ 발코니 통로 한가운데에는 아무것도 놓지 않는다 (길을 막으면 못 지나간다)
   hang(makeBanner(C.red), HALF_X - 0.4, FLOOR2 + 9.0, -13, -Math.PI / 2);
 
-  // 🛏 공주 침실 (2층 남동)
-  place(makeBed(), 22, 28, Math.PI, { hw: 3.4, hd: 4.4, ...F2 }, FLOOR2);
+  // 🛏 공주 침실 (2층 남동) — 침대 옆에서 '잠자기'를 누르면 누워서 잔다
+  const bed = makeBed();
+  place(bed, BED.x, BED.z, Math.PI, { hw: 3.4, hd: 4.4, ...F2 }, FLOOR2);
   const bedRug = part('cyl', C.violet, 22, FLOOR2 + 0.05, 21, 7.0, 0.1, 7);
   bedRug.castShadow = false;
   scene.add(bedRug);
@@ -281,13 +204,18 @@ export function buildCastleInterior(envMap, playerCharId) {
   place(makePlant(), 31, 19, 0, { r: 1.6, ...F2 }, FLOOR2);
   place(makeBalloons([C.pink, C.violet, C.mint]), 12, 36, 0, null, FLOOR2);
 
-  // 🔭 별 전망대 (2층 남서)
-  place(makeTelescope(), -22, 32, 0, { r: 1.6, ...F2 }, FLOOR2);
-  hang(makeStarMap(), -HALF_X + 0.4, FLOOR2 + 4.5, 24, Math.PI / 2);
+  // 🔭 별 전망대 · 공부방 (2층 남서) — 책장 옆 책상에서 '공부하기'
+  place(makeTelescope(), -22, 34, 0, { r: 1.6, ...F2 }, FLOOR2);
+  hang(makeStarMap(), -HALF_X + 0.4, FLOOR2 + 4.6, 37, Math.PI / 2);
+  const shelf2 = makeBookshelf();
+  shelf2.scale.setScalar(0.8);
+  place(shelf2, SHELF2.x, SHELF2.z, Math.PI / 2, { hw: 1.2, hd: 3.4, ...F2 }, FLOOR2);
+  const desk = makeDesk();
+  place(desk, DESK.x, DESK.z, Math.PI / 2, { hw: 1.5, hd: 2.7, ...F2 }, FLOOR2);
   for (const [cx, cz] of [[-16, 26], [-20, 24], [-13, 22]]) {
     place(makeCushion(cz % 2 ? C.pink : C.violet), cx, cz, Math.random(), null, FLOOR2);
   }
-  place(makePlant(), -31, 19, 0, { r: 1.6, ...F2 }, FLOOR2);
+  place(makePlant(), -30, 19, 0, { r: 1.6, ...F2 }, FLOOR2);
 
   // 2층 가운데 복도 — 깃발
   hang(makeBanner(C.mint), -8.4, FLOOR2 + 6.4, 34, -Math.PI / 2);
@@ -305,14 +233,35 @@ export function buildCastleInterior(envMap, playerCharId) {
   const collider = createCollider(obstacles);
   const updateSparkles = buildSparkles(scene);
 
-  const throneRide = makeThroneRide(THRONE.x, THRONE.z, crown);
-  const rides = [throneRide, makeRockingHorseRide(HORSE.x, HORSE.z), makeSlideRide()];
+  const bedRide = makeBedRide(bed, BED.x, BED.z);
+  const rides = [
+    makeThroneRide(THRONE.x, THRONE.z, crown),
+    makeRockingHorseRide(HORSE.x, HORSE.z),
+    makeSlideRide(),
+    bedRide,
+    makeDeskRide(desk, DESK.x, DESK.z, Math.PI / 2),
+  ];
+  // 놀이기구가 화면에 넣을 것을 들고 있으면 같이 넣는다 (떠오르는 Z, 숫자)
+  for (const r of rides) for (const p of r.parts || []) scene.add(p);
+
+  // 🌙 침대에서 자면 성 안이 스르륵 어두워진다 (bedRide.sleep = 0 → 1)
+  const NIGHT = new THREE.Color(0x140d24);
+  const DAY = new THREE.Color(0x3b2a5e);
+  const moon = new THREE.PointLight(0xbcd8ff, 0, 26, 2);
+  moon.position.set(BED.x, FLOOR2 + 7, BED.z);
+  scene.add(moon);
 
   function update(dt, t) {
     for (const tick of ticks) tick(t, dt);
-    throneRide.crownTick(t);
+    for (const r of rides) r.tick?.(t, dt);
     gallery.update(t);          // 진열대에 서 있는 친구들이 둥실둥실
     updateSparkles(dt, t);
+
+    const sleep = bedRide.sleep;
+    hemi.intensity = 1.2 * (1 - sleep * 0.82);
+    win.intensity  = 1.05 * (1 - sleep * 0.9);
+    moon.intensity = sleep * 1.5;                  // 자는 친구만 은은하게 비춘다
+    scene.background.copy(DAY).lerp(NIGHT, sleep);
   }
 
   return {

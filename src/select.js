@@ -37,6 +37,17 @@ export function createSelectScreen(onPlay) {
 
   // --- 크게 보기용 작은 3D 무대 ---
   const stage = document.getElementById('charStage');
+
+  // -----------------------------------------------------------
+  //  화면이 막 바뀐 뒤 0.4초 동안은 버튼을 못 누르게 한다.
+  //  ★ 한 번 눌렀을 뿐인데 두 화면이 연달아 넘어가던 문제를 막는다.
+  //    (누르는 순간 화면이 바뀌면, 손가락을 뗄 때 생기는 click을
+  //     그 자리에 새로 나타난 버튼이 받아버리는 기기가 있다)
+  // -----------------------------------------------------------
+  const LOCK_MS = 400;
+  let lockUntil = 0;
+  const lock = (ms = LOCK_MS) => { lockUntil = performance.now() + ms; };
+  const locked = () => performance.now() < lockUntil;
   const renderer = new THREE.WebGLRenderer({ canvas: stage, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   const scene = new THREE.Scene();
@@ -77,7 +88,7 @@ export function createSelectScreen(onPlay) {
     label.textContent = def.name;
 
     card.append(img, label);
-    card.onclick = () => showPreview(i);
+    card.onclick = () => { if (!locked()) showPreview(i); };
     grid.append(card);
   });
 
@@ -85,6 +96,7 @@ export function createSelectScreen(onPlay) {
   //  2) 크게 보기
   // -----------------------------------------------------------
   function showPreview(i) {
+    lock();                       // 방금 누른 손가락이 다음 화면 버튼까지 누르지 않게
     pickIndex = (i + CHARACTERS.length) % CHARACTERS.length;
     const def = CHARACTERS[pickIndex];
 
@@ -103,6 +115,7 @@ export function createSelectScreen(onPlay) {
   }
 
   function backToGrid() {
+    lock();
     prevScreen.classList.remove('on');
     pickScreen.classList.add('on');
   }
@@ -111,6 +124,7 @@ export function createSelectScreen(onPlay) {
   document.getElementById('prev').onclick = () => showPreview(pickIndex - 1);
   document.getElementById('next').onclick = () => showPreview(pickIndex + 1);
   document.getElementById('playBtn').onclick = () => {
+    if (locked()) return;
     pickScreen.classList.remove('on');
     prevScreen.classList.remove('on');
     onPlay(CHARACTERS[pickIndex]);
@@ -134,5 +148,5 @@ export function createSelectScreen(onPlay) {
   }
 
   resize();
-  return { update, resize, backToGrid };
+  return { update, resize, backToGrid, lock };
 }

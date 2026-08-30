@@ -133,8 +133,10 @@ export function createPlayer(model, camera, world) {
    */
   function followCamera(dt, base, lift) {
     // 성 안처럼 좁은 곳은 카메라를 더 가까이 붙인다 (벽이나 가구를 뚫고 나가지 않게)
-    const dist = area.camDist ?? CAM_DIST;
-    const height = area.camHeight ?? CAM_HEIGHT;
+    //  놀이기구가 camDist/camHeight를 적어두면 타는 동안 그 값을 쓴다
+    //  (침대는 천개(지붕)에 가리지 않게 카메라를 낮춘다)
+    const dist = ride?.camDist ?? area.camDist ?? CAM_DIST;
+    const height = ride?.camHeight ?? area.camHeight ?? CAM_HEIGHT;
     _camTarget.set(
       model.position.x - Math.sin(camYaw) * dist,
       height + base + lift * CAM_FOLLOW,
@@ -143,7 +145,7 @@ export function createPlayer(model, camera, world) {
     camera.position.lerp(_camTarget, Math.min(1, 6 * dt));
     // 조금 위를 보게 해서 하늘(고래)도 보이게 한다
     _look.set(model.position.x,
-              (area.lookHeight ?? LOOK_HEIGHT) + base + lift * CAM_FOLLOW * 2,
+              (ride?.lookHeight ?? area.lookHeight ?? LOOK_HEIGHT) + base + lift * CAM_FOLLOW * 2,
               model.position.z);
     camera.lookAt(_look);
   }
