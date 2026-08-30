@@ -139,13 +139,15 @@ function makeBubbleSprite() {
 //  나무나 집 안쪽은 피해서 고른다. out 벡터에 담아준다.
 // -----------------------------------------------------------
 function pickSpot(world, out) {
+  // 공간마다 넓이가 다르다 (마을은 넓고, 성 안은 좁다 → world.wanderRadius)
+  const radius = world.wanderRadius ?? WANDER_RADIUS;
   for (let i = 0; i < 15; i++) {
     const a = Math.random() * Math.PI * 2;
-    const r = WANDER_RADIUS * Math.sqrt(Math.random());
+    const r = radius * Math.sqrt(Math.random());
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
     if (!world.isBlocked(x, z, NPC_RADIUS)) return out.set(x, 0, z);
   }
-  return out.set(0, 0, 18);   // 못 찾으면 광장 근처로
+  return out.copy(world.spawn);   // 못 찾으면 처음 서는 자리로
 }
 
 // -----------------------------------------------------------

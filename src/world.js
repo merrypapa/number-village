@@ -11,6 +11,14 @@ export const WORLD_RADIUS = 90;   // 마을 반지름 (밖으로 못 나감)
 // 놀이터가 놓일 자리 ← 아이가 옮기고 싶으면 여기 숫자만 바꾸면 된다
 const PLAYGROUND_POS = { x: 42, z: 40 };
 
+// 🏰 성 정문 앞 — 여기에 서면 성 안으로 들어간다 (castle-interior.js가 안쪽을 만든다)
+const CASTLE_DOOR = { z: -35.5 };
+
+// 친구들 집 6채가 서는 방향(라디안)과 거리
+//  ★ 북쪽(성 입구, 약 4.7)과 남쪽(우리 집, 약 1.6)은 비워둔다
+const FRIEND_HOUSES = [0.4, 1.0, 2.5, 3.2, 3.9, 5.9];
+const FRIEND_DIST = 38;
+
 const M = {
   grass:  new THREE.MeshToonMaterial({ color: 0x9fe08a }),
   path:   new THREE.MeshToonMaterial({ color: 0xf3e0c0 }),
@@ -100,6 +108,38 @@ function makeFountain() {
   return g;
 }
 
+// --- 성 입구 표시 — 여기로 들어가면 된다고 알려주는 융단과 등불 ---
+function makeCastleEntrance(z) {
+  const g = new THREE.Group();
+
+  // 문 앞까지 이어지는 분홍 융단
+  const carpet = mesh(G.box, M.roofA, 0, 0.06, z + 1.5, 7, 0.12, 13);
+  carpet.castShadow = false;
+  g.add(carpet);
+  g.add(mesh(G.box, M.flag, 0, 0.1, z + 1.5, 4.2, 0.12, 11.6));   // 가운데 금색 길
+
+  // 양쪽 등불 기둥 (밤이 아니어도 반짝반짝 보이게 밝은 재질)
+  //  ★ 성에서 나올 때 카메라를 가리지 않도록 융단 바깥쪽(x = ±5)에 세운다
+  const lampMat = new THREE.MeshBasicMaterial({ color: 0xfff0a8 });
+  for (const sx of [-1, 1]) {
+    for (let i = 0; i < 2; i++) {
+      const x = sx * 5, lz = z + 1 + i * 6;
+      g.add(mesh(G.cyl, M.wall, x, 1.6, lz, 0.5, 3.2, 0.5));
+      const bulb = new THREE.Mesh(G.ball, lampMat);
+      bulb.position.set(x, 3.6, lz);
+      bulb.scale.setScalar(1.1);
+      g.add(bulb);
+      g.add(mesh(G.cone, M.roofB, x, 4.4, lz, 1.4, 1.1, 1.4));
+    }
+  }
+
+  // 성 문 위에 붙은 하트 세 개 (여기가 입구라고 알려준다)
+  for (let i = 0; i < 3; i++) {
+    g.add(mesh(G.ball, M.roofA, (i - 1) * 2.2, 9 - Math.abs(i - 1) * 0.8, -40.5, 0.9));
+  }
+  return g;
+}
+
 // -----------------------------------------------------------
 //  부딪히기 (충돌)
 //  장애물은 두 가지 모양만 쓴다:
@@ -125,6 +165,30 @@ function pushOut(o, pos, radius) {
   if (d < 0.001) { pos.x += min; return; }        // 정확히 한가운데면 옆으로 살짝
   pos.x = o.x + (dx / d) * min;
   pos.z = o.z + (dz / d) * min;
+}
+
+// -----------------------------------------------------------
+//  장애물 목록 하나로 "부딪히기" 함수 두 개를 만든다.
+//  마을(world.js)과 성 안(castle-interior.js)이 똑같이 쓴다.
+// -----------------------------------------------------------
+export function createCollider(obstacles) {
+  return {
+    /** 장애물을 뚫고 들어갔으면 바깥으로 밀어낸다. pos는 그 자리에서 고쳐진다. */
+    collide(pos, radius) {
+      for (const o of obstacles) pushOut(o, pos, radius);
+    },
+    /** (x, z)가 장애물 안이면 true — NPC를 세울 자리를 고를 때 쓴다. */
+    isBlocked(x, z, radius) {
+      for (const o of obstacles) {
+        if (o.hw !== undefined) {
+          if (Math.abs(x - o.x) < o.hw + radius && Math.abs(z - o.z) < o.hd + radius) return true;
+        } else if (Math.hypot(x - o.x, z - o.z) < o.r + radius) {
+          return true;
+        }
+      }
+      return false;
+    },
+  };
 }
 
 // -----------------------------------------------------------
@@ -162,6 +226,12 @@ export function buildWorld(scene) {
   obstacles.push({ x: 0, z: -48, hw: 13.5, hd: 10.5 });
   reserved.push({ x: 0, z: -48, r: 22 });
 
+  // 성 입구 (융단 + 등불) — 여기 서면 성 안으로 들어간다
+  scene.add(makeCastleEntrance(CASTLE_DOOR.z));
+  for (const sx of [-1, 1]) for (let i = 0; i < 2; i++) {
+    obstacles.push({ x: sx * 5, z: CASTLE_DOOR.z + 1 + i * 6, r: 0.7 });   // 등불 기둥
+  }
+
   // 우리 집 (남쪽) — 아이가 색을 고를 수 있게 roofC
   const home = makeHouse(M.roofC, 7, 4.5, 7);
   home.position.set(0, 0, 34);
@@ -172,10 +242,10 @@ export function buildWorld(scene) {
 
   // 친구들 집 6채 (광장 둘레)
   const roofs = [M.roofA, M.roofB, M.roofC];
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2 + 0.5;
+  for (let i = 0; i < FRIEND_HOUSES.length; i++) {
+    const a = FRIEND_HOUSES[i];
     const h = makeHouse(roofs[i % 3]);
-    const hx = Math.cos(a) * 38, hz = Math.sin(a) * 38;
+    const hx = Math.cos(a) * FRIEND_DIST, hz = Math.sin(a) * FRIEND_DIST;
     h.position.set(hx, 0, hz);
     h.rotation.y = -a + Math.PI / 2;
     scene.add(h);
@@ -213,22 +283,7 @@ export function buildWorld(scene) {
   // 하늘 (구름 + 고래)
   const sky = buildSky(scene);
 
-  /** 장애물을 뚫고 들어갔으면 바깥으로 밀어낸다. pos는 그 자리에서 고쳐진다. */
-  function collide(pos, radius) {
-    for (const o of obstacles) pushOut(o, pos, radius);
-  }
-
-  /** (x, z)가 장애물 안이면 true — NPC를 세울 자리를 고를 때 쓴다. */
-  function isBlocked(x, z, radius) {
-    for (const o of obstacles) {
-      if (o.hw !== undefined) {
-        if (Math.abs(x - o.x) < o.hw + radius && Math.abs(z - o.z) < o.hd + radius) return true;
-      } else if (Math.hypot(x - o.x, z - o.z) < o.r + radius) {
-        return true;
-      }
-    }
-    return false;
-  }
+  const { collide, isBlocked } = createCollider(obstacles);
 
   /** 매 프레임 움직이는 것들 (구름, 고래, 그네, 시소) */
   function update(dt, t) {
@@ -238,8 +293,17 @@ export function buildWorld(scene) {
 
   // rides = 캐릭터가 탈 수 있는 놀이기구 목록 (그네 2개 + 미끄럼틀). src/rides.js가 쓴다.
   return {
+    name: 'village',
+    scene,
     spawn: new THREE.Vector3(0, 0, 14),
+    yaw: 0,
+    bounds: 88,                // 마을 밖으로 못 나가는 원의 반지름
     home, collide, isBlocked, update,
     rides: playground.rides,
+    // 🏰 성 정문 앞에 서면 성 안으로 들어간다 (main.js가 확인한다)
+    doors: [{
+      x: 0, z: CASTLE_DOOR.z, r: 4.5, to: 'castle',
+      label: '성 안으로 들어왔어요! 🏰',
+    }],
   };
 }

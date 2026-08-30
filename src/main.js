@@ -9,6 +9,7 @@ import { createPlayer } from './player.js';
 import { createNPCs } from './npcs.js';
 import { makeStudioEnv } from './environment.js';
 import { setupTouchControls } from './touch.js';
+import { buildCastleInterior } from './castle-interior.js';
 
 // -----------------------------------------------------------
 //  렌더러 / 씬 / 카메라
@@ -38,7 +39,8 @@ sun.shadow.camera.far = 200;
 scene.add(sun);
 
 // 반질반질한 재질에 스튜디오 반사광을 준다 (만화풍 재질에는 영향 없음)
-scene.environment = makeStudioEnv(renderer);
+const envMap = makeStudioEnv(renderer);
+scene.environment = envMap;
 
 const world = buildWorld(scene);
 
@@ -83,16 +85,38 @@ document.getElementById('playBtn').onclick = () => startGame(CHARACTERS[pickInde
 //  게임 시작
 // -----------------------------------------------------------
 let player = null;
-let npcs = null;
 let playing = false;
+let charId = null;
+
+// -----------------------------------------------------------
+//  공간(area) — 마을과 성 안. 문으로 오간다.
+//  공간 하나는 { scene, spawn, collide, isBlocked, update, rides, doors } 모양이다.
+//  성 안은 처음 들어갈 때 한 번만 만든다 (처음 로딩을 빠르게).
+// -----------------------------------------------------------
+const areas = { village: world };
+let area = world;                 // 지금 있는 공간
+let npcs = null;                  // 지금 공간의 친구들
+const areaNpcs = {};              // 공간마다 친구들을 따로 기억해 둔다
+
+function getArea(name) {
+  if (!areas[name]) {
+    if (name === 'castle') areas[name] = buildCastleInterior(envMap);
+  }
+  const a = areas[name];
+  if (!areaNpcs[name]) {
+    areaNpcs[name] = createNPCs(a.scene, charId, a, a.npcCount ?? undefined);
+  }
+  return a;
+}
 
 function startGame(def) {
+  charId = def.id;
   const model = createCharacter(def);
   model.traverse(o => { if (o.isMesh && !o.userData.noShadow) o.castShadow = true; });
   scene.add(model);
   player = createPlayer(model, camera, world);
   player.onMount = (ride) => toast(ride.label);   // '그네를 타요!' 같은 안내
-  npcs = createNPCs(scene, def.id, world);
+  npcs = areaNpcs.village = createNPCs(scene, def.id, world);
   setupTouchControls(player, sayHi);   // 가상 조이스틱 + 점프·인사·타기 버튼
 
   document.getElementById('select').classList.remove('on');
@@ -140,6 +164,40 @@ function updateRideButton() {
 }
 
 // -----------------------------------------------------------
+//  🚪 문 — 성 정문 앞에 서면 성 안으로, 성 안의 문으로 나오면 마을로
+//  화면을 잠깐 하얗게 덮었다가(fade) 새 공간을 보여준다.
+// -----------------------------------------------------------
+const fade = document.getElementById('fade');
+let doorArmed = false;      // 문에서 한 번 떨어져야 다시 들어갈 수 있다 (문 앞에서 무한 반복 방지)
+let moving = false;         // 지금 화면이 넘어가는 중인가
+
+function checkDoors() {
+  if (moving) return;
+  const p = player.model.position;
+  let hit = null;
+  for (const d of area.doors || []) {
+    if (Math.hypot(p.x - d.x, p.z - d.z) < d.r) { hit = d; break; }
+  }
+  if (!hit) { doorArmed = true; return; }     // 문에서 떨어졌다 → 다음에 또 들어갈 수 있다
+  if (!doorArmed) return;
+  goThroughDoor(hit);
+}
+
+function goThroughDoor(door) {
+  moving = true;
+  doorArmed = false;
+  fade.classList.add('on');
+  setTimeout(() => {
+    area = getArea(door.to);
+    npcs = areaNpcs[door.to];
+    player.moveTo(area, door.arrive, door.arriveYaw);
+    fade.classList.remove('on');
+    moving = false;
+    toast(door.label);
+  }, 320);
+}
+
+// -----------------------------------------------------------
 //  루프
 // -----------------------------------------------------------
 const clock = new THREE.Clock();
@@ -148,14 +206,15 @@ function loop() {
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
 
-  // 구름 흐르기, 하늘 고래, 그네·시소 움직이기
-  world.update(dt, t);
+  // 지금 있는 공간만 움직인다 (마을: 구름·고래·그네 / 성 안: 불꽃·반짝이·풍선)
+  area.update(dt, t);
 
   if (playing && player) {
     player.update(dt, t);
     npcs?.update(dt, t, player.model.position);
     updateRideButton();
-    renderer.render(scene, camera);
+    checkDoors();
+    renderer.render(area.scene, camera);
   } else {
     preview.rotation.y += dt * 0.7;
     preview.userData.update?.(t, false);

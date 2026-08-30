@@ -10,7 +10,7 @@ import { findFreeRide, mountRide, applyRide, dismountRide } from './rides.js';
 const WALK_SPEED = 12;      // 걷기 속도
 const RUN_SPEED  = 20;      // Shift 눌렀을 때
 const TURN_SPEED = 10;      // 몸이 도는 속도
-const CAM_DIST   = 14;      // 카메라 거리
+const CAM_DIST   = 14;      // 카메라 거리 (좁은 곳은 area.camDist로 더 가깝게 한다)
 const CAM_HEIGHT = 7;       // 카메라 높이
 const LOOK_HEIGHT = 4;      // 카메라가 바라보는 높이 (키우면 하늘이 더 보인다)
 const BODY_R     = 0.8;     // 몸 굵기 (이만큼 물건에서 떨어져 선다)
@@ -28,7 +28,9 @@ const _camTarget = new THREE.Vector3();
 const _look = new THREE.Vector3();
 
 export function createPlayer(model, camera, world) {
-  model.position.copy(world.spawn);
+  // 지금 있는 공간 (마을 / 성 안). moveTo로 갈아끼운다.
+  let area = world;
+  model.position.copy(area.spawn);
 
   const keys = new Set();
   let camYaw = 0;            // 카메라 좌우 각도
@@ -79,14 +81,18 @@ export function createPlayer(model, camera, world) {
 
   /** 카메라가 캐릭터 뒤를 따라간다. lift는 지금 얼마나 떠 있는지(점프·놀이기구). */
   function followCamera(dt, lift) {
+    // 성 안처럼 좁은 곳은 카메라를 더 가까이 붙인다 (벽이나 가구를 뚫고 나가지 않게)
+    const dist = area.camDist ?? CAM_DIST;
+    const height = area.camHeight ?? CAM_HEIGHT;
     _camTarget.set(
-      model.position.x - Math.sin(camYaw) * CAM_DIST,
-      CAM_HEIGHT + lift * CAM_FOLLOW,
-      model.position.z - Math.cos(camYaw) * CAM_DIST
+      model.position.x - Math.sin(camYaw) * dist,
+      height + lift * CAM_FOLLOW,
+      model.position.z - Math.cos(camYaw) * dist
     );
     camera.position.lerp(_camTarget, Math.min(1, 6 * dt));
     // 조금 위를 보게 해서 하늘(고래)도 보이게 한다
-    _look.set(model.position.x, LOOK_HEIGHT + lift * CAM_FOLLOW * 2, model.position.z);
+    _look.set(model.position.x, (area.lookHeight ?? LOOK_HEIGHT) + lift * CAM_FOLLOW * 2,
+              model.position.z);
     camera.lookAt(_look);
   }
 
@@ -148,13 +154,15 @@ export function createPlayer(model, camera, world) {
       model.position.addScaledVector(_dir, base * analog * dt);
 
       // 나무나 집을 뚫고 지나가지 않게 밀어낸다
-      world.collide(model.position, BODY_R);
+      area.collide(model.position, BODY_R);
 
-      // 마을 밖으로 못 나가게
-      const r = Math.hypot(model.position.x, model.position.z);
-      if (r > 88) {
-        model.position.x *= 88 / r;
-        model.position.z *= 88 / r;
+      // 공간 밖으로 못 나가게 (성 안은 벽이 막아주므로 bounds가 없다)
+      if (area.bounds) {
+        const r = Math.hypot(model.position.x, model.position.z);
+        if (r > area.bounds) {
+          model.position.x *= area.bounds / r;
+          model.position.z *= area.bounds / r;
+        }
       }
 
       // 몸을 이동 방향으로 부드럽게 회전
@@ -179,7 +187,7 @@ export function createPlayer(model, camera, world) {
     followCamera(dt, jumpY);
 
     // 3-1) 바로 옆에 빈 그네나 미끄럼틀이 있으면 🎠 버튼을 띄운다
-    nearRide = findFreeRide(world.rides, model.position, RIDE_REACH);
+    nearRide = findFreeRide(area.rides, model.position, RIDE_REACH);
 
     // 4) 캐릭터 애니메이션
     //  캐릭터 종류에 따라 animate가 위아래로 통통 튀는 값을 직접 쓴다.
@@ -191,10 +199,30 @@ export function createPlayer(model, camera, world) {
     return moving;
   }
 
+  /**
+   * 다른 공간(마을 ↔ 성 안)으로 옮겨간다.
+   *   next : 새 공간. pos/yaw를 안 주면 그 공간의 spawn/yaw로 간다.
+   * 카메라는 스르륵 따라오지 않고 그 자리에 바로 놓는다 (화면이 휙 날아가지 않게).
+   */
+  function moveTo(next, pos, yaw) {
+    if (ride) getOff();
+    area = next;
+    model.position.copy(pos || next.spawn);
+    model.position.y = 0;
+    model.rotation.set(0, yaw ?? next.yaw ?? 0, 0);
+    camYaw = yaw ?? next.yaw ?? 0;
+    jumpY = 0; vy = 0; onGround = true;
+    nearRide = null;
+    next.scene.add(model);              // 새 공간의 화면으로 옮긴다
+    followCamera(1, 0);                 // dt를 크게 줘서 카메라를 바로 붙인다
+    camera.position.copy(_camTarget);
+  }
+
   // onMount에 함수를 넣어두면 놀이기구를 탈 때 불러준다 (main.js가 안내 문구를 띄운다)
   const api = {
-    model, update, joy, keys, jump, toggleRide,
+    model, update, joy, keys, jump, toggleRide, moveTo,
     onMount: null,
+    get area()     { return area; },        // 지금 있는 공간
     get ride()     { return ride; },       // 지금 타고 있는 놀이기구
     get nearRide() { return nearRide; },   // 바로 옆에 있는 빈 놀이기구
   };
