@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>숫자마을 대모험</title>
+<title>Inruha World — 숫자마을 대모험</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   html, body { width:100%; height:100%; overflow:hidden; background:#bfe8ff;
@@ -17,6 +17,47 @@
   .screen { position:fixed; inset:0; display:none; flex-direction:column;
     align-items:center; justify-content:center; z-index:10; }
   .screen.on { display:flex; }
+
+  /* ---- 오프닝(타이틀) 화면 ----
+     3D 성과 친구들은 뒤쪽 캔버스에 그려지고, 여기 있는 건 글씨와 버튼뿐이다.
+     그래서 배경을 깔지 않는다 (배경을 깔면 성이 가려진다). */
+  #title { background:none; justify-content:space-between; text-align:center;
+    padding:calc(18px + env(safe-area-inset-top)) 16px calc(26px + env(safe-area-inset-bottom)); }
+  /* 글씨가 하늘·잔디에 묻히지 않게 위아래만 아주 살짝 덮는다 */
+  #title::before, #title::after { content:''; position:absolute; left:0; right:0;
+    height:34%; pointer-events:none; }
+  #title::before { top:0;    background:linear-gradient(#1b4a7040, #1b4a7000); }
+  #title::after  { bottom:0; background:linear-gradient(#1b4a7000, #1b4a7055); }
+
+  /* 제목 — 글꼴을 바꾸고 싶으면 font-family만 바꾸면 된다 */
+  #logo { position:relative; z-index:1; }
+  #logo .big { font-family:'Trebuchet MS','Apple SD Gothic Neo',sans-serif;
+    font-size:clamp(40px,9vw,104px); font-weight:900; line-height:1;
+    letter-spacing:.01em; color:#fff;
+    text-shadow:0 3px 0 #ffd0e6, 0 6px 0 #ff9ec4, 0 10px 0 #ff7ab0,
+                0 14px 0 #e0518f, 0 22px 30px #00000045; }
+  #logo .sub { margin-top:4px; font-size:clamp(15px,3.2vw,26px); font-weight:800;
+    color:#fff; letter-spacing:.35em; text-indent:.35em;
+    text-shadow:0 2px 0 #7a4fb0, 0 3px 10px #000a, 0 0 18px #0007; }
+
+  /* 시작 버튼 */
+  #titleBottom { position:relative; z-index:1; display:flex; flex-direction:column;
+    align-items:center; gap:12px; }
+  #startBtn { padding:20px 56px; border:none; border-radius:999px;
+    background:linear-gradient(#ffa8cf,#ff7ab0); color:#fff;
+    font-size:clamp(22px,4.6vw,34px); font-weight:900; letter-spacing:.06em;
+    box-shadow:0 9px 0 #d43f7c, 0 14px 24px #0003; cursor:pointer;
+    animation:pop 1.6s ease-in-out infinite; }
+  #startBtn:active { transform:translateY(6px); box-shadow:0 3px 0 #d43f7c; animation:none; }
+  @keyframes pop { 0%,100% { transform:scale(1); } 50% { transform:scale(1.055); } }
+  #titleHint { font-size:clamp(13px,3vw,19px); font-weight:700; color:#fff;
+    text-shadow:0 1px 5px #0008; }
+  /* 화면이 낮으면(폰 가로) 제목을 줄여서 성이 보이게 한다 */
+  @media (max-height:420px) {
+    #logo .big { font-size:clamp(30px,7vw,64px); }
+    #logo .sub { margin-top:6px; letter-spacing:.2em; }
+    #startBtn { padding:13px 38px; }
+  }
 
   /* ---- 친구 고르기: 격자 ---- */
   #pick, #preview { background:linear-gradient(180deg,#cbeaff 0%,#ffe8f4 100%); }
@@ -149,8 +190,20 @@
 </head>
 <body>
 
+<!-- 0) 오프닝 — 성 앞에서 친구들이 노는 표지 화면 (뒤 3D는 src/title.js) -->
+<div id="title" class="screen on">
+  <div id="logo">
+    <div class="big">Inruha World</div>
+    <div class="sub">숫자마을 대모험</div>
+  </div>
+  <div id="titleBottom">
+    <button id="startBtn">▶ 시작하기</button>
+    <div id="titleHint">아무 데나 눌러도 시작해요</div>
+  </div>
+</div>
+
 <!-- 1) 친구 고르기 — 한 번에 쭉 보여주는 격자 -->
-<div id="pick" class="screen on">
+<div id="pick" class="screen">
   <h1>누구랑 놀까?</h1>
   <div id="grid"></div>
 </div>

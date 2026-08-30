@@ -10,6 +10,7 @@ import { createNPCs } from './npcs.js';
 import { makeStudioEnv } from './environment.js';
 import { setupTouchControls } from './touch.js';
 import { createSelectScreen } from './select.js';
+import { createTitleScreen } from './title.js';
 import { buildCastleInterior } from './castle-interior.js';
 
 // -----------------------------------------------------------
@@ -49,6 +50,25 @@ const world = buildWorld(scene);
 //  친구 고르기 화면 (격자 + 크게 보기) → src/select.js
 // -----------------------------------------------------------
 const select = createSelectScreen(def => startGame(def));
+
+// -----------------------------------------------------------
+//  오프닝 화면 (Inruha World) → src/title.js
+//  성과 친구들은 3D로, 제목과 버튼은 index.html의 #title로 그린다.
+//  아무 데나 누르면 친구 고르기로 넘어간다.
+// -----------------------------------------------------------
+const title = createTitleScreen(renderer, envMap);
+let onTitle = true;
+
+function leaveTitle() {
+  if (!onTitle) return;
+  onTitle = false;
+  document.getElementById('title').classList.remove('on');
+  document.getElementById('pick').classList.add('on');
+}
+document.getElementById('title').addEventListener('pointerdown', leaveTitle);
+addEventListener('keydown', e => {
+  if (onTitle && (e.code === 'Space' || e.code === 'Enter')) leaveTitle();
+});
 
 
 // -----------------------------------------------------------
@@ -198,6 +218,13 @@ function loop() {
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
 
+  // 오프닝 화면 — 성 앞에서 친구들이 노는 장면만 그린다
+  if (onTitle) {
+    title.update(dt, t);
+    renderer.render(title.scene, title.camera);
+    return;
+  }
+
   // 지금 있는 공간만 움직인다 (마을: 구름·고래·그네 / 성 안: 불꽃·반짝이·풍선)
   area.update(dt, t);
 
@@ -220,6 +247,7 @@ function resize() {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
+  title.resize();
   select.resize();
 }
 addEventListener('resize', resize);
