@@ -47,6 +47,26 @@ export function bodyMat(color) {
   return _bodyCache.get(color);
 }
 
+const _glossCache = new Map();
+/**
+ * 반질반질한 장난감 재질 (사진 같은 3D 인형 느낌)
+ * ★ characters.js에서 glossy:true 를 준 친구만 이 재질을 쓴다.
+ */
+export function glossMat(color) {
+  if (!_glossCache.has(color)) {
+    _glossCache.set(color, new THREE.MeshPhysicalMaterial({
+      color, roughness: 0.40, metalness: 0.0,
+      clearcoat: 0.55, clearcoatRoughness: 0.30,
+    }));
+  }
+  return _glossCache.get(color);
+}
+
+/** 캐릭터에 맞는 몸 재질을 골라준다 (glossy면 반질반질, 아니면 만화풍) */
+export function matOf(def, color) {
+  return def.glossy ? glossMat(color) : bodyMat(color);
+}
+
 const _glowCache = new Map();
 /** 보석·장식용 재료 (스스로 살짝 빛나는 느낌) */
 export function glowMat(color) {

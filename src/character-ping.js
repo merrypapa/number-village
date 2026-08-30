@@ -11,7 +11,6 @@ import {
   bodyMat, glowMat, filmMat, makeOutline, noShadow, shade,
 } from './character-parts.js';
 import { makeDeco, makeTailCharm } from './character-deco.js';
-import { addHair, addDress, makeFacePlate, makePuffEar, swayHair, FACE_Z } from './character-hair.js';
 
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
@@ -26,7 +25,7 @@ const HEIGHT      = 1.85;   // 이름표를 띄울 키
 // -----------------------------------------------------------
 //  얼굴: 크고 반짝이는 눈
 // -----------------------------------------------------------
-function addFairyEyes(head, def, full, fz = 0) {
+function addFairyEyes(head, def, full) {
   const irisMat = glowMat(def.eye ?? 0x5a3fa8);
   const E = EYE_SIZE;
 
@@ -36,43 +35,43 @@ function addFairyEyes(head, def, full, fz = 0) {
     // 흰자 (세로로 긴 타원 = 애니 눈)
     const white = new THREE.Mesh(GEO.eye, MAT_WHITE);
     white.scale.set(0.29 * E, 0.37 * E, 0.16);
-    white.position.set(x, 0, 0.40 + fz);
+    white.position.set(x, 0, 0.40);
     head.add(white);
 
     // 홍채
     const iris = new THREE.Mesh(GEO.eye, irisMat);
     iris.scale.set(0.21 * E, 0.27 * E, 0.15);
-    iris.position.set(x, -0.012, 0.435 + fz);
+    iris.position.set(x, -0.012, 0.435);
     head.add(iris);
 
     // 동공
     const pupil = new THREE.Mesh(GEO.blob, MAT_DARK);
     pupil.scale.set(0.11 * E, 0.14 * E, 0.13);
-    pupil.position.set(x, -0.02, 0.462 + fz);
+    pupil.position.set(x, -0.02, 0.462);
     head.add(pupil);
 
     // 하이라이트 — 이게 있어야 눈이 "반짝" 한다
     const hi = new THREE.Mesh(GEO.blob, MAT_SHINE);
     hi.scale.setScalar(0.10 * E);
-    hi.position.set(x + s * 0.048, 0.078, 0.482 + fz);
+    hi.position.set(x + s * 0.048, 0.078, 0.482);
     head.add(noShadow(hi));
 
     if (full) {
       const hi2 = new THREE.Mesh(GEO.blob, MAT_SHINE);
       hi2.scale.setScalar(0.056 * E);
-      hi2.position.set(x - s * 0.052, -0.082, 0.472 + fz);
+      hi2.position.set(x - s * 0.052, -0.082, 0.472);
       head.add(noShadow(hi2));
 
       // 속눈썹
       const lash = new THREE.Mesh(GEO.blob, MAT_DARK);
       lash.scale.set(0.31 * E, 0.058, 0.17);
-      lash.position.set(x, 0.158 * E, 0.385 + fz);
+      lash.position.set(x, 0.158 * E, 0.385);
       lash.rotation.z = -s * 0.16;
       head.add(lash);
 
       const tip = new THREE.Mesh(GEO.cone, MAT_DARK);
       tip.scale.set(0.07, 0.19, 0.07);
-      tip.position.set(x + s * 0.145, 0.168 * E, 0.345 + fz);
+      tip.position.set(x + s * 0.145, 0.168 * E, 0.345);
       tip.rotation.z = -s * 1.15;
       head.add(tip);
     }
@@ -89,32 +88,14 @@ function makeHead(def, full) {
   const mat = bodyMat(def.color);
   const accent = def.accent ?? shade(def.color, -0.18);
 
-  // 머리카락이 있는 친구는 머리통이 머리카락 색이 되고,
-  // 얼굴만 앞으로 볼록 튀어나온다. (얼굴 부품도 그만큼 앞으로 민다)
-  const hairy = !!def.hair;
-  const fz = hairy ? FACE_Z : 0;
-
-  const skull = new THREE.Mesh(GEO.ball, hairy ? bodyMat(def.hair) : mat);
+  const skull = new THREE.Mesh(GEO.ball, mat);
   skull.scale.set(1.12, 1.06, 1.04);
   skull.castShadow = true;
   head.add(skull);
+  if (full) head.add(makeOutline(skull));
 
-  if (hairy) {
-    // 얼굴판이 머리통보다 앞으로 나오므로 테두리도 얼굴판에 두른다
-    const face = makeFacePlate(def);
-    head.add(face);
-    if (full) head.add(makeOutline(face));
-    head.userData.strands = addHair(head, def, full);
-  } else if (full) {
-    head.add(makeOutline(skull));
-  }
-
-  // 귀 — 머리카락 친구는 하얗고 동글동글한 귀
+  // 귀
   for (const s of [-1, 1]) {
-    if (hairy) {
-      head.add(makePuffEar(def, s));
-      continue;
-    }
     const ear = new THREE.Mesh(GEO.cone, mat);
     ear.scale.set(0.42, 0.68, 0.38);
     ear.position.set(s * 0.38, 0.38, -0.05);
@@ -131,39 +112,32 @@ function makeHead(def, full) {
     }
   }
 
-  addFairyEyes(head, def, full, fz);
+  addFairyEyes(head, def, full);
 
   // 볼터치
   for (const s of [-1, 1]) {
     const cheek = new THREE.Mesh(GEO.blob, MAT_CHEEK);
     cheek.scale.set(0.19, 0.13, 0.08);
-    cheek.position.set(s * 0.40, -0.16, 0.30 + fz);
+    cheek.position.set(s * 0.40, -0.16, 0.30);
     head.add(noShadow(cheek));
   }
 
   // 입
   const mouth = new THREE.Mesh(GEO.blob, MAT_DARK);
   mouth.scale.set(0.14, 0.085, 0.06);
-  mouth.position.set(0, -0.215, 0.45 + fz);
+  mouth.position.set(0, -0.215, 0.45);
   head.add(noShadow(mouth));
 
   // 이마 보석
   const gem = new THREE.Mesh(GEO.gem, glowMat(def.gem ?? 0xfff0a0));
   gem.scale.set(0.21, 0.31, 0.15);
-  gem.position.set(0, 0.27, 0.395 + fz);
+  gem.position.set(0, 0.27, 0.395);
   head.add(noShadow(gem));
 
   // 머리 장식
   const deco = makeDeco(def.deco, def.decoColor);
-  if (hairy) {
-    // 머리카락 친구는 장식이 머리 위에 얹혀야 해서 살짝 앞으로 눕힌다
-    deco.position.set(0, 0.46, 0.26);
-    deco.rotation.x = -0.26;
-    deco.scale.setScalar(1.2);
-  } else {
-    deco.position.y = 0.66;
-    deco.scale.setScalar(1.3);
-  }
+  deco.position.y = 0.66;
+  deco.scale.setScalar(1.3);
   head.add(deco);
 
   return head;
@@ -241,18 +215,14 @@ export function makePing(def, detail = 'full') {
     g.add(arm);
   }
 
-  // 발 (shoe 색을 주면 구두를 신는다)
-  const footMat = def.shoe ? bodyMat(def.shoe) : mat;
+  // 발
   for (const s of [-1, 1]) {
-    const foot = new THREE.Mesh(GEO.blob, footMat);
+    const foot = new THREE.Mesh(GEO.blob, mat);
     foot.scale.set(0.23, 0.15, 0.31);
     foot.position.set(s * 0.16, 0.115, 0.06);
     foot.castShadow = true;
     g.add(foot);
   }
-
-  // 드레스 (dress 색을 주면 입는다)
-  if (def.dress) addDress(g, def, full);
 
   // 꼬리
   const tail = new THREE.Group();
@@ -289,7 +259,6 @@ export function makePing(def, detail = 'full') {
     for (const w of wings) w.rotation.y = w.userData.side * (0.30 + flap * 0.40);
 
     head.rotation.z = Math.sin(tt * 1.7) * 0.06;
-    if (head.userData.strands) swayHair(head.userData.strands, tt);
     head.position.y = HEAD_Y + Math.sin(tt * 2.6) * 0.018;
     tail.rotation.x = Math.sin(tt * 3.1) * 0.18;
 

@@ -5,11 +5,19 @@
 // ===========================================================
 import { makeBlock } from './character-block.js';
 import { makePing } from './character-ping.js';
+import { makePrincess } from './character-princess.js';
+
+// 캐릭터 종류별로 3D를 만드는 함수 (type 값이 열쇠다)
+const BUILDERS = {
+  block:    makeBlock,      // 숫자블록 친구
+  ping:     makePing,       // 요정 친구
+  princess: makePrincess,   // 얼음공주 요정 (전용 뼈대)
+};
 
 // -----------------------------------------------------------
 //  캐릭터 목록  ← 아이랑 같이 고치는 곳!
 //
-//  type    : 'block'(숫자블록 친구) 또는 'ping'(요정 친구)
+//  type    : 'block'(숫자블록) · 'ping'(요정) · 'princess'(얼음공주 요정)
 //  color   : 몸 색깔
 //  deco    : 머리 장식 — star heart drop ribbon leaf crown tiara moon gem flower candy cloud
 //  eye     : 눈동자 색     (안 쓰면 보라색)
@@ -24,6 +32,11 @@ import { makePing } from './character-ping.js';
 //  earColor: 귀 색 (hair가 있을 때 동글동글 하얀 귀가 된다)
 //  dress   : 드레스 윗옷 색, skirt: 치마 색, emblem: 가슴 무늬 색
 //  shoe    : 구두 색
+//  glossy  : true면 반질반질한 3D 인형 재질 (테두리 없음)
+//  face    : 'doll'이면 자세한 인형 얼굴 (큰 눈·코·웃는 입)
+//  eyeSize : 눈 크기 배수 (1.35쯤이 그림 속 요정 느낌)
+//  headScale/bodyScale : 머리·몸 크기 배수 (머리를 크게 하면 더 아기 같다)
+//  cheek   : 볼터치 색
 // -----------------------------------------------------------
 export const CHARACTERS = [
   // --- 숫자블록 친구 10명 ---
@@ -42,11 +55,13 @@ export const CHARACTERS = [
   { id:'banjjak', name:'반짝핑', type:'ping', color:0xffb3d9, deco:'star',   eye:0xd6478f, gem:0xffe066, wing:0xffe3f2, accent:0xff8ec8 },
   { id:'monggle', name:'몽글핑', type:'ping', color:0xc3b1f5, deco:'heart',  eye:0x6a3fd0, gem:0xe0ccff, wing:0xe6dcff, accent:0xa88fe8 },
   { id:'bangul',  name:'방울핑', type:'ping', color:0xa8e0ff, deco:'drop',   decoColor:0x4fb0ee, eye:0x2f7fd6, gem:0x8fd6ff, wing:0xdcf3ff, accent:0x7cc6f0 },
-  // 초코핑 — 얼음공주 모습 (저장소의 imaes/char1.png 그림을 보고 도형으로 다시 만든 것)
-  { id:'choco',   name:'초코핑', type:'ping', color:0xffdfe8, deco:'tiara', decoColor:0xf7bcd8,
-    hair:0xa5dcf2, hairTip:0xf0b9dd, earColor:0xffffff,
-    eye:0x2f7fd0, gem:0x6fd8e8, wing:0xe2f4ff, accent:0xffc9dc,
-    dress:0xffffff, skirt:0xd3ecff, emblem:0xffc93c, shoe:0xcfd6ff },
+  // 초코핑 — imaes/char1.png 그림을 보고 만든 얼음공주 요정 (전용 뼈대 princess)
+  { id:'choco',   name:'초코핑', type:'princess',
+    color:0xffe8ee,                                   // 살구빛 얼굴·팔다리
+    hair:0xa8e0f5, hairTip:0xefb2d8, earColor:0xfdfdff,
+    eye:0x2a79cc, eyeSize:1.15, gem:0x6fd8e8, cheek:0xff9dba,
+    deco:'tiara', decoColor:0xf0b8d8,
+    dress:0xfdfdff, skirt:0xd7ecfd, emblem:0xffc93c, shoe:0xd6d8f5 },
   { id:'sallang', name:'살랑핑', type:'ping', color:0xb9ef9c, deco:'leaf',   eye:0x3f9440, gem:0xd8f79a, wing:0xe4ffd0, accent:0x92d977 },
   { id:'ppogeul', name:'뽀글핑', type:'ping', color:0xfff0b8, deco:'crown',  eye:0xd2952a, gem:0xffd95e, wing:0xfff7dd, accent:0xf5d98a },
   { id:'byeolbam',name:'별밤핑', type:'ping', color:0x9aa8e0, deco:'moon',   eye:0x3a3f8f, gem:0xfff0a8, wing:0xd4dcff, accent:0x7c8ac9 },
@@ -63,7 +78,8 @@ export const CHARACTERS = [
  * 만든 뒤 group.userData.update(t, moving)을 매 프레임 부르면 움직인다.
  */
 export function createCharacter(def, detail = 'full') {
-  const g = def.type === 'block' ? makeBlock(def) : makePing(def, detail);
+  const build = BUILDERS[def.type] ?? makePing;
+  const g = build(def, detail);
   g.name = def.name;
   g.userData.def = def;
 

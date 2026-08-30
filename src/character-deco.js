@@ -4,7 +4,7 @@
 //    그리고 characters.js에서 deco:'이름' 으로 쓰면 끝.
 // ===========================================================
 import * as THREE from 'three';
-import { GEO, glowMat, noShadow } from './character-parts.js';
+import { GEO, glowMat, glossMat, noShadow } from './character-parts.js';
 
 // ★ 아이랑 같이 바꿔볼 색
 const GOLD  = 0xffd95e;
@@ -88,20 +88,36 @@ export const DECO = {
     return g;
   },
 
-  // 티아라 — 앞에서 보이는 공주님 왕관 (반달 모양 띠 + 뾰족한 장식)
-  tiara(color = 0xf7c6e0) {
+  // 티아라 — 구슬을 이어 붙여 만든 공주님 왕관
+  //  (이마 띠 + 구슬 아치 3개 + 가운데 물방울 보석)
+  tiara(color = 0xf0b8d8) {
     const g = new THREE.Group();
-    // 이마를 감싸는 반달 띠
-    const band = part(GEO.crescent, color, [0, -0.02, 0], [0.58, 0.46, 0.30], [0, 0, -0.39]);
-    g.add(band);
-    // 가운데 큰 뿔 + 양옆 작은 뿔
-    g.add(part(GEO.cone, color, [0, 0.26, 0], [0.10, 0.30, 0.08]));
-    for (const s of [-1, 1]) {
-      g.add(part(GEO.cone, color, [s * 0.14, 0.17, 0], [0.08, 0.20, 0.07], [0, 0, -s * 0.38]));
-      g.add(part(GEO.blob, 0xffffff, [s * 0.20, 0.02, 0], 0.07));   // 끝에 달린 진주
+    const silver = 0xfff2fa;
+
+    // 이마를 감싸는 띠 — 구슬을 완만한 곡선으로 늘어놓는다
+    for (let i = 0; i <= 16; i++) {
+      const t = i / 16 - 0.5;                 // -0.5 ~ 0.5
+      g.add(part(GEO.blob, i % 2 ? silver : color,
+        [t * 0.62, -0.04 - t * t * 0.46, 0], 0.060));
     }
-    // 가운데 보석
-    g.add(part(GEO.gem, 0x8be3ff, [0, 0.42, 0], [0.09, 0.12, 0.07]));
+
+    // 구슬 아치 3개 (가운데가 제일 크다)
+    const arches = [[0, 0.17], [-0.185, 0.105], [0.185, 0.105]];
+    for (const [cx, h] of arches) {
+      for (let i = 0; i <= 7; i++) {
+        const a = Math.PI * (i / 7);
+        g.add(part(GEO.blob, color,
+          [cx + Math.cos(a) * (h * 0.68), -0.03 + Math.sin(a) * h, 0], 0.055));
+      }
+    }
+
+    // 아치 꼭대기 작은 보석
+    g.add(part(GEO.gem, 0x9fe6ff, [-0.185, 0.105, 0.01], [0.055, 0.075, 0.04]));
+    g.add(part(GEO.gem, 0x9fe6ff, [ 0.185, 0.105, 0.01], [0.055, 0.075, 0.04]));
+
+    // 가운데 물방울 보석
+    g.add(part(GEO.blob, 0x8be3ff, [0, 0.16, 0.03], [0.105, 0.105, 0.07]));
+    g.add(part(GEO.cone, 0x8be3ff, [0, 0.235, 0.03], [0.085, 0.125, 0.055]));
     return g;
   },
 
@@ -155,16 +171,21 @@ export const DECO = {
  * 머리 장식을 만든다.
  * kind: DECO의 이름 중 하나, color: 없으면 장식마다 정해진 기본색
  */
-export function makeDeco(kind, color) {
+export function makeDeco(kind, color, glossy = false) {
   const build = DECO[kind];
   const g = build ? build(color) : new THREE.Group();
-  g.traverse(o => { if (o.isMesh) noShadow(o); });
+  g.traverse(o => {
+    if (!o.isMesh) return;
+    noShadow(o);
+    // 반질반질한 친구는 장식도 반질반질하게
+    if (glossy) o.material = glossMat(o.material.color.getHex());
+  });
   return g;
 }
 
 /** 꼬리 끝에 다는 작은 장식 (머리 장식을 작게 줄여서 재활용) */
-export function makeTailCharm(kind, color) {
-  const g = makeDeco(kind, color);
+export function makeTailCharm(kind, color, glossy = false) {
+  const g = makeDeco(kind, color, glossy);
   g.scale.setScalar(0.55);
   return g;
 }
