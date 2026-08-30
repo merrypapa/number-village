@@ -19,9 +19,19 @@ Three.js는 `index.html`의 importmap에서 CDN으로 불러온다.
 
 1. **빌드 도구를 추가하지 마라.** Vite, webpack, TypeScript, React 전부 금지.
    순수 ES Modules + Three.js만 쓴다. GitHub Pages에 그대로 올라가야 한다.
-2. **외부 에셋 파일을 쓰지 마라.** .glb, .fbx, .png 텍스처 다운로드 금지.
-   모든 3D 형상은 Three.js 기본 도형(Box/Sphere/Cylinder/Cone/Capsule/Torus)을
-   조합해서 코드로 만든다. 텍스처가 필요하면 Canvas로 그려서 만든다.
+2. **3D 형상은 기본적으로 코드로 만든다.** Three.js 기본 도형(Box/Sphere/Cylinder/
+   Cone/Capsule/Torus)을 조합한다. 텍스처가 필요하면 Canvas로 그려서 만든다.
+   인터넷에서 남의 에셋을 받아 쓰지 않는다.
+
+   **예외 — `assets/models/` 폴더의 .glb 파일.** 아빠가 모델링 툴에서 직접 만든
+   캐릭터는 이 폴더에 넣고 `type:'model'`로 쓴다 (`src/character-model.js`).
+   **이 파일들을 지우거나 코드 도형으로 되돌리지 마라.**
+   단, 새 .glb를 넣을 때는 반드시 아래를 지킨다:
+   - 파일 하나가 **5MB 이하** (GitHub Pages 대역폭 + 아이 폰 로딩 시간)
+   - 삼각형 **5만 개 이하** (`npx @gltf-transform/cli@4 inspect 파일.glb`로 확인)
+   - 텍스처 **1024px 이하**
+   - 파일명은 영문 소문자 (GitHub Pages는 대소문자를 구분한다)
+   - **Git LFS를 쓰지 마라.** GitHub Pages가 포인터 파일을 그대로 내려줘서 깨진다
 3. **저작권 있는 캐릭터를 만들지 마라.** 실제 애니메이션 캐릭터의 이름과 디자인을
    그대로 재현하지 않는다. 기획안에 정의된 오리지널 캐릭터만 만든다.
 4. **매 Phase가 끝나면 반드시 실행 가능해야 한다.** 반쯤 만든 상태로 커밋하지 않는다.
