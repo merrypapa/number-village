@@ -1,7 +1,7 @@
 // ===========================================================
 //  놀이터 — 미끄럼틀, 그네, 시소, 모래밭
-//  그네와 시소는 저절로 움직이고,
-//  ★ 그네와 미끄럼틀은 캐릭터가 진짜로 탈 수 있다 (src/rides.js).
+//  ★ 그네·미끄럼틀·시소를 캐릭터가 진짜로 탈 수 있다 (src/rides.js).
+//    아무도 안 타도 그네와 시소는 저절로 살랑살랑 움직인다.
 // ===========================================================
 import * as THREE from 'three';
 
@@ -18,6 +18,11 @@ const SWING_RIDE_AMP = 1.0;   // 누가 타면 이만큼 크게 흔들린다 (�
 const SWING_WARMUP   = 1.5;   // 크게 흔들리기까지 걸리는 빠르기
 const SWING_TIME     = 10;    // 그네를 한 번 타는 시간(초) — 친구들은 이만큼 타고 내린다
 const SLIDE_TIME     = 3.6;   // 미끄럼틀을 한 번 타는 시간(초)
+
+const SEESAW_IDLE_AMP = 0.22;  // 아무도 안 탈 때 시소가 움직이는 크기
+const SEESAW_RIDE_AMP = 0.32;  // 누가 타면 이만큼 크게 오르내린다
+const SEESAW_TIME     = 12;    // 시소를 한 번 타는 시간(초)
+
 const SIT_SINK       = 0.10;  // 의자에 앉을 때 살짝 파묻히는 정도
 
 const M = {
@@ -137,20 +142,26 @@ function makeSwings() {
 }
 
 // --- 시소 ---
+const PLANK_Y   = 1.15;   // 널빤지가 도는 높이 (가운데 받침 위)
+const PLANK_SZ  = 2.6;    // 널빤지 가운데에서 의자까지의 거리
+const PLANK_TOP = 0.41;   // 널빤지 가운데에서 의자 앉는 면까지의 높이
+const PLANK_GAP = 2.2;    // 시소 옆 어디에 서면 탈 수 있나
+
 function makeSeesaw() {
   const g = new THREE.Group();
   g.add(mesh(G.cone, M.pole, 0, 0.55, 0, 1.6, 1.1, 1.6));    // 가운데 받침
 
   const plank = new THREE.Group();                            // 널빤지 (이게 움직인다)
-  plank.position.y = 1.15;
+  plank.position.y = PLANK_Y;
   plank.add(mesh(G.box, M.wood, 0, 0, 0, 0.9, 0.22, 6.4));
   for (const s of [-1, 1]) {
-    plank.add(mesh(G.box, s < 0 ? M.seatA : M.seatB, 0, 0.26, s * 2.6, 1.0, 0.3, 0.9));
+    plank.add(mesh(G.box, s < 0 ? M.seatA : M.seatB, 0, 0.26, s * PLANK_SZ, 1.0, 0.3, 0.9));
     plank.add(mesh(G.cyl, M.pole, 0, 0.62, s * 1.75, 0.18, 0.9, 0.18));   // 손잡이
   }
   g.add(plank);
 
   g.userData.plank = plank;
+  g.userData.amp = SEESAW_IDLE_AMP;   // 지금 오르내리는 크기
   return g;
 }
 
@@ -176,6 +187,32 @@ function makeSwingRide(sw, seatX, swZ) {
       out.z = swZ - SEAT_DROP * Math.sin(a);
       out.yaw = 0;
       out.tilt = a;                          // 몸도 그네를 따라 같이 기운다
+      return out;
+    },
+  };
+}
+
+/**
+ * 시소 한 자리를 타는 방법.
+ * side = +1 이면 +z 쪽 자리, -1 이면 -z 쪽 자리. 둘이 서로 마주 본다.
+ */
+function makeSeesawRide(plank, ssX, ssZ, side) {
+  const sz = side * PLANK_SZ;
+  return {
+    kind: 'seesaw',
+    label: '시소를 타요! 🙌',
+    enter: { x: ssX - PLANK_GAP, z: ssZ + sz },   // 의자 옆에 서면 탈 수 있다
+    exit:  { x: ssX - PLANK_GAP, z: ssZ + sz },
+    duration: SEESAW_TIME,
+    autoEnd: false,                               // 내리기 버튼을 누를 때까지 탄다
+    rider: null,
+    pose(rideTime, out) {
+      const a = plank.rotation.x;                 // 지금 널빤지가 기울어진 각도
+      out.x = ssX;
+      out.y = PLANK_Y + PLANK_TOP * Math.cos(a) - sz * Math.sin(a) - SIT_SINK;
+      out.z = ssZ + PLANK_TOP * Math.sin(a) + sz * Math.cos(a);
+      out.yaw = side > 0 ? Math.PI : 0;           // 맞은편 친구를 바라본다
+      out.tilt = a;                               // 몸도 널빤지를 따라 기운다
       return out;
     },
   };
@@ -227,7 +264,8 @@ function makeSlideRide(slX, slZ) {
  * 놀이터를 만든다. (x, z)는 마을 안에서 놀이터가 놓일 자리.
  * { group, obstacles, rides, update } 를 돌려준다.
  *   obstacles: 부딪히는 물건 목록 (마을 좌표 기준)
- *   rides    : 탈 수 있는 놀이기구 목록 (src/rides.js가 쓴다)
+ *   rides    : 탈 수 있는 놀이기구 목록 — 그네 2자리, 미끄럼틀, 시소 2자리
+ *              (src/rides.js가 쓴다)
  */
 export function buildPlayground(x, z) {
   const group = new THREE.Group();
@@ -258,7 +296,7 @@ export function buildPlayground(x, z) {
     { x: x - 1, z: z + 6, r: 1.1 },                // 시소 받침
   ];
 
-  // --- 탈 수 있는 것들 (그네 2개 + 미끄럼틀 1개) ---
+  // --- 탈 수 있는 것들 (그네 2 + 미끄럼틀 1 + 시소 2 = 5자리) ---
   const rides = [];
   const swX = x + 5.5, swZ = z - 1;
   swings.userData.swings.forEach((sw, i) => {
@@ -268,6 +306,12 @@ export function buildPlayground(x, z) {
   });
   rides.push(makeSlideRide(x - 4.5, z - 3));
 
+  // 시소는 앞뒤로 두 자리 — 아이와 친구가 마주 보고 탈 수 있다
+  const ssX = x - 1, ssZ = z + 6;
+  const seesawRides = [1, -1].map(side => makeSeesawRide(seesaw.userData.plank, ssX, ssZ, side));
+  seesaw.userData.rides = seesawRides;            // 누가 탔는지 update가 본다
+  rides.push(...seesawRides);
+
   function update(dt, t) {
     for (const sw of swings.userData.swings) {
       // 누가 타면 점점 크게, 내리면 점점 작게 흔들린다
@@ -275,7 +319,10 @@ export function buildPlayground(x, z) {
       sw.userData.amp += (want - sw.userData.amp) * Math.min(1, dt * SWING_WARMUP);
       sw.rotation.x = Math.sin(t * SWING_SPEED + sw.userData.phase) * sw.userData.amp;
     }
-    seesaw.userData.plank.rotation.x = Math.sin(t * SEESAW_SPEED) * 0.22;
+    // 시소도 누가 타면 더 신나게 오르내린다
+    const ssWant = seesaw.userData.rides.some(r => r.rider) ? SEESAW_RIDE_AMP : SEESAW_IDLE_AMP;
+    seesaw.userData.amp += (ssWant - seesaw.userData.amp) * Math.min(1, dt * SWING_WARMUP);
+    seesaw.userData.plank.rotation.x = Math.sin(t * SEESAW_SPEED) * seesaw.userData.amp;
   }
 
   return { group, obstacles, rides, update };
