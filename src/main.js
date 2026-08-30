@@ -3,12 +3,13 @@
 //  Phase 0~1 완료 상태입니다. 다음 작업은 docs/기획안.md 참고.
 // ===========================================================
 import * as THREE from 'three';
-import { CHARACTERS, createCharacter } from './characters.js';
+import { createCharacter } from './characters.js';
 import { buildWorld } from './world.js';
 import { createPlayer } from './player.js';
 import { createNPCs } from './npcs.js';
 import { makeStudioEnv } from './environment.js';
 import { setupTouchControls } from './touch.js';
+import { createSelectScreen } from './select.js';
 import { buildCastleInterior } from './castle-interior.js';
 
 // -----------------------------------------------------------
@@ -45,41 +46,10 @@ scene.environment = envMap;
 const world = buildWorld(scene);
 
 // -----------------------------------------------------------
-//  캐릭터 선택 화면 (작은 별도 씬)
+//  친구 고르기 화면 (격자 + 크게 보기) → src/select.js
 // -----------------------------------------------------------
-const stage = document.getElementById('charStage');
-const sRenderer = new THREE.WebGLRenderer({ canvas: stage, antialias: true, alpha: true });
-sRenderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-const sScene = new THREE.Scene();
-sScene.add(new THREE.HemisphereLight(0xffffff, 0xffd6e8, 1.4));
-const sLight = new THREE.DirectionalLight(0xffffff, 1.2);
-sLight.position.set(3, 6, 5);
-sScene.add(sLight);
-sScene.environment = makeStudioEnv(sRenderer);
-const sCam = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
+const select = createSelectScreen(def => startGame(def));
 
-let pickIndex = 0;
-let preview = null;
-
-function showPreview() {
-  if (preview) sScene.remove(preview);
-  const def = CHARACTERS[pickIndex];
-  preview = createCharacter(def);
-  sScene.add(preview);
-  const h = preview.userData.height || 2;
-  sCam.position.set(0, h * 0.55, h * 1.9 + 1.4);
-  sCam.lookAt(0, h * 0.52, 0);
-  document.getElementById('charName').textContent = def.name;
-}
-showPreview();
-
-document.getElementById('prev').onclick = () => {
-  pickIndex = (pickIndex - 1 + CHARACTERS.length) % CHARACTERS.length; showPreview();
-};
-document.getElementById('next').onclick = () => {
-  pickIndex = (pickIndex + 1) % CHARACTERS.length; showPreview();
-};
-document.getElementById('playBtn').onclick = () => startGame(CHARACTERS[pickIndex]);
 
 // -----------------------------------------------------------
 //  게임 시작
@@ -120,7 +90,8 @@ function startGame(def) {
   npcs = areaNpcs.village = createNPCs(scene, def.id, world);
   setupTouchControls(player, sayHi);   // 가상 조이스틱 + 점프·인사·타기 버튼
 
-  document.getElementById('select').classList.remove('on');
+  document.getElementById('pick').classList.remove('on');
+  document.getElementById('preview').classList.remove('on');
   document.getElementById('hud').classList.add('on');
   playing = true;
   toast(`${def.name}(으)로 놀아요!`);
@@ -237,9 +208,7 @@ function loop() {
     checkDoors();
     renderer.render(area.scene, camera);
   } else {
-    preview.rotation.y += dt * 0.7;
-    preview.userData.update?.(t, false);
-    sRenderer.render(sScene, sCam);
+    select.update(dt, t);
   }
 }
 loop();
@@ -251,10 +220,7 @@ function resize() {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
-  const s = Math.min(stage.clientWidth, stage.clientHeight) || 320;
-  sRenderer.setSize(s, s, false);
-  sCam.aspect = 1;
-  sCam.updateProjectionMatrix();
+  select.resize();
 }
 addEventListener('resize', resize);
 resize();

@@ -56,7 +56,7 @@ export const CHARACTERS = [
   { id:'nine',  name:'구름',   type:'block', number:9,  color:0x5fe6c8 },
   { id:'ten',   name:'열이',   type:'block', number:10, color:0xffffff, rainbow:true },
 
-  // --- 요정 친구 13명 (전부 모델링 툴에서 만든 .glb) ---
+  // --- 요정 친구 35명 (전부 모델링 툴에서 만든 .glb) ---
   //  ★ 새 친구를 넣으려면: assets/models/ 에 .glb를 넣고 아래에 한 줄 추가.
   //    height = 게임 속 키. 움직임은 character-model.js 맨 위 값에서 바꾼다.
   { id:'sappun',   name:'사뿐핑',   type:'model', file:'sappun.glb',   height:1.90 },
@@ -72,6 +72,30 @@ export const CHARACTERS = [
   { id:'aurora',   name:'오로라핑', type:'model', file:'aurora.glb',   height:1.90 },
   { id:'keo',      name:'커핑',     type:'model', file:'keo.glb',      height:1.75 },
   { id:'heartping',name:'Heartping', type:'model', file:'heartping.glb', height:1.90 },
+
+  // --- 나중에 더 만든 친구들 ---
+  { id:'kkeokkul',    name:'꺼꿀핑',      type:'model', file:'kkeokkul.glb',        height:1.90 },
+  { id:'kkongkkong',  name:'꽁꽁핑',      type:'model', file:'kkongkkong.glb',      height:1.90 },
+  { id:'kkurae',      name:'꾸래핑',      type:'model', file:'kkurae.glb',          height:1.90 },
+  { id:'nabi',        name:'나비핑',      type:'model', file:'nabi.glb',            height:1.90 },
+  { id:'ttakpul',     name:'딱풀핑',      type:'model', file:'ttakpul.glb',         height:1.90 },
+  { id:'ttokttak',    name:'똑딱핑',      type:'model', file:'ttokttak.glb',        height:1.90 },
+  { id:'ttokttok',    name:'똑똑핑',      type:'model', file:'ttokttok.glb',        height:1.90 },
+  { id:'ttukttak',    name:'뚝딱핑',      type:'model', file:'ttukttak.glb',        height:1.90 },
+  { id:'rara',        name:'라라핑',      type:'model', file:'rara.glb',            height:1.90 },
+  { id:'mideo',       name:'믿어핑',      type:'model', file:'mideo.glb',           height:1.90 },
+  { id:'baneul',      name:'바늘핑',      type:'model', file:'baneul.glb',          height:1.90 },
+  { id:'ppuppu',      name:'뿌뿌핑',      type:'model', file:'ppuppu.glb',          height:1.90 },
+  { id:'shareu',      name:'샤를핑',      type:'model', file:'shareu.glb',          height:1.90 },
+  { id:'soljik',      name:'솔직핑',      type:'model', file:'soljik.glb',          height:1.90 },
+  { id:'sireo',       name:'싫어핑',      type:'model', file:'sireo.glb',           height:1.90 },
+  { id:'aja',         name:'아자핑',      type:'model', file:'aja.glb',             height:1.90 },
+  { id:'akdong',      name:'악동핑',      type:'model', file:'akdong.glb',          height:1.90 },
+  { id:'jentle',      name:'젠틀핑',      type:'model', file:'jentle.glb',          height:1.90 },
+  { id:'jureu',       name:'주르핑',      type:'model', file:'jureu.glb',           height:1.90 },
+  { id:'chacha',      name:'차차핑',      type:'model', file:'chacha.glb',          height:1.90 },
+  { id:'hae',         name:'해핑',       type:'model', file:'hae.glb',             height:1.90 },
+  { id:'hwana',       name:'화나핑',      type:'model', file:'hwana.glb',           height:1.90 },
 ];
 
 // -----------------------------------------------------------
