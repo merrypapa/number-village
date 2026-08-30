@@ -19,8 +19,10 @@ const BUILDERS = {
 // -----------------------------------------------------------
 //  캐릭터 목록  ← 아이랑 같이 고치는 곳!
 //
-//  type    : 'block'(숫자블록) · 'ping'(요정) · 'princess'(얼음공주 요정)
-//            · 'model'(모델링 툴에서 만든 .glb 파일 — file 값에 파일 이름을 쓴다)
+//  type    : 'model'  = 모델링 툴에서 만든 .glb 파일 (file 값에 파일 이름)  ← 요정 친구들
+//            'block'  = 숫자블록 친구 (코드로 큐브를 쌓는다)
+//            'ping' / 'princess' = 예전에 코드 도형으로 만들던 방식. 지금은 쓰는 캐릭터가 없지만
+//                                  그대로 두었다. 코드 도형 친구를 만들고 싶으면 쓸 수 있다.
 //  color   : 몸 색깔
 //  deco    : 머리 장식 — star heart drop ribbon leaf crown tiara moon gem flower candy cloud
 //  eye     : 눈동자 색     (안 쓰면 보라색)
@@ -54,23 +56,22 @@ export const CHARACTERS = [
   { id:'nine',  name:'구름',   type:'block', number:9,  color:0x5fe6c8 },
   { id:'ten',   name:'열이',   type:'block', number:10, color:0xffffff, rainbow:true },
 
-  // --- 요정 친구 8명 ---
-  { id:'banjjak', name:'반짝핑', type:'ping', color:0xffb3d9, deco:'star',   eye:0xd6478f, gem:0xffe066, wing:0xffe3f2, accent:0xff8ec8 },
-  { id:'monggle', name:'몽글핑', type:'ping', color:0xc3b1f5, deco:'heart',  eye:0x6a3fd0, gem:0xe0ccff, wing:0xe6dcff, accent:0xa88fe8 },
-  { id:'bangul',  name:'방울핑', type:'ping', color:0xa8e0ff, deco:'drop',   decoColor:0x4fb0ee, eye:0x2f7fd6, gem:0x8fd6ff, wing:0xdcf3ff, accent:0x7cc6f0 },
-  // 사뿐핑 — 모델링 툴에서 만든 3D 파일을 그대로 쓴다 (assets/models/sappun.glb)
-  //  키를 바꾸려면 height 값을, 움직임은 character-model.js 맨 위 값을 고친다.
-  { id:'sappun',  name:'사뿐핑', type:'model', file:'sappun.glb', height:1.90 },
-
-  // ↓ 예전에 코드로 도형을 쌓아 만들었던 사뿐핑. 비교해보고 싶으면 위 줄을 지우고 이 줄을 살리세요.
-  // { id:'sappun', name:'사뿐핑', type:'princess',
-  //   color:0xfff2f5, hair:0xa9dcf0, hairTip:0xd8b4e4, earColor:0xfdfdff,
-  //   eye:0x2f6fc0, gem:0x6fd8e8, cheek:0xff9fbb, deco:'tiara', decoColor:0xf0b8d8,
-  //   dress:0xfdfdff, skirt:0xd4ebf8, emblem:0xf0b830, shoe:0xd6d8f5 },
-  { id:'sallang', name:'살랑핑', type:'ping', color:0xb9ef9c, deco:'leaf',   eye:0x3f9440, gem:0xd8f79a, wing:0xe4ffd0, accent:0x92d977 },
-  { id:'ppogeul', name:'뽀글핑', type:'ping', color:0xfff0b8, deco:'crown',  eye:0xd2952a, gem:0xffd95e, wing:0xfff7dd, accent:0xf5d98a },
-  { id:'byeolbam',name:'별밤핑', type:'ping', color:0x9aa8e0, deco:'moon',   eye:0x3a3f8f, gem:0xfff0a8, wing:0xd4dcff, accent:0x7c8ac9 },
-  { id:'muji',    name:'무지핑', type:'ping', color:0xffd6f0, deco:'flower', eye:0xa03fb8, gem:0xb0f0ff, wing:0xffe9fb, accent:0xf0aede },
+  // --- 요정 친구 13명 (전부 모델링 툴에서 만든 .glb) ---
+  //  ★ 새 친구를 넣으려면: assets/models/ 에 .glb를 넣고 아래에 한 줄 추가.
+  //    height = 게임 속 키. 움직임은 character-model.js 맨 위 값에서 바꾼다.
+  { id:'sappun',   name:'사뿐핑',   type:'model', file:'sappun.glb',   height:1.90 },
+  { id:'diana',    name:'다이아나핑', type:'model', file:'diana.glb',    height:1.90 },
+  { id:'longlong', name:'롱롱핑',   type:'model', file:'longlong.glb', height:1.90 },
+  { id:'ruru',     name:'루루핑',   type:'model', file:'ruru.glb',     height:1.90 },
+  { id:'meo',      name:'머핑',     type:'model', file:'meo.glb',      height:1.75 },
+  { id:'bitna',    name:'빛나핑',   type:'model', file:'bitna.glb',    height:1.90 },
+  { id:'ppodeuk',  name:'뽀득핑',   type:'model', file:'ppodeuk.glb',  height:1.90 },
+  { id:'shasha',   name:'샤샤핑',   type:'model', file:'shasha.glb',   height:1.90 },
+  { id:'sora',     name:'소라핑',   type:'model', file:'sora.glb',     height:1.90 },
+  { id:'silk',     name:'실크핑',   type:'model', file:'silk.glb',     height:1.90 },
+  { id:'aurora',   name:'오로라핑', type:'model', file:'aurora.glb',   height:1.90 },
+  { id:'keo',      name:'커핑',     type:'model', file:'keo.glb',      height:1.75 },
+  { id:'heartping',name:'Heartping', type:'model', file:'heartping.glb', height:1.90 },
 ];
 
 // -----------------------------------------------------------
