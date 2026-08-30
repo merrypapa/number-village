@@ -100,7 +100,7 @@ const areaNpcs = {};              // 공간마다 친구들을 따로 기억해 
 
 function getArea(name) {
   if (!areas[name]) {
-    if (name === 'castle') areas[name] = buildCastleInterior(envMap);
+    if (name === 'castle') areas[name] = buildCastleInterior(envMap, charId);
   }
   const a = areas[name];
   if (!areaNpcs[name]) {
@@ -116,6 +116,7 @@ function startGame(def) {
   scene.add(model);
   player = createPlayer(model, camera, world);
   player.onMount = (ride) => toast(ride.label);   // '그네를 타요!' 같은 안내
+  player.onSpot = useSpot;                       // 요정 친구 진열대에서 '부르기'
   npcs = areaNpcs.village = createNPCs(scene, def.id, world);
   setupTouchControls(player, sayHi);   // 가상 조이스틱 + 점프·인사·타기 버튼
 
@@ -146,21 +147,41 @@ addEventListener('keydown', e => { if (e.code === 'Enter') sayHi(); });
 document.getElementById('bookBtn').onclick = () => toast('친구 도감은 곧 만들 거예요 📖');
 
 // -----------------------------------------------------------
-//  🎠 타기 버튼 — 그네·미끄럼틀 옆에 갔을 때만 보인다
+//  🅰 행동 버튼 — 지금 서 있는 자리에서 할 수 있는 일을 보여준다
+//    그네·미끄럼틀 옆 → 타기 / 내리기
+//    성 안 요정 친구 앞 → 부르기 / 보내기
 // -----------------------------------------------------------
-const rideBtn = document.getElementById('ride');
-let rideBtnState = '';
+const actionBtn = document.getElementById('ride');
+let actionLabel = '';
 
-function updateRideButton() {
-  //  'off'  = 숨김 / 'on' = 탈 수 있음 / 'down' = 내릴 수 있음
-  let want = 'off';
-  if (player.ride) want = player.ride.autoEnd ? 'off' : 'down';   // 미끄럼틀은 끝까지 탄다
-  else if (player.nearRide) want = 'on';
+function updateActionButton() {
+  let want = '';                                   // 빈 글씨면 버튼을 숨긴다
+  if (player.ride) want = player.ride.autoEnd ? '' : '내리기';   // 미끄럼틀은 끝까지 탄다
+  else if (player.nearRide) want = '타기';
+  else if (player.nearSpot) want = player.nearSpot.npc ? '보내기' : '부르기';
 
-  if (want === rideBtnState) return;      // 바뀔 때만 손댄다
-  rideBtnState = want;
-  rideBtn.style.display = want === 'off' ? 'none' : 'flex';
-  rideBtn.textContent = want === 'down' ? '내리기' : '타기';
+  if (want === actionLabel) return;                // 바뀔 때만 손댄다
+  actionLabel = want;
+  actionBtn.style.display = want ? 'flex' : 'none';
+  if (want) actionBtn.textContent = want;
+}
+
+// -----------------------------------------------------------
+//  🧚 요정 친구 부르기 — 성 안 진열대에서 버튼을 눌렀을 때
+//    부르면 그 친구가 성 안을 돌아다니고, 다시 누르면 제자리로 돌아간다.
+// -----------------------------------------------------------
+function useSpot(spot) {
+  if (spot.kind !== 'summon' || !npcs) return;
+  if (spot.npc) {
+    npcs.remove(spot.npc);
+    spot.npc = null;
+    spot.setOut(false);
+    toast(`${spot.def.name} 안녕! 또 놀자`);
+  } else {
+    spot.npc = npcs.add(spot.def, spot.spawnAt);
+    spot.setOut(true);
+    toast(`${spot.def.name}, 같이 놀자!`);
+  }
 }
 
 // -----------------------------------------------------------
@@ -212,7 +233,7 @@ function loop() {
   if (playing && player) {
     player.update(dt, t);
     npcs?.update(dt, t, player.model.position);
-    updateRideButton();
+    updateActionButton();
     checkDoors();
     renderer.render(area.scene, camera);
   } else {

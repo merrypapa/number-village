@@ -15,12 +15,13 @@ import {
   makeThrone, makeFireplace, makeCakeTable, makeBookshelf, makeNook,
   makeCandleStand, makePlant, makeNumberBlocks, makeBalloons, makeRockingHorse,
 } from './castle-props.js';
+import { buildGallery } from './castle-gallery.js';
 
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
 // -----------------------------------------------------------
 const HALF_X   = 20;    // 방의 가로 절반 (넓히고 싶으면 키운다)
-const HALF_Z   = 20;    // 방의 세로 절반
+const HALF_Z   = 22;    // 방의 세로 절반 (서쪽 벽에 요정 친구들이 한 줄로 선다)
 const HEIGHT   = 15;    // 천장 높이
 const SPARKLES = 90;    // 공중에 떠다니는 반짝이 개수
 
@@ -112,9 +113,9 @@ function buildRoom(scene) {
   // 벽 — 안쪽만 보이는 판 4장
   const wallMat = new THREE.MeshToonMaterial({ map: wallTexture() });
   const walls = [
-    { x: 0, z: -HALF_Z, ry: 0,            w: HALF_X * 2 },   // 북(왕좌 쪽)
+    { x: 0, z: -HALF_Z, ry: 0,            w: HALF_X * 2 },   // 북(왕좌·벽난로)
     { x: 0, z:  HALF_Z, ry: Math.PI,      w: HALF_X * 2 },   // 남(나가는 문)
-    { x: -HALF_X, z: 0, ry: Math.PI / 2,  w: HALF_Z * 2 },   // 서(벽난로)
+    { x: -HALF_X, z: 0, ry: Math.PI / 2,  w: HALF_Z * 2 },   // 서(요정 친구 진열대)
     { x:  HALF_X, z: 0, ry: -Math.PI / 2, w: HALF_Z * 2 },   // 동(책장)
   ];
   for (const w of walls) {
@@ -264,8 +265,11 @@ function buildSparkles(scene) {
 // -----------------------------------------------------------
 //  성 안 공간 만들기
 // -----------------------------------------------------------
-/** envMap: 반짝이는 재질(.glb 친구들)에 쓸 반사광. main.js가 넘겨준다. */
-export function buildCastleInterior(envMap) {
+/**
+ * envMap       : 반짝이는 재질(.glb 친구들)에 쓸 반사광. main.js가 넘겨준다.
+ * playerCharId : 내가 고른 캐릭터 (진열대에서는 빼둔다 — 내가 이미 그 친구니까)
+ */
+export function buildCastleInterior(envMap, playerCharId) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x3b2a5e);
   scene.environment = envMap || null;
@@ -296,38 +300,43 @@ export function buildCastleInterior(envMap) {
     return group;
   }
 
-  // 👑 왕좌 (북쪽)
-  place(makeThrone(), 0, -15, 0, { hw: 6.2, hd: 4.2 });
-  place(makeCandleStand(), -8.5, -13.5, 0, { r: 1.0 });
-  place(makeCandleStand(),  8.5, -13.5, 0, { r: 1.0 });
+  // 👑 왕좌 (북쪽 가운데)
+  place(makeThrone(), 0, -17, 0, { hw: 6.2, hd: 4.2 });
+  place(makeCandleStand(), -8.5, -15.5, 0, { r: 1.0 });
+  place(makeCandleStand(),  8.5, -15.5, 0, { r: 1.0 });
 
-  // 🔥 벽난로 (서쪽 벽) — 앞에 폭신한 양탄자
-  place(makeFireplace(), -HALF_X + 1.0, -3, Math.PI / 2, { hw: 1.8, hd: 4.4 });
-  const rug = part('cyl', C.red, -13.5, 0.05, -3, 7, 0.1, 5.4);
+  // 🔥 벽난로 (북쪽 벽 왼편) — 앞에 폭신한 양탄자
+  place(makeFireplace(), -13, -HALF_Z + 1.0, 0, { hw: 4.3, hd: 1.8 });
+  const rug = part('cyl', C.red, -13, 0.05, -16, 5.4, 0.1, 6);
   rug.receiveShadow = true; rug.castShadow = false;
   scene.add(rug);
+
+  // 🧚 요정 친구 진열대 (서쪽 벽 한 줄) — 부르면 깨어나서 돌아다닌다
+  const gallery = buildGallery(playerCharId);
+  scene.add(gallery.group);
+  obstacles.push(...gallery.obstacles);
 
   // 📚 책장 + 🧸 책 읽는 자리 (동쪽)
   place(makeBookshelf(), HALF_X - 0.9, -6, -Math.PI / 2, { hw: 1.6, hd: 4.4 });
   place(makeNook(), 12.5, 4);
 
-  // 🍰 케이크 탁자 (서남쪽)
-  place(makeCakeTable(), -11, 7, 0, { r: 2.6 });
+  // 🍰 케이크 탁자 (남쪽)
+  place(makeCakeTable(), -8, 12, 0, { r: 2.6 });
 
   // 🔢 숫자 블록 장난감
-  place(makeNumberBlocks(), -4.5, 13, 0.4, { r: 2.0 });
+  place(makeNumberBlocks(), -2, 17, 0.4, { r: 2.0 });
 
   // 🎈 풍선 (문 양옆)
-  place(makeBalloons(), -8, 16.5);
-  place(makeBalloons([C.pink, 0xffd45e, 0x8fd0ff]), 8, 16.5);
+  place(makeBalloons(), -8, 18.5);
+  place(makeBalloons([C.pink, 0xffd45e, 0x8fd0ff]), 8, 18.5);
 
-  // 🪴 화분 (네 귀퉁이)
-  for (const [x, z] of [[-17, -17], [17, -17], [-17, 16], [17, 16]]) {
+  // 🪴 화분 (진열대를 피해서)
+  for (const [x, z] of [[-12, -19.5], [16, -19], [-12, 19.5], [16, 19]]) {
     place(makePlant(), x, z, Math.random() * 6, { r: 1.6 });
   }
 
   // 🐴 흔들목마 (앞쪽을 보게 그대로 놓는다 — 흔들리는 방향과 타는 자세를 맞추려고)
-  place(makeRockingHorse(), 13, -11, 0, { r: 2.2 });
+  place(makeRockingHorse(), 13, -12, 0, { r: 2.2 });
 
   // 벽 — 밖으로 못 나가게 (판은 눈에만 보이고, 부딪히는 건 여기서 만든다)
   obstacles.push({ x: 0, z: -HALF_Z - 1, hw: HALF_X + 2, hd: 1 });
@@ -338,26 +347,30 @@ export function buildCastleInterior(envMap) {
   const collider = createCollider(obstacles);
   const updateSparkles = buildSparkles(scene);
 
-  const rides = [makeThroneRide(0, -15), makeHorseRide(13, -11)];
+  const rides = [makeThroneRide(0, -17), makeHorseRide(13, -12)];
 
   function update(dt, t) {
     for (const tick of ticks) tick(t, dt);
+    gallery.update(t);          // 진열대에 서 있는 친구들이 둥실둥실
     updateSparkles(dt, t);
   }
 
   return {
     name: 'castle',
     scene,
-    spawn: new THREE.Vector3(0, 0, 10),
+    spawn: new THREE.Vector3(0, 0, 12),
     yaw: Math.PI,              // 들어오면 왕좌 쪽(-z)을 바라본다
     camDist: 9,                // 방 안에서는 카메라를 가까이 (가구를 뚫지 않게)
     camHeight: 5.5,
     lookHeight: 2.6,
-    wanderRadius: 14,          // 성 안 친구들이 돌아다니는 범위
+    wanderRadius: 15,          // 성 안 친구들이 돌아다니는 범위
     npcCount: 5,
+    npcTypes: ['block'],       // 성 안을 원래 돌아다니는 친구는 숫자블록만
+                               // (요정 친구는 서쪽 벽 진열대에서 불러야 나온다)
     collide: collider.collide,
     isBlocked: collider.isBlocked,
     update, rides,
+    spots: gallery.spots,      // 말 걸 수 있는 자리 (요정 친구 부르기)
     // 남쪽 문으로 나가면 마을로 돌아간다
     doors: [{
       x: 0, z: HALF_Z - 2.5, r: 3.0, to: 'village',

@@ -23,6 +23,17 @@ const CAM_FOLLOW = 0.25;    // 점프할 때 카메라가 같이 올라가는 �
 // --- 놀이기구 타기 ---
 const RIDE_REACH = 3.2;     // 그네·미끄럼틀에 이만큼 가까이 가면 탈 수 있다
 
+/** 말 걸 수 있는 자리(진열대 앞 등) 중 가장 가까운 것을 찾는다. 없으면 null */
+function findNearestSpot(spots, pos) {
+  if (!spots) return null;
+  let best = null, bestDist = Infinity;
+  for (const s of spots) {
+    const d = Math.hypot(pos.x - s.x, pos.z - s.z);
+    if (d < s.r && d < bestDist) { bestDist = d; best = s; }
+  }
+  return best;
+}
+
 const _dir = new THREE.Vector3();
 const _camTarget = new THREE.Vector3();
 const _look = new THREE.Vector3();
@@ -48,6 +59,7 @@ export function createPlayer(model, camera, world) {
   let rideTime = 0;          // 탄 지 몇 초 됐나
   let rideY = 0;             // 놀이기구 때문에 떠 있는 높이 (카메라가 따라간다)
   let nearRide = null;       // 바로 옆에 있는 빈 놀이기구 (🎠 버튼을 띄울지 정한다)
+  let nearSpot = null;       // 바로 앞에 있는 말 거는 자리 (요정 친구 진열대 등)
 
   /** 점프! (땅에 있을 때만 된다 — 공중에서 두 번은 안 뛴다. 타는 중에는 안 된다) */
   function jump() {
@@ -69,6 +81,15 @@ export function createPlayer(model, camera, world) {
     nearRide = null;
     jumpY = 0; vy = 0; onGround = true;   // 뛰다가 타도 착지한 것으로 친다
     api.onMount?.(ride);             // 화면에 '그네를 타요!' 같은 말을 띄운다
+  }
+
+  /**
+   * 🅰 행동 버튼 / E 키 — 지금 서 있는 자리에 맞는 일을 한다.
+   *   놀이기구 옆이면 타거나 내리고, 요정 친구 앞이면 친구를 부른다.
+   */
+  function action() {
+    if (ride || nearRide) { toggleRide(); return; }
+    if (nearSpot) api.onSpot?.(nearSpot);   // 무엇을 할지는 main.js가 정한다
   }
 
   /** 놀이기구에서 내린다 */
@@ -99,7 +120,7 @@ export function createPlayer(model, camera, world) {
   addEventListener('keydown', e => {
     keys.add(e.code);
     if (e.code === 'Space') { e.preventDefault(); jump(); }
-    if (e.code === 'KeyE') toggleRide();
+    if (e.code === 'KeyE') action();
   });
   addEventListener('keyup', e => keys.delete(e.code));
 
@@ -188,6 +209,8 @@ export function createPlayer(model, camera, world) {
 
     // 3-1) 바로 옆에 빈 그네나 미끄럼틀이 있으면 🎠 버튼을 띄운다
     nearRide = findFreeRide(area.rides, model.position, RIDE_REACH);
+    // 3-2) 놀이기구가 없으면, 말 걸 수 있는 자리(요정 친구 진열대)를 찾는다
+    nearSpot = nearRide ? null : findNearestSpot(area.spots, model.position);
 
     // 4) 캐릭터 애니메이션
     //  캐릭터 종류에 따라 animate가 위아래로 통통 튀는 값을 직접 쓴다.
@@ -213,6 +236,7 @@ export function createPlayer(model, camera, world) {
     camYaw = yaw ?? next.yaw ?? 0;
     jumpY = 0; vy = 0; onGround = true;
     nearRide = null;
+    nearSpot = null;
     next.scene.add(model);              // 새 공간의 화면으로 옮긴다
     followCamera(1, 0);                 // dt를 크게 줘서 카메라를 바로 붙인다
     camera.position.copy(_camTarget);
@@ -220,9 +244,11 @@ export function createPlayer(model, camera, world) {
 
   // onMount에 함수를 넣어두면 놀이기구를 탈 때 불러준다 (main.js가 안내 문구를 띄운다)
   const api = {
-    model, update, joy, keys, jump, toggleRide, moveTo,
+    model, update, joy, keys, jump, toggleRide, moveTo, action,
     onMount: null,
+    onSpot: null,                           // 말 거는 자리에서 버튼을 눌렀을 때 (main.js가 채운다)
     get area()     { return area; },        // 지금 있는 공간
+    get nearSpot() { return nearSpot; },    // 바로 앞에 있는 말 거는 자리
     get ride()     { return ride; },       // 지금 타고 있는 놀이기구
     get nearRide() { return nearRide; },   // 바로 옆에 있는 빈 놀이기구
   };

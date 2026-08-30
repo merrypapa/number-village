@@ -94,8 +94,9 @@ export function setupTouchControls(player, onGreet) {
 
   tapButton(document.getElementById('jump'), () => player.jump());
   tapButton(document.getElementById('hi'), onGreet);
-  // 🎠 타기 버튼 — 그네·미끄럼틀 옆에 갔을 때만 화면에 나타난다 (main.js가 보여준다)
-  tapButton(document.getElementById('ride'), () => player.toggleRide());
+  // 🅰 행동 버튼 — 놀이기구 옆이나 요정 친구 앞에서만 나타난다 (main.js가 보여준다)
+  //  타기 / 내리기 / 부르기 / 보내기 — 무슨 글씨가 쓰일지는 main.js가 정한다
+  tapButton(document.getElementById('ride'), () => player.action());
 
   reset();
 }

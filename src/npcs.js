@@ -155,14 +155,22 @@ function pickSpot(world, out) {
 // -----------------------------------------------------------
 /** NPC들을 만들어 마을에 배치한다. playerCharId는 NPC 목록에서 제외할 캐릭터 id. */
 export function createNPCs(scene, playerCharId, world, count = NPC_COUNT) {
-  const pool = CHARACTERS.filter(c => c.id !== playerCharId);
+  // 공간이 npcTypes를 정해두면 그 종류만 돌아다닌다
+  //  (성 안은 숫자블록 친구만 — 요정 친구는 진열대에서 불러야 나온다)
+  const pool = CHARACTERS.filter(c =>
+    c.id !== playerCharId && (!world.npcTypes || world.npcTypes.includes(c.type)));
   const npcs = [];
 
-  for (let i = 0; i < count; i++) {
-    const def = pool[Math.floor(Math.random() * pool.length)];
+  /**
+   * 친구 한 명을 만들어 세운다.
+   * pos를 주면 그 자리에, 안 주면 빈 자리를 아무 데나 골라 세운다.
+   * (성 안 진열대에서 친구를 부를 때도 이 함수를 쓴다)
+   */
+  function addNpc(def, pos) {
     const model = createCharacter(def, 'simple');
     model.traverse(o => { if (o.isMesh && !o.userData.noShadow) o.castShadow = true; });
-    pickSpot(world, model.position);
+    if (pos) model.position.set(pos.x, 0, pos.z);
+    else pickSpot(world, model.position);
     scene.add(model);
 
     const height = model.userData.height || 1.4;
@@ -180,7 +188,7 @@ export function createNPCs(scene, playerCharId, world, count = NPC_COUNT) {
     exclaim.visible = false;
     model.add(exclaim);
 
-    npcs.push({
+    const npc = {
       def, model, height,
       target: pickSpot(world, new THREE.Vector3()),
       resting: false,
@@ -192,7 +200,24 @@ export function createNPCs(scene, playerCharId, world, count = NPC_COUNT) {
       goingTo: null,      // 타러 걸어가는 중인 놀이기구 (자리를 맡아둔 상태)
       walkTimer: 0,       // 놀이기구까지 걸은 시간 (너무 오래 걸리면 포기)
       exclaim,
-    });
+    };
+    npcs.push(npc);
+    return npc;
+  }
+
+  /** 친구를 내보낸다 (성 안 진열대로 돌려보낼 때 쓴다) */
+  function removeNpc(npc) {
+    const i = npcs.indexOf(npc);
+    if (i < 0) return;
+    npcs.splice(i, 1);
+    releaseTrip(npc);                                   // 맡아둔 놀이기구 자리를 놓아준다
+    if (npc.ride) { npc.ride.rider = null; npc.ride = null; }
+    if (greeted === npc) { bubble.visible = false; greeted = null; }
+    scene.remove(npc.model);
+  }
+
+  for (let i = 0; i < count; i++) {
+    addNpc(pool[Math.floor(Math.random() * pool.length)]);
   }
 
   // --- 놀이기구 (그네·미끄럼틀) 도우미 ---
@@ -346,5 +371,5 @@ export function createNPCs(scene, playerCharId, world, count = NPC_COUNT) {
     onMeet?.(withObjectParticle(nearest.def.name));
   }
 
-  return { update, greetNearest };
+  return { update, greetNearest, add: addNpc, remove: removeNpc };
 }
