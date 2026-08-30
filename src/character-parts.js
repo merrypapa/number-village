@@ -130,16 +130,29 @@ export function addSimpleEyes(parent, y, z, spread, size) {
   }
 }
 
-const _glossVertexCache = [];
-/** 정점마다 색이 다른 반질반질 재질 (머리카락 그라데이션용) */
-export function glossVertexMat() {
-  if (!_glossVertexCache[0]) {
-    _glossVertexCache[0] = new THREE.MeshPhysicalMaterial({
-      vertexColors: true, roughness: 0.40, metalness: 0.0,
-      clearcoat: 0.55, clearcoatRoughness: 0.30,
-    });
+const _glossVertexCache = new Map();
+/** 정점마다 색이 다른 반질반질 재질 (머리카락 그라데이션용). map을 주면 결 무늬가 들어간다 */
+export function glossVertexMat(map = null) {
+  if (!_glossVertexCache.has(map)) {
+    _glossVertexCache.set(map, new THREE.MeshPhysicalMaterial({
+      vertexColors: true, map, roughness: 0.38, metalness: 0.0,
+      clearcoat: 0.6, clearcoatRoughness: 0.26,
+    }));
   }
-  return _glossVertexCache[0];
+  return _glossVertexCache.get(map);
+}
+
+const _glossMapCache = new Map();
+/** 무늬가 들어간 반질반질 재질 */
+export function glossMapMat(color, map) {
+  const key = color + ':' + map.uuid;
+  if (!_glossMapCache.has(key)) {
+    _glossMapCache.set(key, new THREE.MeshPhysicalMaterial({
+      color, map, roughness: 0.38, metalness: 0.0,
+      clearcoat: 0.6, clearcoatRoughness: 0.26,
+    }));
+  }
+  return _glossMapCache.get(key);
 }
 
 /**
@@ -148,7 +161,7 @@ export function glossVertexMat() {
  *  rStart  : 뿌리 굵기, rEnd: 끝 굵기 (rEnd를 크게 하면 끝이 퍼진다)
  *  colorA  : 뿌리 색, colorB: 끝 색 (사이는 자연스럽게 섞인다)
  */
-export function makeStrand(points, rStart, rEnd, colorA, colorB, seg = 40, rad = 10) {
+export function makeStrand(points, rStart, rEnd, colorA, colorB, seg = 40, rad = 10, map = null) {
   const curve = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(p[0], p[1], p[2])));
   const geo = new THREE.TubeGeometry(curve, seg, 1, rad, false);
   const pos = geo.attributes.position;
@@ -178,7 +191,38 @@ export function makeStrand(points, rStart, rEnd, colorA, colorB, seg = 40, rad =
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   geo.computeVertexNormals();
 
-  const m = new THREE.Mesh(geo, glossVertexMat());
+  const m = new THREE.Mesh(geo, glossVertexMat(map));
   m.castShadow = true;
   return m;
+}
+
+// -----------------------------------------------------------
+//  얼굴 모양 만들기
+//  구(공)를 그대로 쓰면 얼굴이 동그란 구슬처럼 보인다.
+//  광대는 살짝 넓히고 턱은 좁혀서 계란형 얼굴을 만든다.
+// -----------------------------------------------------------
+/** y(-0.5 ~ 0.5) 높이에서 가로로 얼마나 넓힐지 */
+export function faceShape(y) {
+  const t = y + 0.5;                                   // 0(턱) ~ 1(정수리)
+  const cheek = 1 + 0.09 * Math.exp(-(((t - 0.52) / 0.30) ** 2));
+  const chin  = t < 0.34 ? 1 - 0.36 * ((0.34 - t) / 0.34) ** 1.7 : 1;
+  return cheek * chin;
+}
+
+/** 도형의 점들을 모양 함수대로 밀어서 계란형으로 바꾼다 */
+export function shapeGeometry(geo, fn) {
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const k = fn(pos.getY(i));
+    pos.setX(i, pos.getX(i) * k);
+    pos.setZ(i, pos.getZ(i) * k);
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/** 꽃잎 모양 — 위아래로 갈수록 뾰족해지는 나뭇잎 형태 (하얀 귀에 쓴다) */
+export function petalShape(y) {
+  const t = y + 0.5;
+  return Math.pow(Math.sin(Math.max(0, Math.min(1, t)) * Math.PI), 0.55);
 }

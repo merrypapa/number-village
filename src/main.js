@@ -7,6 +7,7 @@ import { CHARACTERS, createCharacter } from './characters.js';
 import { buildWorld } from './world.js';
 import { createPlayer } from './player.js';
 import { createNPCs } from './npcs.js';
+import { makeStudioEnv } from './environment.js';
 
 // -----------------------------------------------------------
 //  렌더러 / 씬 / 카메라
@@ -35,6 +36,9 @@ sun.shadow.camera.top = 90;   sun.shadow.camera.bottom = -90;
 sun.shadow.camera.far = 200;
 scene.add(sun);
 
+// 반질반질한 재질에 스튜디오 반사광을 준다 (만화풍 재질에는 영향 없음)
+scene.environment = makeStudioEnv(renderer);
+
 const world = buildWorld(scene);
 
 // -----------------------------------------------------------
@@ -48,6 +52,7 @@ sScene.add(new THREE.HemisphereLight(0xffffff, 0xffd6e8, 1.4));
 const sLight = new THREE.DirectionalLight(0xffffff, 1.2);
 sLight.position.set(3, 6, 5);
 sScene.add(sLight);
+sScene.environment = makeStudioEnv(sRenderer);
 const sCam = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
 
 let pickIndex = 0;
