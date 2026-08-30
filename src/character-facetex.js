@@ -4,7 +4,7 @@
 //    곡면이 똑같아서 이어 붙인 티가 나지 않는다.
 // ===========================================================
 import * as THREE from 'three';
-import { faceShape, petalShape, shapeGeometry } from './character-parts.js';
+import { petalShape, shapeGeometry, sculptGeometry } from './character-parts.js';
 import { paintFace, W, H } from './character-facedraw.js';
 
 const SPAN = 1.0;   // 얼굴 그림이 덮는 범위(라디안)
@@ -30,14 +30,14 @@ export function faceTexture(def) {
 // -----------------------------------------------------------
 //  얼굴 덩어리와 그림 조각 (둘 다 똑같이 계란형으로 눌러 만든다)
 // -----------------------------------------------------------
-export const FACE_GEO  = shapeGeometry(new THREE.SphereGeometry(0.5, 48, 40), faceShape);
+export const FACE_GEO  = sculptGeometry(new THREE.SphereGeometry(0.5, 96, 72));
 export const PETAL_GEO = shapeGeometry(new THREE.SphereGeometry(0.5, 20, 18), petalShape);
 
-const PATCH = shapeGeometry(new THREE.SphereGeometry(
-  0.5 * 1.004, 72, 56,
+const PATCH = sculptGeometry(new THREE.SphereGeometry(
+  0.5 * 1.004, 112, 88,
   Math.PI / 2 - SPAN, SPAN * 2,
   Math.PI / 2 - SPAN, SPAN * 2,
-), faceShape);
+));
 
 const _faceMat = new Map();
 export function makeFaceDecal(def) {

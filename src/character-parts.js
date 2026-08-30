@@ -199,19 +199,60 @@ export function makeStrand(points, rStart, rEnd, colorA, colorB, seg = 40, rad =
 }
 
 // -----------------------------------------------------------
-//  얼굴 모양 만들기
-//  구(공)를 그대로 쓰면 얼굴이 동그란 구슬처럼 보인다.
-//  광대는 살짝 넓히고 턱은 좁혀서 계란형 얼굴을 만든다.
+//  얼굴 조각하기
+//  ★ 공에 그림만 붙이면 풍선처럼 밋밋하다.
+//    아기 얼굴처럼 눈두덩은 쏙 들어가고, 볼은 통통 나오고,
+//    턱은 둥글게 이어지도록 공의 표면을 밀고 당긴다.
+//
+//  아래 목록의 숫자 뜻:
+//    [보는 방향 x, y, z, 세기(+나옴 −들어감), 퍼짐(클수록 넓게)]
 // -----------------------------------------------------------
-/** y(-0.5 ~ 0.5) 높이에서 가로로 얼마나 넓힐지 */
-export function faceShape(y) {
-  const t = y + 0.5;                                   // 0(턱) ~ 1(정수리)
-  const cheek = 1 + 0.09 * Math.exp(-(((t - 0.52) / 0.30) ** 2));
-  const chin  = t < 0.42 ? 1 - 0.44 * ((0.42 - t) / 0.42) ** 1.6 : 1;
-  return cheek * chin;
+const FACE_BUMPS = [];
+function bump(x, y, z, power, spread) {
+  const len = Math.hypot(x, y, z);
+  FACE_BUMPS.push([x / len, y / len, z / len, power, spread]);
 }
 
-/** 도형의 점들을 모양 함수대로 밀어서 계란형으로 바꾼다 */
+bump( 0.44, -0.14, 0.88, -0.075, 0.38);   // 오른쪽 눈두덩 — 쏙 들어감
+bump(-0.44, -0.14, 0.88, -0.075, 0.38);   // 왼쪽 눈두덩
+bump( 0.52, -0.54, 0.66,  0.110, 0.52);   // 오른쪽 볼 — 크고 통통하게
+bump(-0.52, -0.54, 0.66,  0.110, 0.52);   // 왼쪽 볼
+bump( 0.00, -0.74, 0.67,  0.095, 0.58);   // 턱·볼살 — 볼과 이어져 통통하게
+bump( 0.43,  0.30, 0.85,  0.022, 0.32);   // 오른쪽 눈썹뼈
+bump(-0.43,  0.30, 0.85,  0.022, 0.32);   // 왼쪽 눈썹뼈
+bump( 0.00, -0.52, 0.85,  0.030, 0.30);   // 입 둘레 살짝 볼록
+bump( 0.00,  0.62, 0.78, -0.022, 0.44);   // 이마는 살짝 평평하게
+bump( 0.00, -1.00, 0.00, -0.070, 0.46);   // 턱 밑만 살짝 안으로
+bump( 0.00,  0.00, -1.00, -0.040, 0.70);  // 뒤통수 쪽은 살짝 작게
+
+/** 이 방향에서 얼굴 표면을 얼마나 밀지 (1이면 그대로) */
+export function faceSculpt(nx, ny, nz) {
+  let r = 1;
+  for (const [bx, by, bz, power, spread] of FACE_BUMPS) {
+    const dot = Math.max(-1, Math.min(1, nx * bx + ny * by + nz * bz));
+    const a = Math.acos(dot) / spread;
+    r += power * Math.exp(-a * a);
+  }
+  return r;
+}
+
+/**
+ * 공 도형을 얼굴 모양으로 조각한다.
+ * 얼굴 덩어리와 얼굴 그림 조각에 똑같이 적용해야 딱 맞는다.
+ */
+export function sculptGeometry(geo) {
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const len = Math.hypot(x, y, z) || 1;
+    const k = faceSculpt(x / len, y / len, z / len);
+    pos.setXYZ(i, x * k, y * k, z * k);
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/** 도형의 점들을 모양 함수대로 밀어서 눌러준다 (꽃잎 귀에 쓴다) */
 export function shapeGeometry(geo, fn) {
   const pos = geo.attributes.position;
   for (let i = 0; i < pos.count; i++) {

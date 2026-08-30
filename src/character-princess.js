@@ -15,7 +15,7 @@ import { makeFaceDecal, makeEmblemDecal, FACE_GEO, PETAL_GEO, stripeTexture } fr
 // -----------------------------------------------------------
 const HEAD_Y      = 1.28;   // 머리(얼굴 가운데) 높이
 const HEIGHT      = 2.10;   // 이름표를 띄울 키
-const FACE        = [1.20, 0.99, 1.02];   // 얼굴판 크기 (가로로 넓적한 얼굴)
+const FACE        = [1.17, 1.05, 1.06];   // 얼굴판 크기 (동글동글 아기 얼굴)
 const FACE_POS    = [0, -0.03, 0.14];
 const HAIR_SWAY   = 0.08;   // 머리카락이 흩날리는 크기
 const SKIRT_TIERS = 3;      // 치마 층수

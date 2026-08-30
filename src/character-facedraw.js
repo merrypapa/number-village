@@ -14,13 +14,13 @@ export const W = 1024, H = 1024, CX = 512;
 
 //  ↓ 눈높이가 얼굴의 기준선이다. 아기 얼굴은 눈이 한가운데쯤 와야 귀엽다.
 const CY      = 596;   // 눈높이 (내릴수록 이마가 넓어진다)
-const EYE_X   = 238;   // 두 눈 사이
-const EYE_RX  = 127;   // 눈 가로 반지름
-const EYE_RY  = 163;   // 눈 세로 반지름
-const NOSE_Y  = 180;   // 눈높이에서 코까지
-const MOUTH_Y = 300;   // 눈높이에서 입까지
-const GEM_Y   = 272;   // 눈높이에서 이마 보석까지
-const BROW_Y  = 232;   // 눈높이에서 눈썹까지
+const EYE_X   = 246;   // 두 눈 사이
+const EYE_RX  = 141;   // 눈 가로 반지름
+const EYE_RY  = 181;   // 눈 세로 반지름
+const NOSE_Y  = 178;   // 눈높이에서 코까지
+const MOUTH_Y = 266;   // 눈높이에서 입까지
+const GEM_Y   = 280;   // 눈높이에서 이마 보석까지
+const BROW_Y  = 246;   // 눈높이에서 눈썹까지
 
 const LASH   = '#2a3866';   // 속눈썹 색
 const SHADE  = '226,158,182';  // 얼굴 그늘 색(분홍빛 그림자)
@@ -53,7 +53,7 @@ function glow(ctx, x, y, r, rgb, alpha) {
 function drawShading(ctx) {
   // 앞머리가 드리우는 이마 그늘 (머리카락이 덮이는 위쪽만 살짝)
   let g = ctx.createLinearGradient(0, 90, 0, 400);
-  g.addColorStop(0, `rgba(${SHADE},0.34)`);
+  g.addColorStop(0, `rgba(${SHADE},0.26)`);
   g.addColorStop(1, `rgba(${SHADE},0)`);
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, 400);
 
@@ -61,7 +61,7 @@ function drawShading(ctx) {
   for (const s of [-1, 1]) {
     const x0 = s < 0 ? 0 : W;
     g = ctx.createLinearGradient(x0, 0, CX + s * 300, 0);
-    g.addColorStop(0, `rgba(${SHADE},0.26)`);
+    g.addColorStop(0, `rgba(${SHADE},0.20)`);
     g.addColorStop(1, `rgba(${SHADE},0)`);
     ctx.fillStyle = g;
     ctx.fillRect(s < 0 ? 0 : CX + 300, 0, W / 2 - 300, H);
@@ -73,9 +73,11 @@ function drawShading(ctx) {
   g.addColorStop(1, `rgba(${SHADE},0)`);
   ctx.fillStyle = g; ctx.fillRect(0, H - 260, W, 260);
 
-  // 이마 밝은 부분, 볼 도톰한 빛
-  glow(ctx, CX, CY - 230, 250, '255,255,255', 0.30);
-  for (const s of [-1, 1]) glow(ctx, CX + s * 262, CY + 120, 200, '255,255,255', 0.22);
+  // 이마 밝은 부분, 볼 도톰한 빛 (도형에 이미 굴곡이 있으니 살짝만)
+  glow(ctx, CX, CY - 240, 240, '255,255,255', 0.22);
+  for (const s of [-1, 1]) glow(ctx, CX + s * 300, CY + 205, 230, '255,255,255', 0.26);
+  // 볼 아래 그늘 — 볼이 통통해 보이게
+  for (const s of [-1, 1]) glow(ctx, CX + s * 218, CY + 372, 200, SHADE, 0.24);
 }
 
 // -----------------------------------------------------------
@@ -85,8 +87,8 @@ function drawCheeks(ctx, def) {
   const rgb = def.cheek ?? 0xff8fb0;
   const c = `${(rgb >> 16) & 255},${(rgb >> 8) & 255},${rgb & 255}`;
   for (const s of [-1, 1]) {
-    const x = CX + s * 300, y = CY + 158;
-    glow(ctx, x, y, 132, c, 0.62);
+    const x = CX + s * 302, y = CY + 196;
+    glow(ctx, x, y, 142, c, 0.72);
     // 반짝이 알갱이
     for (let i = 0; i < 7; i++) {
       const a = i * 2.1 + (s + 1);
@@ -109,7 +111,7 @@ function drawEye(ctx, s, def) {
   ctx.rotate(0.05);
 
   // 눈두덩 그늘 (눈이 얼굴에 파묻힌 느낌)
-  glow(ctx, 0, 0, EYE_RX * 1.45, SHADE, 0.20);
+  glow(ctx, 0, 0, EYE_RX * 1.35, SHADE, 0.14);
 
   // 흰자
   ell(ctx, 0, 0, EYE_RX, EYE_RY, 0, '#ffffff');
