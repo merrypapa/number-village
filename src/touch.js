@@ -94,6 +94,8 @@ export function setupTouchControls(player, onGreet) {
 
   tapButton(document.getElementById('jump'), () => player.jump());
   tapButton(document.getElementById('hi'), onGreet);
+  // 🎠 타기 버튼 — 그네·미끄럼틀 옆에 갔을 때만 화면에 나타난다 (main.js가 보여준다)
+  tapButton(document.getElementById('ride'), () => player.toggleRide());
 
   reset();
 }

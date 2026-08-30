@@ -91,8 +91,9 @@ function startGame(def) {
   model.traverse(o => { if (o.isMesh && !o.userData.noShadow) o.castShadow = true; });
   scene.add(model);
   player = createPlayer(model, camera, world);
+  player.onMount = (ride) => toast(ride.label);   // '그네를 타요!' 같은 안내
   npcs = createNPCs(scene, def.id, world);
-  setupTouchControls(player, sayHi);   // 가상 조이스틱 + 점프·인사 버튼
+  setupTouchControls(player, sayHi);   // 가상 조이스틱 + 점프·인사·타기 버튼
 
   document.getElementById('select').classList.remove('on');
   document.getElementById('hud').classList.add('on');
@@ -121,6 +122,24 @@ addEventListener('keydown', e => { if (e.code === 'Enter') sayHi(); });
 document.getElementById('bookBtn').onclick = () => toast('친구 도감은 곧 만들 거예요 📖');
 
 // -----------------------------------------------------------
+//  🎠 타기 버튼 — 그네·미끄럼틀 옆에 갔을 때만 보인다
+// -----------------------------------------------------------
+const rideBtn = document.getElementById('ride');
+let rideBtnState = '';
+
+function updateRideButton() {
+  //  'off'  = 숨김 / 'on' = 탈 수 있음 / 'down' = 내릴 수 있음
+  let want = 'off';
+  if (player.ride) want = player.ride.autoEnd ? 'off' : 'down';   // 미끄럼틀은 끝까지 탄다
+  else if (player.nearRide) want = 'on';
+
+  if (want === rideBtnState) return;      // 바뀔 때만 손댄다
+  rideBtnState = want;
+  rideBtn.style.display = want === 'off' ? 'none' : 'flex';
+  rideBtn.textContent = want === 'down' ? '내리기' : '타기';
+}
+
+// -----------------------------------------------------------
 //  루프
 // -----------------------------------------------------------
 const clock = new THREE.Clock();
@@ -135,6 +154,7 @@ function loop() {
   if (playing && player) {
     player.update(dt, t);
     npcs?.update(dt, t, player.model.position);
+    updateRideButton();
     renderer.render(scene, camera);
   } else {
     preview.rotation.y += dt * 0.7;

@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { CHARACTERS, createCharacter } from './characters.js';
 import { WORLD_RADIUS } from './world.js';
+import { findFreeRide, mountRide, applyRide, dismountRide } from './rides.js';
 
 // --- 아이가 바꿔볼 수 있는 값들 ---
 const NPC_COUNT     = 24;      // 마을에 돌아다니는 친구 수
@@ -17,6 +18,11 @@ const SKIP_DIST     = 45;      // 이 거리보다 멀면 애니메이션 업데
 const NPC_RADIUS    = 0.7;     // NPC 몸 굵기 (물건에 부딪히는 크기)
 const BUBBLE_TIME   = 3;       // 말풍선 유지 시간 (초)
 const GREET_REACT   = 1.0;     // 인사할 때 폴짝/흔들기 반응 시간 (초)
+
+// --- 친구들도 놀이터에서 논다 ---
+const RIDE_CHANCE   = 0.4;     // 쉬고 나서 그네·미끄럼틀을 타러 갈 확률 (0이면 안 간다)
+const RIDE_REACH    = 50;      // 이 거리 안에 있을 때만 타러 간다 (너무 멀면 안 간다)
+const RIDE_GIVEUP   = 25;      // 이만큼 걸었는데도 못 가면 포기한다 (초)
 
 // 인사할 때 나오는 대사 (8개 이상)
 const PHRASES = [
@@ -179,8 +185,43 @@ export function createNPCs(scene, playerCharId, world, count = NPC_COUNT) {
       restTimer: 0,
       greetTimer: 0,
       stuckTimer: 0,      // 뭔가에 막혀서 못 가고 있는 시간
+      ride: null,         // 지금 타고 있는 놀이기구
+      rideTime: 0,        // 탄 지 몇 초 됐나
+      goingTo: null,      // 타러 걸어가는 중인 놀이기구 (자리를 맡아둔 상태)
+      walkTimer: 0,       // 놀이기구까지 걸은 시간 (너무 오래 걸리면 포기)
       exclaim,
     });
+  }
+
+  // --- 놀이기구 (그네·미끄럼틀) 도우미 ---
+
+  /** 맡아둔 놀이기구 자리를 놓아준다 (딴 데로 가거나 막혔을 때) */
+  function releaseTrip(npc) {
+    if (!npc.goingTo) return;
+    npc.goingTo.rider = null;
+    npc.goingTo = null;
+  }
+
+  /** 잠깐 쉬었다 간다 */
+  function rest(npc) {
+    npc.resting = true;
+    npc.restTimer = REST_MIN + Math.random() * (REST_MAX - REST_MIN);
+  }
+
+  /** 다음엔 어디로 갈까? — 가끔은 놀이터에 놀러 간다 */
+  function startNextTrip(npc) {
+    const rides = world.rides;
+    if (rides && Math.random() < RIDE_CHANCE) {
+      const r = findFreeRide(rides, npc.model.position, RIDE_REACH);
+      if (r) {
+        mountRide(r, npc.model);      // 가는 동안 다른 친구가 못 가져가게 자리를 맡는다
+        npc.goingTo = r;
+        npc.walkTimer = 0;
+        npc.target.set(r.enter.x, 0, r.enter.z);
+        return;
+      }
+    }
+    pickSpot(world, npc.target);
   }
 
   const bubble = makeBubbleSprite();
@@ -199,6 +240,17 @@ export function createNPCs(scene, playerCharId, world, count = NPC_COUNT) {
 
       if (npc.greetTimer > 0) npc.greetTimer -= dt;
 
+      // 놀이기구를 타는 중 — 걷지 않고 놀이기구가 자리를 정해준다
+      if (npc.ride) {
+        npc.rideTime += dt;
+        if (applyRide(npc.ride, npc.model, npc.rideTime, t)) {
+          dismountRide(npc.ride, npc.model);
+          npc.ride = null;
+          rest(npc);                     // 다 타고 나면 잠깐 쉬었다가 또 논다
+        }
+        continue;
+      }
+
       // 너무 멀면 애니메이션(팔다리/통통 튀기) 업데이트만 건너뛴다
       const skipAnim = dist > SKIP_DIST;
 
@@ -206,16 +258,21 @@ export function createNPCs(scene, playerCharId, world, count = NPC_COUNT) {
       if (npc.resting) {
         npc.restTimer -= dt;
         if (npc.restTimer <= 0) {
-          pickSpot(world, npc.target);
           npc.resting = false;
+          startNextTrip(npc);
         }
       } else {
         _tmpDir.copy(npc.target).sub(npc.model.position);
         _tmpDir.y = 0;
         const d = _tmpDir.length();
-        if (d < 0.4) {
-          npc.resting = true;
-          npc.restTimer = REST_MIN + Math.random() * (REST_MAX - REST_MIN);
+        if (d < 0.5) {
+          if (npc.goingTo) {              // 놀이기구 앞에 도착했다 — 올라탄다!
+            npc.ride = npc.goingTo;
+            npc.goingTo = null;
+            npc.rideTime = 0;
+          } else {
+            rest(npc);
+          }
         } else {
           const fromX = npc.model.position.x, fromZ = npc.model.position.z;
           _tmpDir.normalize();
@@ -233,8 +290,18 @@ export function createNPCs(scene, playerCharId, world, count = NPC_COUNT) {
           const gone = Math.hypot(npc.model.position.x - fromX, npc.model.position.z - fromZ);
           npc.stuckTimer = gone < WALK_SPEED * dt * 0.3 ? npc.stuckTimer + dt : 0;
           if (npc.stuckTimer > 0.8) {
+            releaseTrip(npc);             // 맡아둔 놀이기구가 있으면 다른 친구에게 양보
             pickSpot(world, npc.target);
             npc.stuckTimer = 0;
+          }
+
+          // 놀이기구가 너무 멀어서 한참 걸으면 포기하고 딴 데로 간다
+          if (npc.goingTo) {
+            npc.walkTimer += dt;
+            if (npc.walkTimer > RIDE_GIVEUP) {
+              releaseTrip(npc);
+              pickSpot(world, npc.target);
+            }
           }
         }
       }

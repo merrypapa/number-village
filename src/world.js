@@ -233,8 +233,13 @@ export function buildWorld(scene) {
   /** 매 프레임 움직이는 것들 (구름, 고래, 그네, 시소) */
   function update(dt, t) {
     sky.update(dt, t);
-    playground.update(t);
+    playground.update(dt, t);
   }
 
-  return { spawn: new THREE.Vector3(0, 0, 14), home, collide, isBlocked, update };
+  // rides = 캐릭터가 탈 수 있는 놀이기구 목록 (그네 2개 + 미끄럼틀). src/rides.js가 쓴다.
+  return {
+    spawn: new THREE.Vector3(0, 0, 14),
+    home, collide, isBlocked, update,
+    rides: playground.rides,
+  };
 }

@@ -39,8 +39,8 @@
   #bookBtn { position:absolute; top:16px; right:16px; width:64px; height:64px;
     border:none; border-radius:20px; background:#fff9; font-size:32px;
     pointer-events:auto; cursor:pointer; }
-  /* ---- 오른쪽 버튼 (인사 · 점프) ---- */
-  #hi, #jump { position:absolute; border:none; border-radius:50%; color:#fff;
+  /* ---- 오른쪽 버튼 (인사 · 점프 · 타기) ---- */
+  #hi, #jump, #ride { position:absolute; border:none; border-radius:50%; color:#fff;
     pointer-events:auto; cursor:pointer; touch-action:none;
     display:flex; align-items:center; justify-content:center; }
   #hi   { right:calc(24px + env(safe-area-inset-right));
@@ -51,8 +51,15 @@
           bottom:calc(150px + env(safe-area-inset-bottom));
           width:96px; height:96px; font-size:34px; font-weight:800;
           background:#7ad4ff; box-shadow:0 6px 0 #3aa9e0; }
+  /* 타기 버튼은 그네·미끄럼틀 옆에 갔을 때만 나타난다 (main.js가 보여준다) */
+  #ride { right:calc(30px + env(safe-area-inset-right));
+          bottom:calc(262px + env(safe-area-inset-bottom));
+          width:92px; height:92px; font-size:24px; font-weight:800;
+          background:#ffd93d; color:#7a4a00; box-shadow:0 6px 0 #d9a800;
+          display:none; }
   #hi:active   { transform:translateY(4px); box-shadow:0 2px 0 #e0518f; }
   #jump:active { transform:translateY(4px); box-shadow:0 2px 0 #3aa9e0; }
+  #ride:active { transform:translateY(4px); box-shadow:0 2px 0 #d9a800; }
 
   /* ---- 왼쪽 가상 조이스틱 ---- */
   #stick { position:absolute; left:calc(26px + env(safe-area-inset-left));
@@ -72,6 +79,8 @@
     #hi    { width:84px;  height:84px;  font-size:36px; }
     #jump  { width:78px;  height:78px;  font-size:28px;
              bottom:calc(124px + env(safe-area-inset-bottom)); }
+    #ride  { width:74px;  height:74px;  font-size:20px;
+             bottom:calc(212px + env(safe-area-inset-bottom)); }
   }
   #toast { position:absolute; left:50%; top:18%; transform:translateX(-50%);
     background:#fff; color:#5b3d8f; font-size:28px; font-weight:800;
@@ -115,12 +124,13 @@
   <!-- 왼쪽: 손가락으로 미는 조이스틱 -->
   <div id="stick" class="no-drag"><div id="knob"></div></div>
 
-  <!-- 오른쪽: 점프 · 인사 -->
+  <!-- 오른쪽: 타기(놀이기구 옆에서만) · 점프 · 인사 -->
+  <button id="ride" class="no-drag">타기</button>
   <button id="jump" class="no-drag">점프</button>
   <button id="hi" class="no-drag">👋</button>
 
   <div id="toast"></div>
-  <div id="hint">동그라미를 밀어서 걷고<br>점프·👋 버튼을 눌러요</div>
+  <div id="hint">동그라미를 밀어서 걷고<br>점프·👋 버튼을 눌러요<br>놀이터에서 그네·미끄럼틀도 타요!</div>
 </div>
 
 <script type="module" src="./src/main.js"></script>
