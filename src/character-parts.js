@@ -129,3 +129,56 @@ export function addSimpleEyes(parent, y, z, spread, size) {
     parent.add(pupil);
   }
 }
+
+const _glossVertexCache = [];
+/** 정점마다 색이 다른 반질반질 재질 (머리카락 그라데이션용) */
+export function glossVertexMat() {
+  if (!_glossVertexCache[0]) {
+    _glossVertexCache[0] = new THREE.MeshPhysicalMaterial({
+      vertexColors: true, roughness: 0.40, metalness: 0.0,
+      clearcoat: 0.55, clearcoatRoughness: 0.30,
+    });
+  }
+  return _glossVertexCache[0];
+}
+
+/**
+ * 머리카락 한 가닥 만들기 — 점들을 이은 부드러운 곡선을 따라 굵기가 변하는 관.
+ *  points  : [[x,y,z], ...] 곡선이 지나갈 점들
+ *  rStart  : 뿌리 굵기, rEnd: 끝 굵기 (rEnd를 크게 하면 끝이 퍼진다)
+ *  colorA  : 뿌리 색, colorB: 끝 색 (사이는 자연스럽게 섞인다)
+ */
+export function makeStrand(points, rStart, rEnd, colorA, colorB, seg = 40, rad = 10) {
+  const curve = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(p[0], p[1], p[2])));
+  const geo = new THREE.TubeGeometry(curve, seg, 1, rad, false);
+  const pos = geo.attributes.position;
+  const colors = new Float32Array(pos.count * 3);
+  const cA = new THREE.Color(colorA), cB = new THREE.Color(colorB), c = new THREE.Color();
+  const center = new THREE.Vector3();
+
+  for (let i = 0; i <= seg; i++) {
+    const t = i / seg;
+    curve.getPointAt(t, center);
+    // 굵기: 끝으로 갈수록 오히려 조금 퍼지고, 맨 끝만 동그랗게 닫힌다 (뭉툭한 머리끝)
+    const cap = t > 0.86 ? Math.sqrt(Math.max(0, 1 - ((t - 0.86) / 0.14) ** 2)) : 1;
+    const r = (rStart + (rEnd - rStart) * t) * cap;
+    // 색은 중간부터 서서히 끝 색으로
+    const m = Math.min(1, Math.max(0, (t - 0.58) / 0.34));
+    c.copy(cA).lerp(cB, m * m * (3 - 2 * m));
+
+    for (let j = 0; j <= rad; j++) {
+      const k = i * (rad + 1) + j;
+      pos.setXYZ(k,
+        center.x + (pos.getX(k) - center.x) * r,
+        center.y + (pos.getY(k) - center.y) * r,
+        center.z + (pos.getZ(k) - center.z) * r);
+      colors[k * 3] = c.r; colors[k * 3 + 1] = c.g; colors[k * 3 + 2] = c.b;
+    }
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geo.computeVertexNormals();
+
+  const m = new THREE.Mesh(geo, glossVertexMat());
+  m.castShadow = true;
+  return m;
+}
