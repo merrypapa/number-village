@@ -5,11 +5,15 @@
 import * as THREE from 'three';
 import { buildSky } from './sky.js';
 import { buildPlayground } from './playground.js';
+import { buildStable, makeHorseRide } from './horse.js';
 
 export const WORLD_RADIUS = 90;   // 마을 반지름 (밖으로 못 나감)
 
 // 놀이터가 놓일 자리 ← 아이가 옮기고 싶으면 여기 숫자만 바꾸면 된다
 const PLAYGROUND_POS = { x: 42, z: 40 };
+
+// 🐴 마구간이 놓일 자리 (성으로 가는 길 옆). 말을 타고 마을을 달릴 수 있다
+const STABLE_POS = { x: 34, z: -34 };
 
 // 🏰 성 정문 앞 — 여기에 서면 성 안으로 들어간다 (castle-interior.js가 안쪽을 만든다)
 const CASTLE_DOOR = { z: -35.5 };
@@ -144,8 +148,15 @@ function makeCastleEntrance(z) {
 //  부딪히기 (충돌)
 //  장애물은 두 가지 모양만 쓴다:
 //    동그란 것 { x, z, r }   /   네모난 것 { x, z, hw, hd }
+//
+//  ★ 층이 있는 곳(성 안 2층)을 위해 두 가지를 더 붙일 수 있다:
+//    { y0, y1 } — 발 높이가 이 사이일 때만 부딪힌다.
+//                 (1층 가구는 y0:-1 y1:3.5 → 2층에서는 통과)
+//    { off:true } — 잠깐 꺼둔다 (지금 내가 타고 있는 말 등)
 // -----------------------------------------------------------
-function pushOut(o, pos, radius) {
+function pushOut(o, pos, radius, y) {
+  if (o.off) return;
+  if (o.y0 !== undefined && (y < o.y0 || y > o.y1)) return;
   const dx = pos.x - o.x;
   const dz = pos.z - o.z;
 
@@ -173,13 +184,18 @@ function pushOut(o, pos, radius) {
 // -----------------------------------------------------------
 export function createCollider(obstacles) {
   return {
-    /** 장애물을 뚫고 들어갔으면 바깥으로 밀어낸다. pos는 그 자리에서 고쳐진다. */
-    collide(pos, radius) {
-      for (const o of obstacles) pushOut(o, pos, radius);
+    /**
+     * 장애물을 뚫고 들어갔으면 바깥으로 밀어낸다. pos는 그 자리에서 고쳐진다.
+     * y = 지금 발이 있는 높이 (안 주면 1층). 2층 난간은 2층에서만 막는다.
+     */
+    collide(pos, radius, y = 0) {
+      for (const o of obstacles) pushOut(o, pos, radius, y);
     },
     /** (x, z)가 장애물 안이면 true — NPC를 세울 자리를 고를 때 쓴다. */
-    isBlocked(x, z, radius) {
+    isBlocked(x, z, radius, y = 0) {
       for (const o of obstacles) {
+        if (o.off) continue;
+        if (o.y0 !== undefined && (y < o.y0 || y > o.y1)) continue;
         if (o.hw !== undefined) {
           if (Math.abs(x - o.x) < o.hw + radius && Math.abs(z - o.z) < o.hd + radius) return true;
         } else if (Math.hypot(x - o.x, z - o.z) < o.r + radius) {
@@ -259,6 +275,19 @@ export function buildWorld(scene) {
   obstacles.push(...playground.obstacles);
   reserved.push({ x: PLAYGROUND_POS.x, z: PLAYGROUND_POS.z, r: 15 });
 
+  // 🐴 마구간과 말들 (말은 마을 좌표를 그대로 쓰므로 화면에 따로 넣는다)
+  const stable = buildStable(STABLE_POS.x, STABLE_POS.z);
+  scene.add(stable.group);
+  for (const h of stable.horses) scene.add(h);
+  obstacles.push(...stable.obstacles);
+  reserved.push({ x: STABLE_POS.x, z: STABLE_POS.z, r: 18 });
+
+  // 광장 옆에도 말 한 마리 — 바로 눈에 띄어서 타보게 된다
+  const plazaHorse = makeHorseRide(16, 6, 2, -2.2);
+  scene.add(plazaHorse.group);
+  obstacles.push(plazaHorse.obstacle);
+  reserved.push({ x: 16, z: 6, r: 8 });
+
   // 나무 40그루 — 건물이나 놀이터 위에는 심지 않는다
   for (let i = 0; i < 40; i++) {
     let x = 0, z = 0, ok = false;
@@ -285,10 +314,12 @@ export function buildWorld(scene) {
 
   const { collide, isBlocked } = createCollider(obstacles);
 
-  /** 매 프레임 움직이는 것들 (구름, 고래, 그네, 시소) */
+  /** 매 프레임 움직이는 것들 (구름, 고래, 그네, 시소, 말) */
   function update(dt, t) {
     sky.update(dt, t);
     playground.update(dt, t);
+    stable.update(dt, t);
+    plazaHorse.update(dt, t);
   }
 
   // rides = 캐릭터가 탈 수 있는 놀이기구 목록 (그네 2개 + 미끄럼틀). src/rides.js가 쓴다.
@@ -299,7 +330,8 @@ export function buildWorld(scene) {
     yaw: 0,
     bounds: 88,                // 마을 밖으로 못 나가는 원의 반지름
     home, collide, isBlocked, update,
-    rides: playground.rides,
+    // 탈 수 있는 것 — 그네·미끄럼틀·시소 + 🐴 말 세 마리
+    rides: [...playground.rides, ...stable.rides, plazaHorse.ride],
     // 🏰 성 정문 앞에 서면 성 안으로 들어간다 (main.js가 확인한다)
     doors: [{
       x: 0, z: CASTLE_DOOR.z, r: 4.5, to: 'castle',

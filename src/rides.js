@@ -15,6 +15,13 @@
 //                false면 내리기 버튼을 누를 때까지 계속 탄다 (그네)
 //    rider     : 지금 타고 있는(또는 타러 오는 중인) 캐릭터. 비었으면 null
 //    pose(t,o) : t초 동안 탔을 때 몸이 있어야 할 자리와 기울기
+//
+//  ★ 몇 가지는 없어도 된다 (있으면 다르게 동작한다):
+//    drive   : true면 "몰고 다니는 탈것"이다 (말). pose 대신 player.js가
+//              조이스틱으로 직접 움직인다. 마을 친구는 못 탄다.
+//    noNpc   : true면 마을 친구(NPC)가 타지 않는다. 아이만 탄다.
+//    enterY  : 타는 자리의 바닥 높이 (성 2층 미끄럼틀은 7.5). 안 적으면 1층.
+//    camBase : true면 카메라가 높이를 그대로 따라간다 (2층 미끄럼틀).
 // ===========================================================
 
 // 매 프레임 새로 만들지 않고 이 하나를 돌려 쓴다
@@ -22,13 +29,16 @@ const _pose = { x: 0, y: 0, z: 0, yaw: 0, tilt: 0 };
 
 /**
  * pos에서 maxDist 안에 있는 "빈" 놀이기구 중 가장 가까운 것을 찾는다.
- * 없으면 null.
+ * forNpc = true면 마을 친구가 탈 수 있는 것만 고른다.
+ * y = 지금 서 있는 바닥 높이 (2층 미끄럼틀을 1층에서 붙잡지 않게). 없으면 null.
  */
-export function findFreeRide(rides, pos, maxDist) {
+export function findFreeRide(rides, pos, maxDist, forNpc = false, y = 0) {
   let best = null;
   let bestDist = maxDist;
   for (const ride of rides) {
     if (ride.rider) continue;                     // 이미 누가 타고 있다
+    if (forNpc && (ride.noNpc || ride.drive)) continue;   // 말은 아이만 탄다
+    if (Math.abs(y - (ride.enterY ?? 0)) > 2.5) continue; // 다른 층에 있는 것
     const d = Math.hypot(pos.x - ride.enter.x, pos.z - ride.enter.z);
     if (d < bestDist) { bestDist = d; best = ride; }
   }
@@ -38,6 +48,7 @@ export function findFreeRide(rides, pos, maxDist) {
 /** 자리를 맡는다. 다른 친구가 끼어들지 못하게 rider에 이름을 적어둔다. */
 export function mountRide(ride, model) {
   ride.rider = model;
+  ride.onRide?.(true, model);        // 말처럼 탈 때 준비할 게 있으면 알려준다
   return ride;
 }
 
@@ -65,4 +76,5 @@ export function dismountRide(ride, model) {
   model.position.set(ride.exit.x, 0, ride.exit.z);
   model.rotation.x = 0;                           // 기울였던 몸을 다시 세운다
   ride.rider = null;
+  ride.onRide?.(false, model);
 }

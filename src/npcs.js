@@ -140,11 +140,16 @@ function makeBubbleSprite() {
 // -----------------------------------------------------------
 function pickSpot(world, out) {
   // 공간마다 넓이가 다르다 (마을은 넓고, 성 안은 좁다 → world.wanderRadius)
+  //  성 안처럼 방이 여러 개면 world.wanderZones에 [{x,z,r}, …]를 적어둔다.
+  //  그러면 방 하나를 골라서 그 방 안을 돌아다닌다.
+  const zones = world.wanderZones;
   const radius = world.wanderRadius ?? WANDER_RADIUS;
   for (let i = 0; i < 15; i++) {
+    const zone = zones ? zones[Math.floor(Math.random() * zones.length)] : null;
     const a = Math.random() * Math.PI * 2;
-    const r = radius * Math.sqrt(Math.random());
-    const x = Math.cos(a) * r, z = Math.sin(a) * r;
+    const r = (zone ? zone.r : radius) * Math.sqrt(Math.random());
+    const x = (zone ? zone.x : 0) + Math.cos(a) * r;
+    const z = (zone ? zone.z : 0) + Math.sin(a) * r;
     if (!world.isBlocked(x, z, NPC_RADIUS)) return out.set(x, 0, z);
   }
   return out.copy(world.spawn);   // 못 찾으면 처음 서는 자리로
@@ -239,7 +244,7 @@ export function createNPCs(scene, playerCharId, world, count = NPC_COUNT) {
   function startNextTrip(npc) {
     const rides = world.rides;
     if (rides && Math.random() < RIDE_CHANCE) {
-      const r = findFreeRide(rides, npc.model.position, RIDE_REACH);
+      const r = findFreeRide(rides, npc.model.position, RIDE_REACH, true);
       if (r) {
         mountRide(r, npc.model);      // 가는 동안 다른 친구가 못 가져가게 자리를 맡는다
         npc.goingTo = r;

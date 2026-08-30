@@ -38,6 +38,7 @@ sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.left = -90; sun.shadow.camera.right = 90;
 sun.shadow.camera.top = 90;   sun.shadow.camera.bottom = -90;
 sun.shadow.camera.far = 200;
+sun.shadow.normalBias = 0.6;      // 넓은 지붕에 얼룩(줄무늬)이 생기지 않게
 scene.add(sun);
 
 // 반질반질한 재질에 스튜디오 반사광을 준다 (만화풍 재질에는 영향 없음)
@@ -81,6 +82,7 @@ let charId = null;
 // -----------------------------------------------------------
 //  공간(area) — 마을과 성 안. 문으로 오간다.
 //  공간 하나는 { scene, spawn, collide, isBlocked, update, rides, doors } 모양이다.
+//  성 안처럼 층이 있는 공간은 groundY(x, z, 지금높이)도 있다 (계단·2층).
 //  성 안은 처음 들어갈 때 한 번만 만든다 (처음 로딩을 빠르게).
 // -----------------------------------------------------------
 const areas = { village: world };

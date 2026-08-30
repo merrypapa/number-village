@@ -20,8 +20,16 @@ const JUMP_POWER = 9;       // 점프 힘 (크게 하면 더 높이 뛴다)
 const GRAVITY    = 26;      // 중력 (크게 하면 빨리 떨어진다)
 const CAM_FOLLOW = 0.25;    // 점프할 때 카메라가 같이 올라가는 정도 (0이면 안 따라감)
 
+// --- 계단 · 2층 ---
+//  성 안처럼 층이 있는 곳은 area.groundY(x, z, 지금높이)가 바닥 높이를 알려준다.
+const STEP_UP = 0.85;       // 이만큼 낮은 턱(계단 한 칸)은 그냥 오르내린다
+                            //  이보다 더 낮으면 낭떠러지 → 떨어진다
+
 // --- 놀이기구 타기 ---
 const RIDE_REACH = 3.2;     // 그네·미끄럼틀에 이만큼 가까이 가면 탈 수 있다
+
+// --- 🐴 말 타고 달리기 ---
+const HORSE_R    = 1.8;     // 말 몸 굵기 (이만큼 물건에서 떨어진다)
 
 /** 말 걸 수 있는 자리(진열대 앞 등) 중 가장 가까운 것을 찾는다. 없으면 null */
 function findNearestSpot(spots, pos) {
@@ -49,10 +57,16 @@ export function createPlayer(model, camera, world) {
   // joy는 src/touch.js의 가상 조이스틱이 채워준다. mag = 얼마나 많이 밀었나(0~1)
   const joy = { x: 0, y: 0, mag: 0, active: false };
 
-  // 점프 상태
-  let jumpY = 0;             // 지금 얼마나 떠 있나
+  // 위아래 상태 (점프 · 계단 · 2층)
+  let footY = 0;             // 발이 딛고 있는 높이 (1층이면 0, 2층이면 7.5)
+  let floorRef = 0;          // 마지막으로 땅에 서 있던 바닥 높이 (카메라가 이걸 따라간다)
   let vy = 0;                // 위아래 속도
   let onGround = true;
+
+  /** (x, z)에서 발이 닿는 바닥 높이. 층이 없는 곳(마을)은 그냥 0 */
+  function groundAt(x, z, fromY) {
+    return area.groundY ? area.groundY(x, z, fromY) : 0;
+  }
 
   // 놀이기구(그네·미끄럼틀) 상태
   let ride = null;           // 지금 타고 있는 놀이기구 (안 타면 null)
@@ -68,6 +82,17 @@ export function createPlayer(model, camera, world) {
     onGround = false;
   }
 
+  /**
+   * 지금 밟고 있는 바닥에 발을 맞춘다 (공간을 옮기거나 놀이기구에서 내렸을 때).
+   * fromY = 내려서기 직전 높이. 2층에서 내리면 2층 바닥에, 1층이면 1층 바닥에 선다.
+   */
+  function settleOnFloor(fromY = 0) {
+    footY = groundAt(model.position.x, model.position.z, fromY);
+    floorRef = footY;
+    vy = 0;
+    onGround = true;
+  }
+
   /** 🎠 버튼 / E 키 — 옆에 있는 놀이기구를 타거나, 타고 있으면 내린다 */
   function toggleRide() {
     if (ride) {
@@ -79,7 +104,7 @@ export function createPlayer(model, camera, world) {
     ride = mountRide(nearRide, model);
     rideTime = 0;
     nearRide = null;
-    jumpY = 0; vy = 0; onGround = true;   // 뛰다가 타도 착지한 것으로 친다
+    vy = 0; onGround = true;              // 뛰다가 타도 착지한 것으로 친다
     api.onMount?.(ride);             // 화면에 '그네를 타요!' 같은 말을 띄운다
   }
 
@@ -97,22 +122,28 @@ export function createPlayer(model, camera, world) {
     dismountRide(ride, model);
     ride = null;
     rideTime = 0;
+    settleOnFloor(rideY);     // 내린 자리의 바닥 높이(2층일 수도 있다)에 발을 붙인다
     rideY = 0;
   }
 
-  /** 카메라가 캐릭터 뒤를 따라간다. lift는 지금 얼마나 떠 있는지(점프·놀이기구). */
-  function followCamera(dt, lift) {
+  /**
+   * 카메라가 캐릭터 뒤를 따라간다.
+   *   base : 지금 서 있는 바닥 높이 (2층이면 그대로 같이 올라간다)
+   *   lift : 바닥에서 얼마나 떠 있는지 (점프·놀이기구 → 조금만 따라 올라간다)
+   */
+  function followCamera(dt, base, lift) {
     // 성 안처럼 좁은 곳은 카메라를 더 가까이 붙인다 (벽이나 가구를 뚫고 나가지 않게)
     const dist = area.camDist ?? CAM_DIST;
     const height = area.camHeight ?? CAM_HEIGHT;
     _camTarget.set(
       model.position.x - Math.sin(camYaw) * dist,
-      height + lift * CAM_FOLLOW,
+      height + base + lift * CAM_FOLLOW,
       model.position.z - Math.cos(camYaw) * dist
     );
     camera.position.lerp(_camTarget, Math.min(1, 6 * dt));
     // 조금 위를 보게 해서 하늘(고래)도 보이게 한다
-    _look.set(model.position.x, (area.lookHeight ?? LOOK_HEIGHT) + lift * CAM_FOLLOW * 2,
+    _look.set(model.position.x,
+              (area.lookHeight ?? LOOK_HEIGHT) + base + lift * CAM_FOLLOW * 2,
               model.position.z);
     camera.lookAt(_look);
   }
@@ -140,18 +171,12 @@ export function createPlayer(model, camera, world) {
   addEventListener('pointerup', endDrag);
   addEventListener('pointercancel', endDrag);
 
-  function update(dt, t) {
-    // 0) 놀이기구를 타는 중이면 조작 대신 놀이기구가 자리와 각도를 정해준다
-    if (ride) {
-      rideTime += dt;
-      const done = applyRide(ride, model, rideTime, t);
-      rideY = model.position.y;
-      if (done && ride.autoEnd) getOff();     // 미끄럼틀은 다 내려오면 저절로 내린다
-      followCamera(dt, rideY);
-      return false;
-    }
-
-    // 1) 입력 → 방향 벡터
+  /**
+   * 조이스틱·키보드 입력을 읽어서 "카메라가 보는 방향" 기준 이동 방향을 만든다.
+   *   돌려주는 것 : 얼마나 세게 밀었나(0~1). 0이면 가만히 있는 것.
+   * 방향은 _dir에 담긴다.
+   */
+  function readMove() {
     let ix = 0, iz = 0, analog = 1;
     if (keys.has('ArrowUp')    || keys.has('KeyW')) iz -= 1;
     if (keys.has('ArrowDown')  || keys.has('KeyS')) iz += 1;
@@ -161,63 +186,136 @@ export function createPlayer(model, camera, world) {
       ix += joy.x; iz += joy.y;
       analog = joy.mag;          // 살살 밀면 천천히, 끝까지 밀면 빠르게
     }
+    if (ix === 0 && iz === 0) return 0;
 
-    const moving = ix !== 0 || iz !== 0;
+    // 카메라는 플레이어 뒤쪽에 있고, 화면 안쪽(앞)은 (sin, cos) 방향이다.
+    // 화면 오른쪽은 (-cos, sin) 방향.  위 화살표는 iz = -1 이므로 부호에 주의!
+    const cos = Math.cos(camYaw), sin = Math.sin(camYaw);
+    _dir.set(-ix * cos - iz * sin, 0, ix * sin - iz * cos).normalize();
+    return analog;
+  }
+
+  /** 몸(또는 말)을 가고 싶은 방향으로 부드럽게 돌린다. 돌아간 각도 차이를 돌려준다. */
+  function turnToward(obj, speed, dt) {
+    const want = Math.atan2(_dir.x, _dir.z);
+    let diff = want - obj.rotation.y;
+    while (diff >  Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    obj.rotation.y += diff * Math.min(1, speed * dt);
+    return diff;
+  }
+
+  /** 공간 밖(마을 울타리)으로 못 나가게 붙잡는다 */
+  function keepInside(pos) {
+    if (!area.bounds) return;                 // 성 안은 벽이 막아준다
+    const r = Math.hypot(pos.x, pos.z);
+    if (r > area.bounds) {
+      pos.x *= area.bounds / r;
+      pos.z *= area.bounds / r;
+    }
+  }
+
+  /**
+   * 🐴 말을 타고 달린다 (ride.drive === true)
+   *   조이스틱으로 말을 몰고, 나는 안장 위에 앉아서 같이 간다.
+   */
+  function driveRide(dt, t) {
+    const horse = ride.group;
+    const analog = readMove();
+    const moving = analog > 0;
 
     if (moving) {
-      // 카메라가 보는 방향 기준으로 이동
-      //   카메라는 플레이어 뒤쪽에 있고, 화면 안쪽(앞)은 (sin, cos) 방향이다.
-      //   화면 오른쪽은 (-cos, sin) 방향.  위 화살표는 iz = -1 이므로 부호에 주의!
-      const cos = Math.cos(camYaw), sin = Math.sin(camYaw);
-      _dir.set(-ix * cos - iz * sin, 0, ix * sin - iz * cos).normalize();
+      horse.position.addScaledVector(_dir, ride.speed * analog * dt);
+      area.collide(horse.position, HORSE_R, 0);       // 나무·집은 뚫고 못 간다
+      keepInside(horse.position);
+      const diff = turnToward(horse, ride.turn ?? 6, dt);
+      if (dragId === null) camYaw += diff * Math.min(1, 1.5 * dt);
+    }
+    horse.userData.step?.(t, moving, analog);         // 다리를 움직인다
 
-      const base = keys.has('ShiftLeft') || keys.has('ShiftRight') ? RUN_SPEED : WALK_SPEED;
-      model.position.addScaledVector(_dir, base * analog * dt);
+    // 나는 안장 위 — 말이 달리면 위아래로 통통 튄다
+    model.position.set(horse.position.x, 0, horse.position.z);
+    model.rotation.y = horse.rotation.y;
+    model.userData.update?.(t, false);
+    rideY = ride.seatY + (horse.userData.bob ?? 0);
+    model.position.y += rideY;
+    model.rotation.x = moving ? Math.sin(t * 9) * 0.05 : 0;
 
-      // 나무나 집을 뚫고 지나가지 않게 밀어낸다
-      area.collide(model.position, BODY_R);
+    // 말이 움직였으니 "여기서 탄다 / 여기에 내린다" 자리도 같이 옮긴다
+    const side = horse.rotation.y + Math.PI / 2;
+    ride.enter.x = horse.position.x; ride.enter.z = horse.position.z;
+    ride.exit.x = horse.position.x + Math.sin(side) * 2.6;
+    ride.exit.z = horse.position.z + Math.cos(side) * 2.6;
 
-      // 공간 밖으로 못 나가게 (성 안은 벽이 막아주므로 bounds가 없다)
-      if (area.bounds) {
-        const r = Math.hypot(model.position.x, model.position.z);
-        if (r > area.bounds) {
-          model.position.x *= area.bounds / r;
-          model.position.z *= area.bounds / r;
-        }
-      }
+    followCamera(dt, rideY, 0);
+    return moving;
+  }
+
+  function update(dt, t) {
+    // 0) 놀이기구를 타는 중이면 조작 대신 놀이기구가 자리와 각도를 정해준다
+    if (ride) {
+      if (ride.drive) return driveRide(dt, t);        // 말은 내가 몬다
+      rideTime += dt;
+      const done = applyRide(ride, model, rideTime, t);
+      rideY = model.position.y;
+      if (done && ride.autoEnd) getOff();     // 미끄럼틀은 다 내려오면 저절로 내린다
+      // camBase를 켠 놀이기구(2층 미끄럼틀)는 카메라가 높이를 그대로 따라간다
+      if (ride.camBase) followCamera(dt, rideY, 0);
+      else              followCamera(dt, 0, rideY);
+      return false;
+    }
+
+    // 1) 입력 → 걷기
+    const analog = readMove();
+    const moving = analog > 0;
+
+    if (moving) {
+      const speed = keys.has('ShiftLeft') || keys.has('ShiftRight') ? RUN_SPEED : WALK_SPEED;
+      model.position.addScaledVector(_dir, speed * analog * dt);
+
+      // 나무나 집을 뚫고 지나가지 않게 밀어낸다 (2층 난간은 2층에서만 막는다)
+      area.collide(model.position, BODY_R, footY);
+      keepInside(model.position);
 
       // 몸을 이동 방향으로 부드럽게 회전
-      const want = Math.atan2(_dir.x, _dir.z);
-      let diff = want - model.rotation.y;
-      while (diff >  Math.PI) diff -= Math.PI * 2;
-      while (diff < -Math.PI) diff += Math.PI * 2;
-      model.rotation.y += diff * Math.min(1, TURN_SPEED * dt);
-
+      const diff = turnToward(model, TURN_SPEED, dt);
       // 카메라도 천천히 뒤로 따라 돈다 (아이가 조작 안 해도 되게)
       if (dragId === null) camYaw += diff * Math.min(1, 1.5 * dt);
     }
 
-    // 2) 점프 — 공중에 있으면 중력으로 떨어진다
-    if (!onGround) {
+    // 2) 위아래 — 계단을 오르내리고, 2층 끝에서는 떨어지고, 점프하면 뜬다
+    const gy = groundAt(model.position.x, model.position.z, footY);
+    if (onGround) {
+      if (gy >= footY - STEP_UP) {
+        footY = gy;                       // 계단 한 칸 정도는 그냥 오르내린다
+        floorRef = footY;
+      } else {
+        onGround = false; vy = 0;         // 낭떠러지! 아래로 떨어진다
+      }
+    } else {
       vy -= GRAVITY * dt;
-      jumpY += vy * dt;
-      if (jumpY <= 0) { jumpY = 0; vy = 0; onGround = true; }
+      footY += vy * dt;
+      if (footY <= gy) {                  // 착지
+        footY = gy; vy = 0; onGround = true;
+        floorRef = footY;
+      }
     }
 
-    // 3) 카메라 추적 (점프할 때 화면이 크게 출렁이지 않게 조금만 따라 올라간다)
-    followCamera(dt, jumpY);
+    // 3) 카메라 추적
+    //   바닥 높이(floorRef)는 그대로 따라가고, 점프한 만큼만 조금 따라 올라간다.
+    followCamera(dt, floorRef, footY - floorRef);
 
     // 3-1) 바로 옆에 빈 그네나 미끄럼틀이 있으면 🎠 버튼을 띄운다
-    nearRide = findFreeRide(area.rides, model.position, RIDE_REACH);
+    nearRide = findFreeRide(area.rides, model.position, RIDE_REACH, false, footY);
     // 3-2) 놀이기구가 없으면, 말 걸 수 있는 자리(요정 친구 진열대)를 찾는다
     nearSpot = nearRide ? null : findNearestSpot(area.spots, model.position);
 
     // 4) 캐릭터 애니메이션
     //  캐릭터 종류에 따라 animate가 위아래로 통통 튀는 값을 직접 쓴다.
-    //  그래서 0으로 맞춘 뒤 animate를 부르고, 그 위에 점프 높이를 얹는다.
+    //  그래서 0으로 맞춘 뒤 animate를 부르고, 그 위에 지금 높이를 얹는다.
     model.position.y = 0;
     model.userData.update?.(t, moving);
-    model.position.y += jumpY;
+    model.position.y += footY;
 
     return moving;
   }
@@ -234,11 +332,11 @@ export function createPlayer(model, camera, world) {
     model.position.y = 0;
     model.rotation.set(0, yaw ?? next.yaw ?? 0, 0);
     camYaw = yaw ?? next.yaw ?? 0;
-    jumpY = 0; vy = 0; onGround = true;
+    settleOnFloor();                    // 새 공간의 바닥 높이에 발을 맞춘다
     nearRide = null;
     nearSpot = null;
     next.scene.add(model);              // 새 공간의 화면으로 옮긴다
-    followCamera(1, 0);                 // dt를 크게 줘서 카메라를 바로 붙인다
+    followCamera(1, footY, 0);          // dt를 크게 줘서 카메라를 바로 붙인다
     camera.position.copy(_camTarget);
   }
 
