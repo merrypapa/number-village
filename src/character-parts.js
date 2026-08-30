@@ -43,6 +43,7 @@ export const GEO = {
   ring:     new THREE.TorusGeometry(0.4, 0.14, 8, 16),
   crescent: new THREE.TorusGeometry(0.36, 0.13, 8, 16, Math.PI * 1.25), // 초승달
   gem:      new THREE.OctahedronGeometry(0.5),        // 보석
+  skirt:    new THREE.CylinderGeometry(0.24, 0.48, 0.32, 24, 1, true),  // 치마 (아래가 넓은 통)
 };
 
 // -----------------------------------------------------------
@@ -59,7 +60,13 @@ export const MAT_GLOSS   = new THREE.MeshBasicMaterial({           // 머리·�
 const _bodyCache = new Map();
 /** 몸통용 재료 (같은 색이면 같은 재료를 돌려준다) */
 export function bodyMat(color) {
-  if (!_bodyCache.has(color)) _bodyCache.set(color, new THREE.MeshToonMaterial({ color, gradientMap: GRADIENT }));
+  if (!_bodyCache.has(color)) {
+    _bodyCache.set(color, new THREE.MeshPhysicalMaterial({
+      color, roughness: 0.42, metalness: 0,
+      clearcoat: 0.9, clearcoatRoughness: 0.14,   // 겉에 한 겹 코팅한 것처럼 (장난감 느낌)
+      envMapIntensity: 1.0,
+    }));
+  }
   return _bodyCache.get(color);
 }
 
@@ -67,8 +74,11 @@ const _glowCache = new Map();
 /** 보석·장식용 재료 (스스로 살짝 빛나는 느낌) */
 export function glowMat(color) {
   if (!_glowCache.has(color)) {
-    _glowCache.set(color, new THREE.MeshToonMaterial({
-      color, gradientMap: GRADIENT, emissive: color, emissiveIntensity: 0.45,
+    _glowCache.set(color, new THREE.MeshPhysicalMaterial({
+      color, roughness: 0.30, metalness: 0,
+      clearcoat: 1.0, clearcoatRoughness: 0.08,
+      emissive: color, emissiveIntensity: 0.22,
+      envMapIntensity: 1.2,
     }));
   }
   return _glowCache.get(color);

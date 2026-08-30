@@ -12,6 +12,7 @@ import {
 import { addFace } from './character-face.js';
 import { makeDeco, makeTailCharm } from './character-deco.js';
 import { wingTexture } from './character-wingtex.js';
+import { addHair } from './character-hair.js';
 
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
@@ -42,7 +43,7 @@ function makeHead(def, full) {
   for (const s of [-1, 1]) {
     const ear = new THREE.Mesh(GEO.cone, mat);
     ear.scale.set(0.42, 0.68, 0.38);
-    ear.position.set(s * 0.38, 0.38, -0.05);
+    ear.position.set(s * 0.44, 0.44, -0.02);
     ear.rotation.z = -s * 0.36;
     ear.castShadow = true;
     head.add(ear);
@@ -50,12 +51,13 @@ function makeHead(def, full) {
     if (full) {
       const inner = new THREE.Mesh(GEO.cone, glowMat(accent));
       inner.scale.set(0.22, 0.42, 0.22);
-      inner.position.set(s * 0.375, 0.39, 0.03);
+      inner.position.set(s * 0.435, 0.45, 0.05);
       inner.rotation.z = -s * 0.36;
       head.add(noShadow(inner));
     }
   }
 
+  addHair(head, def);
   addFace(head, def, full);
 
   const deco = makeDeco(def.deco, def.decoColor);
@@ -88,12 +90,12 @@ function makeWings(def) {
 
   for (const s of [-1, 1]) {
     const pivot = new THREE.Group();
-    pivot.position.set(s * 0.09, 0.60, -0.30);
+    pivot.position.set(s * 0.26, 0.78, -0.44);
     pivot.userData.side = s;
 
     const w = new THREE.Mesh(WING_GEO, mat);
     w.scale.set(s * 1.15, 1.15, 1);      // s를 곱해서 반대쪽은 좌우를 뒤집는다
-    w.position.set(s * 0.52, 0.52, 0);
+    w.position.set(s * 0.56, 0.50, 0);
     w.renderOrder = 1;
     pivot.add(noShadow(w));
 
@@ -150,6 +152,30 @@ export function makePing(def, detail = 'full') {
     g.add(noShadow(gloss));
   }
 
+  // 치마 — 아래가 넓게 퍼지고 밑단에 프릴을 두른다
+  if (full) {
+    const skirtColor = def.skirt ?? shade(def.color, 0.26);
+    const skirt = new THREE.Mesh(GEO.skirt, new THREE.MeshPhysicalMaterial({
+      color: skirtColor, roughness: 0.58, side: THREE.DoubleSide,
+      clearcoat: 0.30, clearcoatRoughness: 0.28, envMapIntensity: 0.40,
+    }));
+    skirt.position.y = 0.31;
+    skirt.castShadow = true;
+    g.add(skirt);
+
+    const hem = new THREE.Group();
+    hem.position.y = 0.155;
+    const hemMat = glowMat(accent);
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      const b = new THREE.Mesh(GEO.blob, hemMat);
+      b.scale.setScalar(0.145);
+      b.position.set(Math.sin(a) * 0.255, 0, Math.cos(a) * 0.255);
+      hem.add(noShadow(b));
+    }
+    g.add(hem);
+  }
+
   // 목 프릴 — 동글동글한 옷깃
   if (full) {
     const frill = new THREE.Group();
@@ -192,7 +218,7 @@ export function makePing(def, detail = 'full') {
   for (const s of [-1, 1]) {
     const foot = new THREE.Mesh(GEO.blob, glowMat(accent));
     foot.scale.set(0.23, 0.16, 0.31);
-    foot.position.set(s * 0.21, 0.115, 0.05);
+    foot.position.set(s * 0.19, 0.085, 0.10);
     foot.castShadow = true;
     g.add(foot);
   }

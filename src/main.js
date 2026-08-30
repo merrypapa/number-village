@@ -7,6 +7,7 @@ import { CHARACTERS, createCharacter } from './characters.js';
 import { buildWorld } from './world.js';
 import { createPlayer } from './player.js';
 import { createNPCs } from './npcs.js';
+import { applyEnvironment } from './environment.js';
 
 // -----------------------------------------------------------
 //  렌더러 / 씬 / 카메라
@@ -40,6 +41,8 @@ const rim = new THREE.DirectionalLight(0xcfe4ff, 0.55);   // 뒤쪽에서 살짝
 rim.position.set(-30, 25, -40);
 scene.add(rim);
 
+applyEnvironment(renderer, scene);
+
 const world = buildWorld(scene);
 
 // -----------------------------------------------------------
@@ -59,6 +62,7 @@ sScene.add(sRim);
 const sFill = new THREE.DirectionalLight(0xffe8f4, 0.35);  // 반대쪽 그늘을 살짝 채우기
 sFill.position.set(-5, 0.5, 4);
 sScene.add(sFill);
+applyEnvironment(sRenderer, sScene);
 const sCam = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
 
 let pickIndex = 0;
@@ -140,7 +144,7 @@ function loop() {
     npcs?.update(dt, t, player.model.position);
     renderer.render(scene, camera);
   } else {
-    preview.rotation.y += dt * 0.7;
+    preview.rotation.y = Math.sin(t * 0.8) * 0.55;   // 얼굴이 보이는 범위에서만 좌우로
     preview.userData.update?.(t, false);
     sRenderer.render(sScene, sCam);
   }

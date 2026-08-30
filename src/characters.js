@@ -16,6 +16,7 @@ import { makePing } from './character-ping.js';
 //  gem     : 이마 보석 색  (안 쓰면 노란색)
 //  wing    : 날개 색       (안 쓰면 몸 색을 밝게)
 //  accent  : 귀 안쪽·신발 색 (안 쓰면 몸 색을 어둡게)
+//  hair    : 머리카락 색  / hairTip : 머리끝 색
 //  belly   : 배 무늬 색    (안 쓰면 몸 색을 밝게)
 //  frill   : 목 프릴 색    (안 쓰면 몸 색을 아주 밝게)
 //  decoColor: 머리 장식 색 (안 쓰면 장식마다 정해진 기본색)
@@ -34,14 +35,14 @@ export const CHARACTERS = [
   { id:'ten',   name:'열이',   type:'block', number:10, color:0xffffff, rainbow:true },
 
   // --- 요정 친구 8명 ---
-  { id:'banjjak', name:'반짝핑', type:'ping', color:0xffb3d9, deco:'star',   eye:0xd6478f, gem:0xffe066, wing:0xffe3f2, accent:0xff8ec8 },
-  { id:'monggle', name:'몽글핑', type:'ping', color:0xc3b1f5, deco:'heart',  eye:0x6a3fd0, gem:0xe0ccff, wing:0xe6dcff, accent:0xa88fe8 },
-  { id:'bangul',  name:'방울핑', type:'ping', color:0xa8e0ff, deco:'drop',   decoColor:0x4fb0ee, eye:0x2f7fd6, gem:0x8fd6ff, wing:0xdcf3ff, accent:0x7cc6f0 },
-  { id:'choco',   name:'초코핑', type:'ping', color:0xc79a6b, deco:'ribbon', eye:0x6b3f22, gem:0xffd9a8, wing:0xf0dcc2, accent:0xa87a4c },
-  { id:'sallang', name:'살랑핑', type:'ping', color:0xb9ef9c, deco:'leaf',   eye:0x3f9440, gem:0xd8f79a, wing:0xe4ffd0, accent:0x92d977 },
-  { id:'ppogeul', name:'뽀글핑', type:'ping', color:0xfff0b8, deco:'crown',  eye:0xd2952a, gem:0xffd95e, wing:0xfff7dd, accent:0xf5d98a },
-  { id:'byeolbam',name:'별밤핑', type:'ping', color:0x9aa8e0, deco:'moon',   eye:0x3a3f8f, gem:0xfff0a8, wing:0xd4dcff, accent:0x7c8ac9 },
-  { id:'muji',    name:'무지핑', type:'ping', color:0xffd6f0, deco:'flower', eye:0xa03fb8, gem:0xb0f0ff, wing:0xffe9fb, accent:0xf0aede },
+  { id:'banjjak', name:'반짝핑', type:'ping', color:0xffb3d9, deco:'star',   eye:0xd6478f, gem:0xffe066, wing:0xffe3f2, accent:0xff8ec8, hair:0xff5c9f, hairTip:0xffd6ea },
+  { id:'monggle', name:'몽글핑', type:'ping', color:0xc3b1f5, deco:'heart',  eye:0x6a3fd0, gem:0xe0ccff, wing:0xe6dcff, accent:0xa88fe8, hair:0x7c5be0, hairTip:0xded2ff },
+  { id:'bangul',  name:'방울핑', type:'ping', color:0xa8e0ff, deco:'drop',   decoColor:0x4fb0ee, eye:0x2f7fd6, gem:0x8fd6ff, wing:0xdcf3ff, accent:0x7cc6f0, hair:0x3fa9e8, hairTip:0xd6f2ff },
+  { id:'choco',   name:'초코핑', type:'ping', color:0xc79a6b, deco:'ribbon', eye:0x6b3f22, gem:0xffd9a8, wing:0xf0dcc2, accent:0xa87a4c, hair:0x8a5a32, hairTip:0xe8c9a4 },
+  { id:'sallang', name:'살랑핑', type:'ping', color:0xb9ef9c, deco:'leaf',   eye:0x3f9440, gem:0xd8f79a, wing:0xe4ffd0, accent:0x92d977, hair:0x5fbf4f, hairTip:0xdcf9c6 },
+  { id:'ppogeul', name:'뽀글핑', type:'ping', color:0xfff0b8, deco:'crown',  eye:0xd2952a, gem:0xffd95e, wing:0xfff7dd, accent:0xf5d98a, hair:0xf2c04a, hairTip:0xfff6d8 },
+  { id:'byeolbam',name:'별밤핑', type:'ping', color:0x9aa8e0, deco:'moon',   eye:0x3a3f8f, gem:0xfff0a8, wing:0xd4dcff, accent:0x7c8ac9, hair:0x4a56b0, hairTip:0xcdd6ff },
+  { id:'muji',    name:'무지핑', type:'ping', color:0xffd6f0, deco:'flower', eye:0xa03fb8, gem:0xb0f0ff, wing:0xffe9fb, accent:0xf0aede, hair:0xc05fd8, hairTip:0xffe6f8 },
 ];
 
 // -----------------------------------------------------------
