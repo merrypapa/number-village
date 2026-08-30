@@ -61,14 +61,25 @@ const title = createTitleScreen(renderer, envMap);
 let onTitle = true;
 
 /**
- * 화면이 바뀔 때 새 화면의 버튼을 잠깐(0.4초) 막는다.
+ * 화면이 바뀔 때 새 화면의 버튼을 잠깐 막는다.
  *  ★ 손가락을 한 번 눌렀을 뿐인데 두 화면이 연달아 넘어가던 문제를 막는다.
- *    (누르는 순간 pointerdown으로 화면을 바꾸면, 손가락을 뗄 때 생기는 click을
- *     그 자리에 새로 나타난 버튼이 받아버린다 — 폰·태블릿에서 특히 잘 생긴다)
+ *    (화면이 바뀐 자리에 새 버튼이 생기면, 손가락을 뗄 때 생기는 click을
+ *     그 새 버튼이 받아버리는 기기가 있다)
+ *  ★ 시간만 재면 "꾹 누르고 있다가 떼는" 경우에 이미 시간이 지나버린다.
+ *    그래서 **손가락을 뗀 다음부터** 다시 ms만큼 더 기다린다.
  */
-function blockTaps(el, ms = 400) {
+function blockTaps(el, ms = 450) {
   el.style.pointerEvents = 'none';
-  setTimeout(() => { el.style.pointerEvents = ''; }, ms);
+  let freed = false;
+  const free = () => { if (!freed) { freed = true; el.style.pointerEvents = ''; } };
+  const onRelease = () => {
+    removeEventListener('pointerup', onRelease);
+    removeEventListener('pointercancel', onRelease);
+    setTimeout(free, ms);              // 떼고 나서 ms 뒤에 풀어준다
+  };
+  addEventListener('pointerup', onRelease);
+  addEventListener('pointercancel', onRelease);
+  setTimeout(onRelease, 2000);         // 혹시 떼는 신호가 안 와도 언젠가는 풀린다
 }
 
 function leaveTitle() {
@@ -80,7 +91,9 @@ function leaveTitle() {
   blockTaps(pick);                     // 친구 카드가 곧바로 눌리지 않게
   select.lock();                       // (기기에 따라 위 방법이 안 통할 때를 대비)
 }
-document.getElementById('title').addEventListener('pointerdown', leaveTitle);
+//  ★ 손가락을 "뗄 때"(pointerup) 넘어간다. 누르는 순간 넘어가면
+//    그 다음에 오는 click을 새 화면의 카드가 받아버린다.
+document.getElementById('title').addEventListener('pointerup', leaveTitle);
 addEventListener('keydown', e => {
   if (onTitle && (e.code === 'Space' || e.code === 'Enter')) leaveTitle();
 });

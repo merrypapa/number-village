@@ -1,11 +1,16 @@
 // ===========================================================
-//  🧚 요정 친구 진열대 — 성 안 서쪽 벽에 친구들이 한 줄로 서 있다
+//  🧚 요정 친구 진열대 — 성 서쪽 회랑에 친구들이 마주 보고 서 있다
 //
 //  친구 앞에 가면 '부르기' 버튼이 나온다. 누르면 그 친구가 깨어나서
 //  성 안을 돌아다니기 시작한다. 한 번 더 누르면('보내기') 제자리로 돌아간다.
 //
 //  ★ characters.js에 요정 친구(type:'model')를 한 줄 추가하면
 //    이 진열대에도 자동으로 나타난다. 이 파일은 고치지 않아도 된다.
+//
+//  ★ 친구가 35명이라 한 줄로 세우면 다닥다닥 붙는다.
+//    그래서 **줄 두 개가 복도를 사이에 두고 마주 보게** 세운다.
+//    (아이는 가운데 길로 걸어가면서 양옆 친구를 부른다)
+//    줄을 더 늘리고 싶으면 ROWS에 한 줄 더 적으면 된다.
 // ===========================================================
 import * as THREE from 'three';
 import { CHARACTERS, createCharacter } from './characters.js';
@@ -16,10 +21,20 @@ import { C, part, makeHeart } from './castle-props.js';
 // -----------------------------------------------------------
 const STAND_H   = 1.02;    // 받침대 높이 (친구는 이 위에 선다)
 const REACH     = 2.4;     // 이만큼 가까이 가면 '부르기' 버튼이 나온다
+
 // 어디에 줄을 세울지는 castle-interior.js가 정해준다 (기본값은 아래)
-//   gap     : 친구와 친구 사이 간격 ← 다닥다닥 붙으면 이 값을 키운다
-//   maxHalf : 줄이 아무리 길어도 이 길이(절반)를 넘지 않는다 (벽을 넘지 않게)
-const DEFAULTS = { wallX: -32.4, gap: 3.0, maxHalf: 19, zCenter: -4 };
+//   gap    : 친구와 친구 사이 간격 ← 다닥다닥 붙으면 이 값을 키운다
+//            (친구가 너무 많으면 줄 길이에 맞춰 자동으로 좁아진다)
+//   z0, z1 : 줄이 놓일 앞뒤 범위 (벽을 넘지 않게)
+//   rows   : 줄 목록. x = 줄이 선 자리, face = 바라보는 쪽(+1이면 +x)
+const DEFAULTS = {
+  gap: 3.4,
+  z0: -36, z1: 14,
+  rows: [
+    { x: -32.4, face:  1 },   // 서쪽 벽에 붙은 줄 (복도 쪽을 본다)
+    { x: -19.5, face: -1 },   // 복도 건너 줄 (마주 본다)
+  ],
+};
 
 // -----------------------------------------------------------
 //  이름표 (Canvas 글씨 → 항상 화면을 바라보는 스프라이트)
@@ -49,7 +64,7 @@ function nameSprite(text) {
 // -----------------------------------------------------------
 /**
  * playerCharId : 지금 내가 고른 캐릭터 (나 자신은 진열대에서 빼둔다)
- * opts          : { wallX, gap, maxHalf, zCenter } — 줄을 세울 자리와 간격
+ * opts          : { gap, z0, z1, rows } — 줄을 세울 자리와 간격
  * 돌려주는 것 —
  *   group     : 화면에 넣을 3D 덩어리
  *   obstacles : 부딪히는 자리 (받침대)
@@ -57,60 +72,67 @@ function nameSprite(text) {
  *   update(t) : 매 프레임 — 서 있는 친구들을 둥실둥실 움직인다
  */
 export function buildGallery(playerCharId, opts = {}) {
-  const { wallX: WALL_X, gap: GAP, maxHalf: MAX_HALF, zCenter: ROW_Z } =
-    { ...DEFAULTS, ...opts };
+  const { gap: GAP, z0: Z0, z1: Z1, rows: ROWS } = { ...DEFAULTS, ...opts };
   const defs = CHARACTERS.filter(c => c.type === 'model' && c.id !== playerCharId);
-  // 친구 수에 맞춰 줄 길이를 정한다. 친구가 많아지면 간격이 좁아지지만
-  // 줄이 벽을 넘어가지는 않는다 (maxHalf에서 멈춘다)
-  const ROW_HALF = Math.min(MAX_HALF, Math.max(1, (defs.length - 1) * GAP / 2));
   const group = new THREE.Group();
   const obstacles = [];
   const spots = [];
   const statues = [];
 
-  // 진열대 앞에 깔린 붉은 융단
-  const carpet = part('box', C.red, WALL_X + 0.8, 0.05, ROW_Z, 5.6, 0.1, ROW_HALF * 2 + 3);
-  carpet.castShadow = false;
-  group.add(carpet);
+  // 줄마다 몇 명씩 설지 — 친구를 줄 수만큼 나눠 세운다
+  const perRow = Math.ceil(defs.length / ROWS.length);
+  // 간격은 되도록 GAP만큼. 친구가 많아 자리가 모자라면 줄 길이에 맞춰 좁힌다
+  const step = perRow > 1 ? Math.min(GAP, (Z1 - Z0) / (perRow - 1)) : 0;
+  const zStart = (Z0 + Z1) / 2 - step * (perRow - 1) / 2;
 
-  const n = defs.length;
-  for (let i = 0; i < n; i++) {
+  // 줄 앞에 깔린 붉은 융단
+  for (const row of ROWS) {
+    const carpet = part('box', C.red, row.x + row.face * 0.8, 0.05, (Z0 + Z1) / 2,
+                        5.6, 0.1, step * (perRow - 1) + 4);
+    carpet.castShadow = false;
+    group.add(carpet);
+  }
+
+  for (let i = 0; i < defs.length; i++) {
     const def = defs[i];
-    const z = ROW_Z + (n === 1 ? 0 : -ROW_HALF + (i / (n - 1)) * ROW_HALF * 2);
+    const row = ROWS[Math.floor(i / perRow)] || ROWS[ROWS.length - 1];
+    const x = row.x;
+    const z = zStart + (i % perRow) * step;
+    const yaw = row.face * Math.PI / 2;     // 복도 쪽을 바라보게
 
     // 받침대 (바닥판 + 기둥 + 금색 윗판 + 방석)
-    group.add(part('cyl', C.violet, WALL_X, 0.12, z, 2.3, 0.24, 2.3));
-    group.add(part('cyl', C.stone,  WALL_X, 0.5,  z, 1.5, 0.8, 1.5));
-    group.add(part('cyl', C.gold,   WALL_X, 0.9,  z, 2.0, 0.2, 2.0));
-    group.add(part('cyl', C.pink,   WALL_X, 1.0,  z, 1.7, 0.08, 1.7));
+    group.add(part('cyl', C.violet, x, 0.12, z, 2.3, 0.24, 2.3));
+    group.add(part('cyl', C.stone,  x, 0.5,  z, 1.5, 0.8, 1.5));
+    group.add(part('cyl', C.gold,   x, 0.9,  z, 2.0, 0.2, 2.0));
+    group.add(part('cyl', C.pink,   x, 1.0,  z, 1.7, 0.08, 1.7));
 
-    // 친구 인형 — 방 안쪽(+x)을 바라보고 선다
+    // 친구 인형
     const statue = createCharacter(def, 'simple');
-    statue.position.set(WALL_X, STAND_H, z);
-    statue.rotation.y = Math.PI / 2;
+    statue.position.set(x, STAND_H, z);
+    statue.rotation.y = yaw;
     statue.traverse(o => { if (o.isMesh && !o.userData.noShadow) o.castShadow = true; });
     group.add(statue);
     statues.push(statue);
 
     // 이름표
     const tag = nameSprite(def.name);
-    tag.position.set(WALL_X, STAND_H + (def.height ?? 1.9) + 0.5, z);
+    tag.position.set(x, STAND_H + (def.height ?? 1.9) + 0.5, z);
     group.add(tag);
 
     // 친구가 놀러 나가고 없을 때 자리에 남는 하트
     const heart = makeHeart(C.pink, 0.75);
-    heart.position.set(WALL_X, STAND_H + 0.8, z);
-    heart.rotation.y = Math.PI / 2;
+    heart.position.set(x, STAND_H + 0.8, z);
+    heart.rotation.y = yaw;
     heart.visible = false;
     group.add(heart);
 
-    obstacles.push({ x: WALL_X, z, r: 1.25, y0: -1, y1: 3.5 });   // 1층에서만 막는다
+    obstacles.push({ x, z, r: 1.25, y0: -1, y1: 3.5 });      // 1층에서만 막는다
 
     spots.push({
       kind: 'summon',
       def,
-      x: WALL_X + 2.6, z, r: REACH,          // 여기 서면 버튼이 나온다
-      spawnAt: new THREE.Vector3(WALL_X + 3.4, 0, z),   // 친구가 나와서 서는 자리
+      x: x + row.face * 2.6, z, r: REACH,                    // 여기 서면 버튼이 나온다
+      spawnAt: new THREE.Vector3(x + row.face * 3.4, 0, z),  // 친구가 나와서 서는 자리
       npc: null,                             // 지금 나와서 돌아다니는 친구 (없으면 null)
       /** out = true면 놀러 나간 상태 (인형 대신 하트를 보여준다) */
       setOut(out) { statue.visible = !out; heart.visible = out; },

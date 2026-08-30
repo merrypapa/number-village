@@ -64,7 +64,8 @@ const SLAB = [
 ];
 
 // 계단 — 남쪽(z 13, 1층)에서 북쪽(z -9, 2층)으로 올라간다. 동쪽 벽에 붙어 있다
-const STAIR = { x0: 24, x1: HALF_X, zBot: 13, zTop: -9, steps: 15 };
+//  steps = 눈에 보이는 계단 칸 수. 많을수록 한 칸이 낮아서 부드럽게 보인다
+const STAIR = { x0: 24, x1: HALF_X, zBot: 13, zTop: -9, steps: 24 };
 // 계단이 지나가는 자리는 2층 바닥에 구멍을 뚫는다
 const HOLE = { x0: 23.4, x1: HALF_X + 1, z0: STAIR.zTop, z1: 14 };
 
@@ -75,12 +76,17 @@ function inRect(r, x, z) {
   return x > r.x0 && x < r.x1 && z > r.z0 && z < r.z1;
 }
 
-/** 계단 위라면 그 칸의 높이, 아니면 -1 */
+/**
+ * 계단 위라면 발이 닿는 높이, 아니면 -1
+ *  ★ 칸칸이 뚝뚝 올라가면 화면이 덜컹거려서 어지럽다.
+ *    그래서 계단 "모양"은 칸칸이 두고, **발 높이는 비탈처럼 매끄럽게** 잇는다.
+ *    (반 칸(0.5/steps)만큼 올려서 널빤지가 계단 코를 스치듯 지나가게 한다)
+ */
 function stairY(x, z) {
   if (x < STAIR.x0 || x > STAIR.x1) return -1;
   if (z > STAIR.zBot || z < STAIR.zTop) return -1;
   const u = (STAIR.zBot - z) / (STAIR.zBot - STAIR.zTop);      // 0(아래) ~ 1(위)
-  return Math.ceil(u * STAIR.steps) / STAIR.steps * FLOOR2;    // 칸칸이 올라간다
+  return Math.min(1, u + 0.5 / STAIR.steps) * FLOOR2;
 }
 
 /** (x, z)가 2층 바닥 위인가 (계단 구멍은 뺀다) */

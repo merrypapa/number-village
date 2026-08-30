@@ -134,9 +134,12 @@ export function buildCastleInterior(envMap, playerCharId) {
   place(makeBalloons([C.pink, 0xffd45e, 0x8fd0ff]), -11, -14);
 
   // 🧚 요정 친구 진열대 (서쪽 회랑) — 부르면 깨어나서 돌아다닌다
-  //  gap = 친구 사이 간격. 다닥다닥 붙지 않게 3칸씩 띄운다 (벽은 넘지 않는다)
-  const gallery = buildGallery(playerCharId,
-    { wallX: -32.4, gap: 3.4, maxHalf: 20, zCenter: -5 });
+  //  친구가 35명이라 한 줄이면 다닥다닥 붙는다 → 복도를 사이에 두고 두 줄이 마주 본다
+  //  gap = 친구 사이 간격 (자리가 모자라면 자동으로 좁아진다)
+  const gallery = buildGallery(playerCharId, {
+    gap: 3.4, z0: -36, z1: 14,
+    rows: [{ x: -32.4, face: 1 }, { x: -19.5, face: -1 }],
+  });
   scene.add(gallery.group);
   obstacles.push(...gallery.obstacles);
 

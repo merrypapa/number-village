@@ -44,7 +44,7 @@ export function createSelectScreen(onPlay) {
   //    (누르는 순간 화면이 바뀌면, 손가락을 뗄 때 생기는 click을
   //     그 자리에 새로 나타난 버튼이 받아버리는 기기가 있다)
   // -----------------------------------------------------------
-  const LOCK_MS = 400;
+  const LOCK_MS = 450;
   let lockUntil = 0;
   const lock = (ms = LOCK_MS) => { lockUntil = performance.now() + ms; };
   const locked = () => performance.now() < lockUntil;
