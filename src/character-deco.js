@@ -88,6 +88,23 @@ export const DECO = {
     return g;
   },
 
+  // 티아라 — 앞에서 보이는 공주님 왕관 (반달 모양 띠 + 뾰족한 장식)
+  tiara(color = 0xf7c6e0) {
+    const g = new THREE.Group();
+    // 이마를 감싸는 반달 띠
+    const band = part(GEO.crescent, color, [0, -0.02, 0], [0.58, 0.46, 0.30], [0, 0, -0.39]);
+    g.add(band);
+    // 가운데 큰 뿔 + 양옆 작은 뿔
+    g.add(part(GEO.cone, color, [0, 0.26, 0], [0.10, 0.30, 0.08]));
+    for (const s of [-1, 1]) {
+      g.add(part(GEO.cone, color, [s * 0.14, 0.17, 0], [0.08, 0.20, 0.07], [0, 0, -s * 0.38]));
+      g.add(part(GEO.blob, 0xffffff, [s * 0.20, 0.02, 0], 0.07));   // 끝에 달린 진주
+    }
+    // 가운데 보석
+    g.add(part(GEO.gem, 0x8be3ff, [0, 0.42, 0], [0.09, 0.12, 0.07]));
+    return g;
+  },
+
   // 초승달
   moon(color = 0xfff0a8) {
     const g = new THREE.Group();

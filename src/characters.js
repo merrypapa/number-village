@@ -11,12 +11,19 @@ import { makePing } from './character-ping.js';
 //
 //  type    : 'block'(숫자블록 친구) 또는 'ping'(요정 친구)
 //  color   : 몸 색깔
-//  deco    : 머리 장식 — star heart drop ribbon leaf crown moon gem flower candy cloud
+//  deco    : 머리 장식 — star heart drop ribbon leaf crown tiara moon gem flower candy cloud
 //  eye     : 눈동자 색     (안 쓰면 보라색)
 //  gem     : 이마 보석 색  (안 쓰면 노란색)
 //  wing    : 날개 색       (안 쓰면 몸 색을 밝게)
 //  accent  : 귀 안쪽 색    (안 쓰면 몸 색을 어둡게)
 //  decoColor: 머리 장식 색 (안 쓰면 장식마다 정해진 기본색)
+//
+//  ↓ 아래 값은 "안 쓰면 안 생기는" 꾸미기다. 주면 자동으로 붙는다.
+//  hair    : 머리카락 색 (주면 긴 머리와 앞머리가 생긴다)
+//  hairTip : 머리카락 끝 색 (안 쓰면 hair를 밝게)
+//  earColor: 귀 색 (hair가 있을 때 동글동글 하얀 귀가 된다)
+//  dress   : 드레스 윗옷 색, skirt: 치마 색, emblem: 가슴 무늬 색
+//  shoe    : 구두 색
 // -----------------------------------------------------------
 export const CHARACTERS = [
   // --- 숫자블록 친구 10명 ---
@@ -35,7 +42,11 @@ export const CHARACTERS = [
   { id:'banjjak', name:'반짝핑', type:'ping', color:0xffb3d9, deco:'star',   eye:0xd6478f, gem:0xffe066, wing:0xffe3f2, accent:0xff8ec8 },
   { id:'monggle', name:'몽글핑', type:'ping', color:0xc3b1f5, deco:'heart',  eye:0x6a3fd0, gem:0xe0ccff, wing:0xe6dcff, accent:0xa88fe8 },
   { id:'bangul',  name:'방울핑', type:'ping', color:0xa8e0ff, deco:'drop',   decoColor:0x4fb0ee, eye:0x2f7fd6, gem:0x8fd6ff, wing:0xdcf3ff, accent:0x7cc6f0 },
-  { id:'choco',   name:'초코핑', type:'ping', color:0xc79a6b, deco:'ribbon', eye:0x6b3f22, gem:0xffd9a8, wing:0xf0dcc2, accent:0xa87a4c },
+  // 초코핑 — 얼음공주 모습 (저장소의 imaes/char1.png 그림을 보고 도형으로 다시 만든 것)
+  { id:'choco',   name:'초코핑', type:'ping', color:0xffdfe8, deco:'tiara', decoColor:0xf7bcd8,
+    hair:0xa5dcf2, hairTip:0xf0b9dd, earColor:0xffffff,
+    eye:0x2f7fd0, gem:0x6fd8e8, wing:0xe2f4ff, accent:0xffc9dc,
+    dress:0xffffff, skirt:0xd3ecff, emblem:0xffc93c, shoe:0xcfd6ff },
   { id:'sallang', name:'살랑핑', type:'ping', color:0xb9ef9c, deco:'leaf',   eye:0x3f9440, gem:0xd8f79a, wing:0xe4ffd0, accent:0x92d977 },
   { id:'ppogeul', name:'뽀글핑', type:'ping', color:0xfff0b8, deco:'crown',  eye:0xd2952a, gem:0xffd95e, wing:0xfff7dd, accent:0xf5d98a },
   { id:'byeolbam',name:'별밤핑', type:'ping', color:0x9aa8e0, deco:'moon',   eye:0x3a3f8f, gem:0xfff0a8, wing:0xd4dcff, accent:0x7c8ac9 },
