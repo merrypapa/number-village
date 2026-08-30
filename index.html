@@ -18,10 +18,42 @@
     align-items:center; justify-content:center; z-index:10; }
   .screen.on { display:flex; }
 
-  /* ---- 캐릭터 선택 ---- */
-  #select { background:linear-gradient(180deg,#cbeaff 0%,#ffe8f4 100%); }
-  #select h1 { font-size:clamp(28px,6vw,52px); color:#5b3d8f; margin-bottom:8px;
-    text-shadow:0 3px 0 #fff; }
+  /* ---- 친구 고르기: 격자 ---- */
+  #pick, #preview { background:linear-gradient(180deg,#cbeaff 0%,#ffe8f4 100%); }
+  #pick { justify-content:flex-start; padding:calc(12px + env(safe-area-inset-top)) 10px
+          calc(12px + env(safe-area-inset-bottom)); }
+  #pick h1, #preview h1 { font-size:clamp(24px,5.5vw,46px); color:#5b3d8f;
+    margin:6px 0 12px; text-shadow:0 3px 0 #fff; flex:none; }
+
+  #grid { width:100%; max-width:900px; flex:1; overflow-y:auto; overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch; touch-action:pan-y;
+    display:grid; gap:10px; padding:4px 6px 16px;
+    grid-template-columns:repeat(auto-fill, minmax(96px, 1fr)); }
+  /* 카드 = 가로:세로 3:4 칸.
+     padding-top(가로 폭의 133%)으로 높이를 만든다. 격자 칸 높이와 정확히 맞아떨어진다.
+     (aspect-ratio는 격자 안에서 행 높이 계산이 어긋나는 경우가 있어 이 방식을 쓴다) */
+  .card { position:relative; display:block; border:none; cursor:pointer; align-self:start;
+    width:100%; height:0; padding:133.33% 0 0;
+    background:var(--tint,#fff); border-radius:18px; overflow:hidden;
+    box-shadow:0 4px 0 #00000018; }
+  .card:active { transform:translateY(3px); box-shadow:0 1px 0 #00000018; }
+  .card img, .card .letter { position:absolute; inset:0; width:100%; height:100%;
+    object-fit:cover; }
+  .card .letter { display:flex; align-items:center; justify-content:center;
+    font-size:44px; font-weight:800; color:#ffffffcc; }
+  /* 이름표는 사진 위에 겹쳐 놓는다 */
+  .cardName { position:absolute; left:0; right:0; bottom:0; z-index:2; padding:6px 4px 7px;
+    background:linear-gradient(#0000, #000000b8 55%);
+    color:#fff; font-size:14px; font-weight:800; text-shadow:0 1px 3px #000a;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  /* ---- 친구 고르기: 크게 보기 ---- */
+  #back { position:absolute; left:calc(14px + env(safe-area-inset-left));
+    top:calc(14px + env(safe-area-inset-top)); border:none; border-radius:999px;
+    padding:12px 22px; background:#fff; color:#7a4fb0; font-size:19px; font-weight:800;
+    box-shadow:0 5px 0 #d8bfe8; cursor:pointer; }
+  #back:active { transform:translateY(3px); box-shadow:0 2px 0 #d8bfe8; }
+
   #charName { font-size:clamp(24px,5vw,40px); color:#e0518f; font-weight:800; margin:10px 0; }
   #charStage { width:min(80vw,420px); height:min(45vh,360px); }
   .row { display:flex; align-items:center; gap:20px; }
@@ -97,6 +129,14 @@
     color:#fff; font-size:15px; line-height:1.4; text-shadow:0 1px 4px #0008;
     pointer-events:none; opacity:1; transition:opacity 1.2s ease 8s; }
   #hud.on #hint { opacity:0; }
+
+  /* 좁은 화면(폰 세로)에서는 무대와 화살표를 줄여서 화면 안에 넣는다 */
+  @media (max-width:520px) {
+    .row { gap:8px; }
+    .arrow { width:58px; height:58px; font-size:28px; }
+    #charStage { width:min(58vw,420px); height:min(42vh,360px); }
+    #back { padding:10px 18px; font-size:17px; }
+  }
 </style>
 <script type="importmap">
 {
@@ -109,9 +149,15 @@
 </head>
 <body>
 
-<!-- 캐릭터 선택 화면 -->
-<div id="select" class="screen on">
+<!-- 1) 친구 고르기 — 한 번에 쭉 보여주는 격자 -->
+<div id="pick" class="screen on">
   <h1>누구랑 놀까?</h1>
+  <div id="grid"></div>
+</div>
+
+<!-- 2) 고른 친구 크게 보기 -->
+<div id="preview" class="screen">
+  <button id="back">◀ 뒤로</button>
   <div class="row">
     <button class="arrow" id="prev">◀</button>
     <canvas id="charStage"></canvas>

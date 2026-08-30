@@ -13,7 +13,10 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
 // -----------------------------------------------------------
-const MODEL_DIR = './assets/models/';   // 모델 파일이 있는 폴더
+// 모델 파일이 있는 폴더.
+//  이 파일(src/character-model.js) 위치를 기준으로 찾는다.
+//  그래야 index.html에서 열든 tools/ 안의 도구에서 열든 똑같이 찾아간다.
+const MODEL_DIR = new URL('../assets/models/', import.meta.url).href;
 const HEIGHT    = 1.90;   // 게임 속 키 (다른 요정 친구들과 비슷하게)
 const FLOAT     = 0.07;   // 가만히 있을 때 둥실둥실 뜨는 크기
 const FLOAT_SPD = 1.6;    // 둥실둥실 속도

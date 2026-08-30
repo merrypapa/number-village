@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>친구 얼굴 사진 만들기</title>
+<!--
+  친구 고르기 격자에 쓸 작은 사진(assets/thumbs/*.jpg)을 만드는 도구입니다.
+  게임에는 안 쓰이고, 새 캐릭터를 넣은 뒤 사진을 다시 뽑을 때만 씁니다.
+
+  쓰는 법:
+    1) 프로젝트 폴더에서  npx --yes serve
+    2) 브라우저에서 http://localhost:3000/tools/thumbs.html
+    3) 다 그려지면 "전부 내려받기" 버튼 → assets/thumbs/ 폴더에 넣기
+
+  사진이 없는 친구는 게임에서 색 카드로 자동으로 바뀌니,
+  사진을 안 만들어도 게임은 잘 돌아갑니다.
+-->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+<style>
+  body { margin:0; padding:16px; background:#f4f4f8; font-family:system-ui,sans-serif; }
+  h1 { font-size:20px; }
+  #out { display:grid; gap:8px; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); }
+  figure { margin:0; text-align:center; font-size:12px; }
+  img { width:100%; border-radius:12px; display:block; }
+  button { padding:12px 20px; font-size:16px; font-weight:700; border:none; border-radius:10px;
+           background:#7a4fb0; color:#fff; cursor:pointer; }
+</style>
+</head>
+<body>
+<h1>친구 얼굴 사진 만들기 <span id="status">준비 중…</span></h1>
+<p><button id="dl">전부 내려받기</button></p>
+<div id="out"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { CHARACTERS, createCharacter } from '../src/characters.js';
+import { makeStudioEnv } from '../src/environment.js';
+
+// ★ 사진 크기와 화질
+const W = 240, H = 320, QUALITY = 0.78;
+
+// select.js의 tintOf와 똑같은 규칙 (카드 색과 사진 배경색을 맞춘다)
+function tintOf(id) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360;
+  return `hsl(${h} 70% 84%)`;
+}
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(2);
+renderer.setSize(W, H);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+const scene = new THREE.Scene();
+scene.add(new THREE.HemisphereLight(0xffffff, 0xffd6e8, 1.6));
+const key = new THREE.DirectionalLight(0xffffff, 1.7); key.position.set(3, 6, 5); scene.add(key);
+const rim = new THREE.DirectionalLight(0xffd9ec, 1.0); rim.position.set(-3, 2, -5); scene.add(rim);
+scene.environment = makeStudioEnv(renderer);
+const cam = new THREE.PerspectiveCamera(34, W / H, 0.05, 60);
+
+const flat = document.createElement('canvas');
+flat.width = W; flat.height = H;
+const ctx = flat.getContext('2d');
+const results = [];
+const out = document.getElementById('out');
+const status = document.getElementById('status');
+
+/** 모델(.glb)은 늦게 도착하니 실제로 그려질 때까지 기다린다 */
+function waitReady(group, ms = 8000) {
+  return new Promise(resolve => {
+    const t0 = performance.now();
+    const tick = () => {
+      let has = false;
+      group.traverse(o => { if (o.isMesh) has = true; });
+      if (has || performance.now() - t0 > ms) resolve(has);
+      else requestAnimationFrame(tick);
+    };
+    tick();
+  });
+}
+
+for (const def of CHARACTERS) {
+  status.textContent = `${def.name} 그리는 중…`;
+  const g = createCharacter(def);
+  scene.add(g);
+  await waitReady(g);
+  g.userData.update?.(0, false);       // 서 있는 자세로 고정
+
+  // 캐릭터가 통째로 화면에 들어오게 카메라 거리를 계산한다.
+  //  숫자블록 친구는 키가 크고(10칸까지 쌓인다) 요정 친구는 옆으로 넓어서,
+  //  세로·가로 둘 다 따져서 더 먼 쪽을 쓴다.
+  const box = new THREE.Box3().setFromObject(g);
+  const size = box.getSize(new THREE.Vector3());
+  const c = box.getCenter(new THREE.Vector3());
+  const half = THREE.MathUtils.degToRad(cam.fov) / 2;
+  const distV = (size.y / 2) / Math.tan(half);
+  const distH = (Math.max(size.x, size.z) / 2) / (Math.tan(half) * cam.aspect);
+  const dist = Math.max(distV, distH) * 1.12;   // 1.12 = 가장자리 여백
+  cam.position.set(0, c.y, dist);
+  cam.lookAt(0, c.y, 0);
+  renderer.render(scene, cam);
+
+  ctx.fillStyle = tintOf(def.id);
+  ctx.fillRect(0, 0, W, H);
+  ctx.drawImage(renderer.domElement, 0, 0, W, H);
+  const url = flat.toDataURL('image/jpeg', QUALITY);
+  results.push({ id: def.id, url });
+
+  const fig = document.createElement('figure');
+  fig.innerHTML = `<img src="${url}"><figcaption>${def.name}<br>${def.id}.jpg</figcaption>`;
+  out.append(fig);
+  scene.remove(g);
+}
+
+status.textContent = `다 됐어요 (${results.length}장)`;
+window.__thumbs = results;   // 자동화 도구가 여기서 가져간다
+
+document.getElementById('dl').onclick = () => {
+  for (const { id, url } of results) {
+    const a = document.createElement('a');
+    a.href = url; a.download = `${id}.jpg`;
+    a.click();
+  }
+};
+</script>
+</body>
+</html>
