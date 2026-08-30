@@ -71,10 +71,16 @@ export function emblemTexture(def) {
   gold.addColorStop(0.5, '#' + key.toString(16).padStart(6, '0'));
   gold.addColorStop(1, '#cf860f');
 
-  ctx.translate(256, 262);
-  ctx.scale(1.32, 1.32);
+  ctx.translate(256, 256);
+  ctx.scale(1.15, 1.15);
   ctx.strokeStyle = gold;
   ctx.lineCap = 'round';
+
+  // 무늬를 감싸는 금색 동그라미
+  ctx.lineWidth = 20;
+  ctx.beginPath();
+  ctx.arc(0, 0, 178, 0, Math.PI * 2);
+  ctx.stroke();
 
   ctx.lineWidth = 26;
   ctx.beginPath();

@@ -57,11 +57,11 @@ export const CHARACTERS = [
   { id:'bangul',  name:'방울핑', type:'ping', color:0xa8e0ff, deco:'drop',   decoColor:0x4fb0ee, eye:0x2f7fd6, gem:0x8fd6ff, wing:0xdcf3ff, accent:0x7cc6f0 },
   // 초코핑 — imaes/char1.png 그림을 보고 만든 얼음공주 요정 (전용 뼈대 princess)
   { id:'choco',   name:'초코핑', type:'princess',
-    color:0xffeef2,                                   // 살구빛 얼굴·팔다리
-    hair:0xa8e0f5, hairTip:0xefb2d8, earColor:0xfdfdff,
-    eye:0x2a79cc, eyeSize:1.15, gem:0x6fd8e8, cheek:0xff9dba,
+    color:0xfff2f5,                                   // 아주 창백한 살구빛 얼굴·팔다리
+    hair:0xa9dcf0, hairTip:0xd8b4e4, earColor:0xfdfdff,
+    eye:0x2f6fc0, gem:0x6fd8e8, cheek:0xff9fbb,
     deco:'tiara', decoColor:0xf0b8d8,
-    dress:0xfdfdff, skirt:0xd7ecfd, emblem:0xffc93c, shoe:0xd6d8f5 },
+    dress:0xfdfdff, skirt:0xd4ebf8, emblem:0xf0b830, shoe:0xd6d8f5 },
   { id:'sallang', name:'살랑핑', type:'ping', color:0xb9ef9c, deco:'leaf',   eye:0x3f9440, gem:0xd8f79a, wing:0xe4ffd0, accent:0x92d977 },
   { id:'ppogeul', name:'뽀글핑', type:'ping', color:0xfff0b8, deco:'crown',  eye:0xd2952a, gem:0xffd95e, wing:0xfff7dd, accent:0xf5d98a },
   { id:'byeolbam',name:'별밤핑', type:'ping', color:0x9aa8e0, deco:'moon',   eye:0x3a3f8f, gem:0xfff0a8, wing:0xd4dcff, accent:0x7c8ac9 },
