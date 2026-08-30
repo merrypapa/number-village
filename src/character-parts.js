@@ -57,6 +57,8 @@ export function glossMat(color) {
     _glossCache.set(color, new THREE.MeshPhysicalMaterial({
       color, roughness: 0.40, metalness: 0.0,
       clearcoat: 0.55, clearcoatRoughness: 0.30,
+      // 가장자리가 은은하게 빛나서 피부가 말랑해 보인다
+      sheen: 0.8, sheenRoughness: 0.6, sheenColor: new THREE.Color(0xffc9dc),
     }));
   }
   return _glossCache.get(color);
@@ -205,7 +207,7 @@ export function makeStrand(points, rStart, rEnd, colorA, colorB, seg = 40, rad =
 export function faceShape(y) {
   const t = y + 0.5;                                   // 0(턱) ~ 1(정수리)
   const cheek = 1 + 0.09 * Math.exp(-(((t - 0.52) / 0.30) ** 2));
-  const chin  = t < 0.34 ? 1 - 0.36 * ((0.34 - t) / 0.34) ** 1.7 : 1;
+  const chin  = t < 0.42 ? 1 - 0.44 * ((0.42 - t) / 0.42) ** 1.6 : 1;
   return cheek * chin;
 }
 

@@ -49,12 +49,16 @@ function addHair(head, def, full) {
   // 머리 덩어리 (결이 파인 매끈한 덩어리)
   head.add(solid(part(GEO.ball, hair, [0, 0.06, -0.16], [1.40, 1.34, 1.34])));
 
-  // 앞머리 — 이마를 덮는 넓은 띠 + 가운데가 살짝 뾰족한 갈래
-  head.add(solid(part(GEO.blob, hair, [0, 0.38, 0.22], [1.16, 0.56, 0.72])));
-  head.add(part(GEO.blob, hair, [0, 0.22, 0.45], [0.26, 0.30, 0.16]));
+  // 앞머리 — 이마 위쪽만 덮는다 (이마가 넓어야 아기 얼굴이 된다)
+  //  덩어리들이 서로 충분히 겹쳐야 매끈한 한 덩어리로 보인다
+  head.add(solid(part(GEO.ball, hair, [0, 0.52, 0.20], [1.24, 0.58, 0.80])));
+  head.add(solid(part(GEO.ball, hair, [0, 0.36, 0.40], [0.40, 0.36, 0.26])));   // 가운데 뾰족한 부분
   for (const s of [-1, 1]) {
-    head.add(part(GEO.blob, hair, [s * 0.25, 0.23, 0.43], [0.30, 0.28, 0.17], [0, 0, -s * 0.35]));
-    head.add(part(GEO.blob, hair, [s * 0.48, 0.17, 0.33], [0.32, 0.42, 0.24], [0, 0, -s * 0.30]));
+    head.add(solid(part(GEO.ball, hair, [s * 0.40, 0.40, 0.34], [0.58, 0.46, 0.34], [0, 0, -s * 0.30])));
+    // 관자놀이~볼 옆을 감싸며 내려오는 앞머리
+    head.add(solid(part(GEO.ball, hair, [s * 0.64, 0.10, 0.18], [0.40, 0.78, 0.44], [0, 0, s * 0.12])));
+    // 얼굴 옆을 폭신하게 감싸는 덩어리 (가닥들이 이 위에 얹힌다)
+    head.add(solid(part(GEO.ball, hair, [s * 0.62, -0.10, -0.16], [0.66, 1.10, 0.90])));
   }
 
   // 좌우로 흘러내리는 긴 머리 — 세 가닥이 겹쳐 한 덩어리가 된다
@@ -108,12 +112,12 @@ function makeHead(def, full) {
   // 하얀 꽃잎 모양 귀
   for (const s of [-1, 1]) {
     head.add(solid(part(PETAL_GEO, glossMat(def.earColor ?? 0xfdfdff),
-      [s * 0.66, 0.38, 0.02], [0.46, 0.72, 0.30], [0.20, -s * 0.25, -s * 0.72])));
+      [s * 0.76, 0.44, 0.10], [0.44, 0.70, 0.30], [0.24, -s * 0.30, -s * 0.60])));
   }
 
   // 티아라
   const deco = makeDeco(def.deco, def.decoColor, true);
-  deco.position.set(0, 0.74, 0.12);
+  deco.position.set(0, 0.80, 0.14);
   deco.rotation.x = -0.26;
   deco.scale.setScalar(1.25);
   head.add(deco);
@@ -130,17 +134,17 @@ function addSkirt(g, def, full) {
 
   for (let t = 0; t < SKIRT_TIERS; t++) {
     const mat  = t === 0 ? white : blue;
-    const wide = 0.58 + t * 0.15;
-    const y    = 0.58 - t * 0.085;
+    const wide = 0.56 + t * 0.16;
+    const y    = 0.58 - t * 0.070;
     g.add(solid(part(GEO.cone, mat, [0, y, 0], [wide, 0.28, wide * 0.96])));
 
     if (!full) continue;
-    const n = 16;
+    const n = 9;
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2 + t * 0.2;
       g.add(part(GEO.blob, mat,
         [Math.sin(a) * wide * 0.45, y - 0.132, Math.cos(a) * wide * 0.435],
-        [0.185, 0.030, 0.10], [0, -a, 0]));
+        [0.30, 0.026, 0.15], [0, -a, 0]));
     }
   }
 }

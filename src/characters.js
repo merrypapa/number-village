@@ -57,7 +57,7 @@ export const CHARACTERS = [
   { id:'bangul',  name:'방울핑', type:'ping', color:0xa8e0ff, deco:'drop',   decoColor:0x4fb0ee, eye:0x2f7fd6, gem:0x8fd6ff, wing:0xdcf3ff, accent:0x7cc6f0 },
   // 초코핑 — imaes/char1.png 그림을 보고 만든 얼음공주 요정 (전용 뼈대 princess)
   { id:'choco',   name:'초코핑', type:'princess',
-    color:0xffe8ee,                                   // 살구빛 얼굴·팔다리
+    color:0xffeef2,                                   // 살구빛 얼굴·팔다리
     hair:0xa8e0f5, hairTip:0xefb2d8, earColor:0xfdfdff,
     eye:0x2a79cc, eyeSize:1.15, gem:0x6fd8e8, cheek:0xff9dba,
     deco:'tiara', decoColor:0xf0b8d8,

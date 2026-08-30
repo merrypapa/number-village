@@ -10,18 +10,20 @@
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값 (그림 위의 픽셀)
 // -----------------------------------------------------------
-export const W = 1024, H = 1024, CX = 512, CY = 512;
+export const W = 1024, H = 1024, CX = 512;
 
-const EYE_X   = 226;   // 두 눈 사이
-const EYE_RX  = 116;   // 눈 가로 반지름
-const EYE_RY  = 146;   // 눈 세로 반지름
-const NOSE_Y  = 168;   // 눈높이에서 코까지
-const MOUTH_Y = 272;   // 눈높이에서 입까지
-const GEM_Y   = 240;   // 눈높이에서 이마 보석까지
-const BROW_Y  = 202;   // 눈높이에서 눈썹까지
+//  ↓ 눈높이가 얼굴의 기준선이다. 아기 얼굴은 눈이 한가운데쯤 와야 귀엽다.
+const CY      = 596;   // 눈높이 (내릴수록 이마가 넓어진다)
+const EYE_X   = 238;   // 두 눈 사이
+const EYE_RX  = 127;   // 눈 가로 반지름
+const EYE_RY  = 163;   // 눈 세로 반지름
+const NOSE_Y  = 180;   // 눈높이에서 코까지
+const MOUTH_Y = 300;   // 눈높이에서 입까지
+const GEM_Y   = 272;   // 눈높이에서 이마 보석까지
+const BROW_Y  = 232;   // 눈높이에서 눈썹까지
 
-const LASH   = '#1d2950';   // 속눈썹 색
-const SHADE  = '198,120,152';  // 얼굴 그늘 색(분홍빛 그림자)
+const LASH   = '#2a3866';   // 속눈썹 색
+const SHADE  = '226,158,182';  // 얼굴 그늘 색(분홍빛 그림자)
 
 // -----------------------------------------------------------
 //  도우미
@@ -49,31 +51,31 @@ function glow(ctx, x, y, r, rgb, alpha) {
 //  1) 얼굴 명암 — 이게 있어야 입체로 보인다
 // -----------------------------------------------------------
 function drawShading(ctx) {
-  // 앞머리가 드리우는 이마 그늘
-  let g = ctx.createLinearGradient(0, 60, 0, 400);
-  g.addColorStop(0, `rgba(${SHADE},0.30)`);
+  // 앞머리가 드리우는 이마 그늘 (머리카락이 덮이는 위쪽만 살짝)
+  let g = ctx.createLinearGradient(0, 90, 0, 400);
+  g.addColorStop(0, `rgba(${SHADE},0.34)`);
   g.addColorStop(1, `rgba(${SHADE},0)`);
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, 400);
 
   // 양옆(관자놀이~볼 옆) 그늘
   for (const s of [-1, 1]) {
     const x0 = s < 0 ? 0 : W;
-    g = ctx.createLinearGradient(x0, 0, CX + s * 250, 0);
-    g.addColorStop(0, `rgba(${SHADE},0.22)`);
+    g = ctx.createLinearGradient(x0, 0, CX + s * 300, 0);
+    g.addColorStop(0, `rgba(${SHADE},0.26)`);
     g.addColorStop(1, `rgba(${SHADE},0)`);
     ctx.fillStyle = g;
-    ctx.fillRect(s < 0 ? 0 : CX + 250, 0, W / 2 - 250, H);
+    ctx.fillRect(s < 0 ? 0 : CX + 300, 0, W / 2 - 300, H);
   }
 
   // 턱 밑 그늘
-  g = ctx.createLinearGradient(0, H, 0, H - 330);
-  g.addColorStop(0, `rgba(${SHADE},0.26)`);
+  g = ctx.createLinearGradient(0, H, 0, H - 260);
+  g.addColorStop(0, `rgba(${SHADE},0.30)`);
   g.addColorStop(1, `rgba(${SHADE},0)`);
-  ctx.fillStyle = g; ctx.fillRect(0, H - 330, W, 330);
+  ctx.fillStyle = g; ctx.fillRect(0, H - 260, W, 260);
 
-  // 이마·콧대 밝은 부분, 볼 도톰한 빛
-  glow(ctx, CX, CY - 90, 260, '255,255,255', 0.26);
-  for (const s of [-1, 1]) glow(ctx, CX + s * 258, CY + 92, 190, '255,255,255', 0.20);
+  // 이마 밝은 부분, 볼 도톰한 빛
+  glow(ctx, CX, CY - 230, 250, '255,255,255', 0.30);
+  for (const s of [-1, 1]) glow(ctx, CX + s * 262, CY + 120, 200, '255,255,255', 0.22);
 }
 
 // -----------------------------------------------------------
@@ -83,7 +85,7 @@ function drawCheeks(ctx, def) {
   const rgb = def.cheek ?? 0xff8fb0;
   const c = `${(rgb >> 16) & 255},${(rgb >> 8) & 255},${rgb & 255}`;
   for (const s of [-1, 1]) {
-    const x = CX + s * 296, y = CY + 150;
+    const x = CX + s * 300, y = CY + 158;
     glow(ctx, x, y, 132, c, 0.62);
     // 반짝이 알갱이
     for (let i = 0; i < 7; i++) {
@@ -188,7 +190,7 @@ function drawLashes(ctx) {
   for (let i = N; i >= 0; i--) {                     // 바깥 가장자리 (두께가 변한다)
     const t = i / N;
     const a = a0 + (a1 - a0) * t;
-    const w = 1 + 0.05 + 0.20 * t * t;
+    const w = 1 + 0.035 + 0.16 * t * t;
     ctx.lineTo(Math.cos(a) * EYE_RX * w, Math.sin(a) * EYE_RY * w);
   }
   ctx.closePath();
@@ -260,10 +262,10 @@ function drawMouth(ctx) {
   ctx.translate(CX, CY + MOUTH_Y);
 
   ctx.beginPath();
-  ctx.moveTo(-102, -30);
-  ctx.quadraticCurveTo(0, -52, 102, -30);
-  ctx.quadraticCurveTo(72, 78, 0, 78);
-  ctx.quadraticCurveTo(-72, 78, -102, -30);
+  ctx.moveTo(-124, -34);
+  ctx.quadraticCurveTo(0, -60, 124, -34);
+  ctx.quadraticCurveTo(88, 92, 0, 92);
+  ctx.quadraticCurveTo(-88, 92, -124, -34);
   ctx.closePath();
   const g = ctx.createLinearGradient(0, -30, 0, 78);
   g.addColorStop(0, '#6d1526');
@@ -279,18 +281,18 @@ function drawMouth(ctx) {
   ctx.clip();
   // 윗니 (가운데가 살짝 갈라진 하얀 띠)
   ctx.beginPath();
-  ctx.moveTo(-100, -32);
-  ctx.quadraticCurveTo(0, -54, 100, -32);
-  ctx.lineTo(100, -6);
-  ctx.quadraticCurveTo(54, -16, 9, -14);
-  ctx.lineTo(0, -2); ctx.lineTo(-9, -14);
-  ctx.quadraticCurveTo(-54, -16, -100, -6);
+  ctx.moveTo(-122, -36);
+  ctx.quadraticCurveTo(0, -62, 122, -36);
+  ctx.lineTo(122, -6);
+  ctx.quadraticCurveTo(64, -18, 10, -15);
+  ctx.lineTo(0, -1); ctx.lineTo(-10, -15);
+  ctx.quadraticCurveTo(-64, -18, -122, -6);
   ctx.closePath();
   ctx.fillStyle = '#fff8fa';
   ctx.fill();
   // 혀
-  ell(ctx, 0, 56, 54, 28, 0, '#e0596f');
-  ell(ctx, -14, 48, 18, 9, -0.3, 'rgba(255,255,255,0.35)');
+  ell(ctx, 0, 66, 64, 32, 0, '#e0596f');
+  ell(ctx, -17, 56, 21, 10, -0.3, 'rgba(255,255,255,0.35)');
   ctx.restore();
   ctx.restore();
 }
