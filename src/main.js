@@ -8,6 +8,7 @@ import { buildWorld } from './world.js';
 import { createPlayer } from './player.js';
 import { createNPCs } from './npcs.js';
 import { makeStudioEnv } from './environment.js';
+import { setupTouchControls } from './touch.js';
 
 // -----------------------------------------------------------
 //  렌더러 / 씬 / 카메라
@@ -91,6 +92,7 @@ function startGame(def) {
   scene.add(model);
   player = createPlayer(model, camera, world);
   npcs = createNPCs(scene, def.id, world);
+  setupTouchControls(player, sayHi);   // 가상 조이스틱 + 점프·인사 버튼
 
   document.getElementById('select').classList.remove('on');
   document.getElementById('hud').classList.add('on');
@@ -113,8 +115,9 @@ function sayHi() {
   if (!playing || !npcs) return;
   npcs.greetNearest(player.model.position, nameWithParticle => toast(`${nameWithParticle} 만났어요!`));
 }
-document.getElementById('hi').onclick = sayHi;
-addEventListener('keydown', e => { if (e.code === 'Space') sayHi(); });
+// 인사 버튼은 touch.js가 연결한다 (터치 반응이 빠르도록)
+//  스페이스는 점프라서, 키보드 인사는 엔터로 한다.
+addEventListener('keydown', e => { if (e.code === 'Enter') sayHi(); });
 document.getElementById('bookBtn').onclick = () => toast('친구 도감은 곧 만들 거예요 📖');
 
 // -----------------------------------------------------------

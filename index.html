@@ -8,7 +8,9 @@
   * { margin:0; padding:0; box-sizing:border-box; }
   html, body { width:100%; height:100%; overflow:hidden; background:#bfe8ff;
     font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
-    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; }
+    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent;
+    /* 손가락으로 밀어도 화면이 스크롤되거나 확대되지 않게 (아이폰·아이패드) */
+    touch-action:none; overscroll-behavior:none; position:fixed; inset:0; }
   canvas { display:block; }
 
   /* ---- 화면(스크린) 공통 ---- */
@@ -37,17 +39,51 @@
   #bookBtn { position:absolute; top:16px; right:16px; width:64px; height:64px;
     border:none; border-radius:20px; background:#fff9; font-size:32px;
     pointer-events:auto; cursor:pointer; }
-  #hi { position:absolute; right:24px; bottom:28px; width:104px; height:104px;
-    border:none; border-radius:50%; background:#ff8fc0; color:#fff; font-size:44px;
-    box-shadow:0 6px 0 #e0518f; pointer-events:auto; cursor:pointer; }
-  #hi:active { transform:translateY(4px); box-shadow:0 2px 0 #e0518f; }
+  /* ---- 오른쪽 버튼 (인사 · 점프) ---- */
+  #hi, #jump { position:absolute; border:none; border-radius:50%; color:#fff;
+    pointer-events:auto; cursor:pointer; touch-action:none;
+    display:flex; align-items:center; justify-content:center; }
+  #hi   { right:calc(24px + env(safe-area-inset-right));
+          bottom:calc(28px + env(safe-area-inset-bottom));
+          width:104px; height:104px; font-size:44px;
+          background:#ff8fc0; box-shadow:0 6px 0 #e0518f; }
+  #jump { right:calc(28px + env(safe-area-inset-right));
+          bottom:calc(150px + env(safe-area-inset-bottom));
+          width:96px; height:96px; font-size:34px; font-weight:800;
+          background:#7ad4ff; box-shadow:0 6px 0 #3aa9e0; }
+  #hi:active   { transform:translateY(4px); box-shadow:0 2px 0 #e0518f; }
+  #jump:active { transform:translateY(4px); box-shadow:0 2px 0 #3aa9e0; }
+
+  /* ---- 왼쪽 가상 조이스틱 ---- */
+  #stick { position:absolute; left:calc(26px + env(safe-area-inset-left));
+    bottom:calc(30px + env(safe-area-inset-bottom));
+    width:154px; height:154px; border-radius:50%;
+    background:#ffffff4d; border:4px solid #ffffff99;
+    pointer-events:auto; touch-action:none;
+    display:flex; align-items:center; justify-content:center; }
+  #knob { width:70px; height:70px; border-radius:50%; background:#ff8fc0;
+    box-shadow:0 4px 0 #e0518f; pointer-events:none;
+    transition:transform .06s linear; }
+
+  /* 화면이 작으면 조작부를 조금 줄인다 */
+  @media (max-height:430px), (max-width:400px) {
+    #stick { width:126px; height:126px; }
+    #knob  { width:58px; height:58px; }
+    #hi    { width:84px;  height:84px;  font-size:36px; }
+    #jump  { width:78px;  height:78px;  font-size:28px;
+             bottom:calc(124px + env(safe-area-inset-bottom)); }
+  }
   #toast { position:absolute; left:50%; top:18%; transform:translateX(-50%);
     background:#fff; color:#5b3d8f; font-size:28px; font-weight:800;
     padding:14px 28px; border-radius:24px; box-shadow:0 6px 18px #0003;
     opacity:0; transition:opacity .3s; }
   #toast.on { opacity:1; }
-  #hint { position:absolute; left:50%; bottom:20px; transform:translateX(-50%);
-    color:#fff; font-size:15px; text-shadow:0 1px 3px #0006; }
+  /* 안내문 — 조작부 위에 두고, 8초 뒤 스르륵 사라진다 */
+  #hint { position:absolute; left:50%; bottom:calc(196px + env(safe-area-inset-bottom));
+    transform:translateX(-50%); width:max-content; max-width:86vw; text-align:center;
+    color:#fff; font-size:15px; line-height:1.4; text-shadow:0 1px 4px #0008;
+    pointer-events:none; opacity:1; transition:opacity 1.2s ease 8s; }
+  #hud.on #hint { opacity:0; }
 </style>
 <script type="importmap">
 {
@@ -75,9 +111,16 @@
 <!-- 게임 HUD -->
 <div id="hud">
   <button id="bookBtn">📖</button>
-  <button id="hi">👋</button>
+
+  <!-- 왼쪽: 손가락으로 미는 조이스틱 -->
+  <div id="stick" class="no-drag"><div id="knob"></div></div>
+
+  <!-- 오른쪽: 점프 · 인사 -->
+  <button id="jump" class="no-drag">점프</button>
+  <button id="hi" class="no-drag">👋</button>
+
   <div id="toast"></div>
-  <div id="hint">방향키로 움직이고, 스페이스로 인사해요</div>
+  <div id="hint">동그라미를 밀어서 걷고<br>점프·👋 버튼을 눌러요</div>
 </div>
 
 <script type="module" src="./src/main.js"></script>
