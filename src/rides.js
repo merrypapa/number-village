@@ -21,6 +21,10 @@
 //              조이스틱으로 직접 움직인다. 마을 친구는 못 탄다.
 //    noNpc   : true면 마을 친구(NPC)가 타지 않는다. 아이만 탄다.
 //    enterY  : 타는 자리의 바닥 높이 (성 2층 미끄럼틀은 7.5). 안 적으면 1층.
+//    enters  : 타는 자리가 여러 곳일 때 [{x,z}, …] (침대는 왼쪽·오른쪽 둘 다).
+//              가장 가까운 자리가 enter/exit가 된다.
+//    reach   : 이만큼 가까이 가면 버튼이 나온다 (안 적으면 3.2칸).
+//              왕좌처럼 큰 물건은 넉넉하게 준다.
 //    camBase : true면 카메라가 높이를 그대로 따라간다 (2층 미끄럼틀).
 // ===========================================================
 
@@ -34,14 +38,26 @@ const _pose = { x: 0, y: 0, z: 0, yaw: 0, tilt: 0 };
  */
 export function findFreeRide(rides, pos, maxDist, forNpc = false, y = 0) {
   let best = null;
-  let bestDist = maxDist;
+  let bestDist = Infinity;
+  let bestSpot = null;
   for (const ride of rides) {
     if (ride.rider) continue;                     // 이미 누가 타고 있다
     if (forNpc && (ride.noNpc || ride.drive)) continue;   // 말은 아이만 탄다
     if (Math.abs(y - (ride.enterY ?? 0)) > 2.5) continue; // 다른 층에 있는 것
-    const d = Math.hypot(pos.x - ride.enter.x, pos.z - ride.enter.z);
-    if (d < bestDist) { bestDist = d; best = ride; }
+
+    // 타는 자리가 여러 곳일 수 있다 (침대 왼쪽·오른쪽, 왕좌 앞·양옆)
+    const spots = ride.enters || [ride.enter];
+    let d = Infinity, spot = null;
+    for (const e of spots) {
+      const dd = Math.hypot(pos.x - e.x, pos.z - e.z);
+      if (dd < d) { d = dd; spot = e; }
+    }
+    if (d < (ride.reach ?? maxDist) && d < bestDist) {
+      bestDist = d; best = ride; bestSpot = spot;
+    }
   }
+  // 여러 자리 중 내가 서 있는 쪽에서 타고, 내릴 때도 그 자리로 내린다
+  if (best && best.enters) { best.enter = bestSpot; best.exit = bestSpot; }
   return best;
 }
 

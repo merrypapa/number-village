@@ -335,7 +335,7 @@ export function buildWorld(scene) {
     // 🏰 성 정문 앞에 서면 성 안으로 들어간다 (main.js가 확인한다)
     doors: [{
       x: 0, z: CASTLE_DOOR.z, r: 4.5, to: 'castle',
-      label: '성 안으로 들어왔어요! 🏰',
+      label: '성 안! 👑 안쪽 끝에 왕좌가 있어요',
     }],
   };
 }

@@ -8,6 +8,7 @@
 //  ★ 몇몇은 tick(t, dt)이 있다. castle-interior.js가 매 프레임 불러준다.
 //    (왕관 내려오기 · 이불 덮기 · 떠오르는 글자)
 // ===========================================================
+import * as THREE from 'three';
 import { FLOOR2, SLIDE_GAP } from './castle-layout.js';
 import { makeFloaters, CHAIR_Y, CHAIR_Z } from './castle-props2.js';
 
@@ -16,7 +17,26 @@ import { makeFloaters, CHAIR_Y, CHAIR_Z } from './castle-props2.js';
 // -----------------------------------------------------------
 const SEAT_Y  = 2.9;    // 왕좌 방석 높이 (castle-props.js의 왕좌와 맞춘다)
 const HORSE_Y = 2.6;    // 흔들목마 안장 높이
-const BED_Y   = 2.05;   // 침대에 누웠을 때 몸 높이 (2층 바닥 기준)
+const BED_TOP = 1.55;   // 침대 매트리스 윗면 (castle-props2.js의 makeBed와 맞춘다)
+
+// -----------------------------------------------------------
+//  누웠을 때 몸이 얼마나 두꺼운지 잰다 (캐릭터마다 다르다)
+//   똑바로 세운 상태에서 앞뒤 길이를 재둔다.
+//   누우면 그 앞뒤가 그대로 "몸 높이"가 된다 → 이불 높이를 여기에 맞춘다.
+// -----------------------------------------------------------
+const _box = new THREE.Box3();
+function measureBody(model) {
+  const rot = model.rotation.clone();
+  model.rotation.set(0, 0, 0);
+  model.updateMatrixWorld(true);
+  _box.setFromObject(model);
+  model.rotation.copy(rot);
+  model.updateMatrixWorld(true);
+  return {
+    back:  _box.min.z - model.position.z,   // 등 쪽 (누우면 아래가 된다)
+    front: _box.max.z - model.position.z,   // 배 쪽 (누우면 위가 된다)
+  };
+}
 
 // 🛝 2층 → 1층 미끄럼틀 (남쪽 블록 난간 틈에서 홀로 내려온다)
 export const SLIDE = {
@@ -30,7 +50,11 @@ export function makeThroneRide(x, z, crown) {
   const ride = {
     kind: 'throne', label: '왕좌에 앉았어요! 👑',
     verb: '앉기', offVerb: '일어나기',
+    // 앞·왼쪽·오른쪽 어디에서 다가가도 '앉기'가 나오게 자리를 세 곳 둔다
+    enters: [{ x, z: z + 6.2 }, { x: x - 8.5, z: z + 3.5 }, { x: x + 8.5, z: z + 3.5 }],
     enter: { x, z: z + 6.2 }, exit: { x, z: z + 6.6 },
+    reach: 5.5,                  // 넉넉하게 — 왕좌는 크고 눈에 잘 띄어야 한다
+    noNpc: true,                 // 왕좌는 아이 자리다 (친구가 앉아서 못 앉는 일이 없게)
     duration: 30, autoEnd: false, rider: null,
     pose(t, o) {
       o.x = x; o.z = z - 1.0;
@@ -121,20 +145,27 @@ export function makeBedRide(bed, x, z) {
   const zzz = makeFloaters(['Z', 'Z', 'Z'], '#eaf6ff', 1.4);
   zzz.position.set(x - 2.2, FLOOR2 + 3.0, HEAD_Z);
 
+  let body = null;        // 지금 누운 친구의 두께 (누울 때 한 번 잰다)
+
   const ride = {
     kind: 'bed', label: '잘 자요… 💤',
     verb: '잠자기', offVerb: '일어나기',
-    enter: { x: x + 4.9, z }, exit: { x: x + 5.4, z }, enterY: FLOOR2,
+    // ★ 침대 왼쪽·오른쪽 어느 쪽에 가도 '잠자기'가 나온다
+    enters: [{ x: x + 4.9, z }, { x: x - 4.9, z }],
+    enter: { x: x + 4.9, z }, exit: { x: x + 4.9, z },
+    reach: 4.5, enterY: FLOOR2,
     duration: 600, autoEnd: false, camBase: true, rider: null,
     // 천개(침대 지붕)에 가리지 않게 카메라를 낮춰서 옆에서 본다
     camDist: 10, camHeight: 2.6, lookHeight: 1.6,
     sleep: 0,                                // 0 = 깨어 있음, 1 = 푹 잠
     parts: [zzz],                            // 화면에 같이 넣을 것 (castle-interior)
     pose(t, o) {
+      if (!body && ride.rider) body = measureBody(ride.rider);
       const h = ride.rider?.userData.height || 1.5;
       o.x = x;
       o.z = HEAD_Z - h;                      // 머리가 베개에 오도록 발끝 자리를 잡는다
-      o.y = FLOOR2 + BED_Y + Math.sin(t * 0.9) * 0.05;   // 새근새근
+      // 등이 매트리스에 닿도록 — 두께가 다른 친구도 뜨거나 파묻히지 않는다
+      o.y = FLOOR2 + BED_TOP - (body ? body.back : -0.4) + Math.sin(t * 0.9) * 0.04;
       o.yaw = Math.PI;
       o.tilt = Math.PI / 2;                  // 반듯이 눕는다
       return o;
@@ -142,9 +173,13 @@ export function makeBedRide(bed, x, z) {
     tick(t, dt) {
       const want = ride.rider ? 1 : 0;
       ride.sleep += (want - ride.sleep) * Math.min(1, dt * 2.2);
-      // 이불은 몸 "절반 높이"까지만 올라온다 (얼굴은 보여야 자는 모습이 보인다)
-      quilt.position.y = quiltY + ride.sleep * 0.42 + Math.sin(t * 0.9) * 0.03;
+      // 이불은 누운 몸 높이의 70%까지 올라온다 (얼굴은 보이게).
+      //  ★ 몸이 두꺼운 친구는 이불도 더 높이 올라간다
+      const depth = body ? body.front - body.back : 0.9;
+      const lift = Math.max(0.15, BED_TOP + depth * 0.7 - (quiltY + 0.15));
+      quilt.position.y = quiltY + ride.sleep * lift + Math.sin(t * 0.9) * 0.03;
       zzz.userData.play(t, ride.sleep > 0.45);
+      if (!ride.rider && ride.sleep < 0.02) body = null;   // 다음 친구는 다시 잰다
     },
   };
   return ride;
