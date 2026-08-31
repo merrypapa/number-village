@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { CHARACTERS, createCharacter } from './characters.js';
 import { WORLD_RADIUS } from './world.js';
-import { findFreeRide, mountRide, applyRide, dismountRide } from './rides.js';
+import { findFreeRide, mountRide, applyRide, dismountRide, SAME_FLOOR } from './rides.js';
 
 // --- 아이가 바꿔볼 수 있는 값들 ---
 const NPC_COUNT     = 24;      // 마을에 돌아다니는 친구 수
@@ -356,14 +356,19 @@ export function createNPCs(scene, playerCharId, world, count = NPC_COUNT) {
     return nearest;
   }
 
-  /** 가장 가까운 NPC에게 인사한다. 말풍선 + 반응 + 토스트를 보여준다. */
+  /**
+   * 가장 가까운 NPC에게 인사한다. 말풍선 + 반응 + 토스트를 보여준다.
+   *  ★ 층이 다른 친구(성 2층에서 1층 친구)에게는 인사가 닿지 않는다.
+   *    말풍선이 바닥에 가려 보이지도 않으면서 "만났어요"만 뜨던 것을 막는다.
+   */
   function greetNearest(playerPos, onMeet) {
-    if (npcs.length === 0) return;
-    let nearest = npcs[0], nearestDist = Infinity;
+    let nearest = null, nearestDist = Infinity;
     for (const npc of npcs) {
+      if (Math.abs(npc.model.position.y - playerPos.y) > SAME_FLOOR) continue;
       const dist = npc.model.position.distanceTo(playerPos);
       if (dist < nearestDist) { nearestDist = dist; nearest = npc; }
     }
+    if (!nearest) return;                // 같은 층에 아무도 없다
 
     const phrase = PHRASES[Math.floor(Math.random() * PHRASES.length)];
     bubble.userData.setText(phrase);

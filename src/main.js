@@ -12,6 +12,7 @@ import { setupTouchControls } from './touch.js';
 import { createSelectScreen } from './select.js';
 import { createTitleScreen } from './title.js';
 import { buildCastleInterior } from './castle-interior.js';
+import { SAME_FLOOR } from './rides.js';
 
 // -----------------------------------------------------------
 //  렌더러 / 씬 / 카메라
@@ -222,6 +223,8 @@ function checkDoors() {
   const p = player.model.position;
   let hit = null;
   for (const d of area.doors || []) {
+    //  ★ 다른 층에 있는 문은 무시한다 (2층에서 1층 문 위를 지나가도 안 나가진다)
+    if (Math.abs(player.footY - (d.y ?? 0)) > SAME_FLOOR) continue;
     if (Math.hypot(p.x - d.x, p.z - d.z) < d.r) { hit = d; break; }
   }
   if (!hit) { doorArmed = true; return; }     // 문에서 떨어졌다 → 다음에 또 들어갈 수 있다

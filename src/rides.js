@@ -32,6 +32,14 @@
 const _pose = { x: 0, y: 0, z: 0, yaw: 0, tilt: 0 };
 
 /**
+ * ★ 같은 층으로 볼 높이 차이.
+ *   놀이기구(enterY) · 말 거는 자리(y) · 문(y)은 "몇 층에 있는지"를 적어두고,
+ *   발 높이가 이보다 더 차이 나면 다른 층이라 반응하지 않는다.
+ *   (성 2층에서 1층 진열대나 문이 눌리던 문제를 막는다)
+ */
+export const SAME_FLOOR = 2.5;
+
+/**
  * pos에서 maxDist 안에 있는 "빈" 놀이기구 중 가장 가까운 것을 찾는다.
  * forNpc = true면 마을 친구가 탈 수 있는 것만 고른다.
  * y = 지금 서 있는 바닥 높이 (2층 미끄럼틀을 1층에서 붙잡지 않게). 없으면 null.
@@ -43,7 +51,7 @@ export function findFreeRide(rides, pos, maxDist, forNpc = false, y = 0) {
   for (const ride of rides) {
     if (ride.rider) continue;                     // 이미 누가 타고 있다
     if (forNpc && (ride.noNpc || ride.drive)) continue;   // 말은 아이만 탄다
-    if (Math.abs(y - (ride.enterY ?? 0)) > 2.5) continue; // 다른 층에 있는 것
+    if (Math.abs(y - (ride.enterY ?? 0)) > SAME_FLOOR) continue;  // 다른 층에 있는 것
 
     // 타는 자리가 여러 곳일 수 있다 (침대 왼쪽·오른쪽, 왕좌 앞·양옆)
     const spots = ride.enters || [ride.enter];

@@ -291,8 +291,9 @@ export function buildCastleInterior(envMap, playerCharId) {
     spots: gallery.spots,      // 말 걸 수 있는 자리 (요정 친구 부르기)
     // 남쪽 문으로 나가면 마을로 돌아간다
     doors: [{
-      x: 0, z: HALF_Z - 2.5, r: 3.0, to: 'village',
+      x: 0, z: HALF_Z - 2.5, r: 3.0, y: 0, to: 'village',
       label: '마을로 나왔어요! 🌳',
+      // ★ y = 이 문이 있는 층. 2층에서 이 자리 위를 지나가도 나가지지 않는다
       // 성 문 앞은 카메라가 성벽에 파묻히므로 조금 앞쪽(광장 쪽)에 내려준다
       arrive: new THREE.Vector3(0, 0, -24), arriveYaw: 0,
     }],

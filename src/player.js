@@ -4,7 +4,7 @@
 //  키보드(화살표·스페이스)와 터치(가상 조이스틱)를 둘 다 받는다
 // ===========================================================
 import * as THREE from 'three';
-import { findFreeRide, mountRide, applyRide, dismountRide } from './rides.js';
+import { findFreeRide, mountRide, applyRide, dismountRide, SAME_FLOOR } from './rides.js';
 
 // --- 아이가 바꿔볼 수 있는 값들 ---
 const WALK_SPEED = 12;      // 걷기 속도
@@ -31,11 +31,16 @@ const RIDE_REACH = 3.2;     // 그네·미끄럼틀에 이만큼 가까이 가�
 // --- 🐴 말 타고 달리기 ---
 const HORSE_R    = 1.8;     // 말 몸 굵기 (이만큼 물건에서 떨어진다)
 
-/** 말 걸 수 있는 자리(진열대 앞 등) 중 가장 가까운 것을 찾는다. 없으면 null */
-function findNearestSpot(spots, pos) {
+/**
+ * 말 걸 수 있는 자리(진열대 앞 등) 중 가장 가까운 것을 찾는다. 없으면 null.
+ *  ★ y = 지금 서 있는 바닥 높이. 자리마다 s.y(그 자리가 있는 층)와 비교해서
+ *    **다른 층에 있는 자리는 무시한다**. (2층에서 1층 진열대가 눌리던 문제)
+ */
+function findNearestSpot(spots, pos, y) {
   if (!spots) return null;
   let best = null, bestDist = Infinity;
   for (const s of spots) {
+    if (Math.abs(y - (s.y ?? 0)) > SAME_FLOOR) continue;
     const d = Math.hypot(pos.x - s.x, pos.z - s.z);
     if (d < s.r && d < bestDist) { bestDist = d; best = s; }
   }
@@ -310,7 +315,7 @@ export function createPlayer(model, camera, world) {
     // 3-1) 바로 옆에 빈 그네나 미끄럼틀이 있으면 🎠 버튼을 띄운다
     nearRide = findFreeRide(area.rides, model.position, RIDE_REACH, false, footY);
     // 3-2) 놀이기구가 없으면, 말 걸 수 있는 자리(요정 친구 진열대)를 찾는다
-    nearSpot = nearRide ? null : findNearestSpot(area.spots, model.position);
+    nearSpot = nearRide ? null : findNearestSpot(area.spots, model.position, footY);
 
     // 4) 캐릭터 애니메이션
     //  캐릭터 종류에 따라 animate가 위아래로 통통 튀는 값을 직접 쓴다.
@@ -348,6 +353,7 @@ export function createPlayer(model, camera, world) {
     onMount: null,
     onSpot: null,                           // 말 거는 자리에서 버튼을 눌렀을 때 (main.js가 채운다)
     get area()     { return area; },        // 지금 있는 공간
+    get footY()    { return footY; },       // 지금 발이 딛고 있는 높이 (1층 0 / 2층 7.5)
     get nearSpot() { return nearSpot; },    // 바로 앞에 있는 말 거는 자리
     get ride()     { return ride; },       // 지금 타고 있는 놀이기구
     get nearRide() { return nearRide; },   // 바로 옆에 있는 빈 놀이기구

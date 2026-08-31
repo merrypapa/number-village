@@ -131,7 +131,8 @@ export function buildGallery(playerCharId, opts = {}) {
     spots.push({
       kind: 'summon',
       def,
-      x: x + row.face * 2.6, z, r: REACH,                    // 여기 서면 버튼이 나온다
+      x: x + row.face * 2.6, z, r: REACH, y: 0,              // 여기 서면 버튼이 나온다
+                                                             //  y = 이 자리가 있는 층(1층)
       spawnAt: new THREE.Vector3(x + row.face * 3.4, 0, z),  // 친구가 나와서 서는 자리
       npc: null,                             // 지금 나와서 돌아다니는 친구 (없으면 null)
       /** out = true면 놀러 나간 상태 (인형 대신 하트를 보여준다) */
