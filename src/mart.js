@@ -18,7 +18,7 @@ import { withObject } from './korean.js';
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값 — 마트 크기와 이름
 // -----------------------------------------------------------
-const W = 30, D = 22, H = 7.5;     // 가로 · 세로 · 천장 높이
+const W = 36, D = 28, H = 7.5;     // 가로 · 세로 · 천장 높이 (통로가 넓어야 돌아다니기 좋다)
 const MART_NAME = '행복마트';
 const CLERK = 'ppodeuk';           // 계산대에 서 있는 친구 (characters.js의 id)
 
@@ -66,15 +66,16 @@ export function buildMart(ctx) {
   // -----------------------------------------------------------
   room.hang(makeSign(MART_NAME, 8, 1.3, '#ff7ab0'), 0, H - 0.75, -D / 2 + 0.4, 0);
 
-  room.place(makeBasketStack(), 10.5, 8.6, 0.2, { r: 1.0 });
-  room.place(makeCart(), 12.6, 5.6, 0.3, { r: 1.2 });
-  room.place(makeCart(), 13.0, 2.8, -0.2, { r: 1.2 });
-  room.place(makePlant(), -13.4, 9.4, 0, { r: 1.4 });
+  //  ★ 자리는 벽에서 얼마나 떨어졌는지로 적는다. 마트를 키워도 그대로 따라간다
+  room.place(makeBasketStack(), W / 2 - 7.5, D / 2 - 4.0, 0.2, { r: 1.0 });
+  room.place(makeCart(), W / 2 - 5.0, D / 2 - 6.5, 0.3, { r: 1.2 });
+  room.place(makeCart(), W / 2 - 4.6, D / 2 - 9.0, -0.2, { r: 1.2 });
+  room.place(makePlant(), -W / 2 + 4.0, D / 2 - 3.0, 0, { r: 1.4 });
 
   // -----------------------------------------------------------
   //  💳 계산대 (입구 왼쪽) — 여기서 계산한다
   // -----------------------------------------------------------
-  const COUNTER = { x: -9, z: 7 };
+  const COUNTER = { x: -W / 2 + 9, z: D / 2 - 6 };
   room.place(makeCounter(5), COUNTER.x, COUNTER.z, 0, { hw: 2.7, hd: 1.0 });
   room.hang(makeSign('계산대', 2.4, 0.8, '#ffd45e', '#7a4a00'),
             COUNTER.x, 4.2, COUNTER.z - 0.2, 0);
@@ -93,7 +94,7 @@ export function buildMart(ctx) {
   // -----------------------------------------------------------
   //  🗄 진열대 3줄 (앞뒤로 상품이 놓여 있다)
   // -----------------------------------------------------------
-  const AISLE_LEN = 12, AISLE_Z = -2;
+  const AISLE_LEN = 14, AISLE_Z = -3;
   for (const a of AISLES) {
     // 진열대는 가로로 만들어져 있으니 90도 돌려서 앞뒤(z)로 길게 세운다
     room.place(makeShelf(AISLE_LEN, a.front, a.back), a.x, AISLE_Z, Math.PI / 2,
@@ -127,29 +128,29 @@ export function buildMart(ctx) {
   // -----------------------------------------------------------
   //  🧊 벽면 음료 냉장고 (북쪽 벽) + 🍦 아이스크림 + 🍎 과일 매대
   // -----------------------------------------------------------
-  room.place(makeFridge(13), -6.5, -D / 2 + 1.1, 0, { hw: 6.5, hd: 1.3 });
+  room.place(makeFridge(15), -7.5, -D / 2 + 1.1, 0, { hw: 7.5, hd: 1.3 });
   room.addSpot({
-    x: -6.5, z: -D / 2 + 3.2, r: 2.8, y: 0, verb: '담기',
+    x: -7.5, z: -D / 2 + 3.2, r: 2.8, y: 0, verb: '담기',
     use: (toast) => pick(toast, [['water'], ['milk'], ['juice']]),
   });
 
-  room.place(makeFreezer(), 9, -D / 2 + 1.6, 0, { hw: 2.3, hd: 1.3 });
+  room.place(makeFreezer(), 10, -D / 2 + 1.6, 0, { hw: 2.3, hd: 1.3 });
   room.addSpot({
-    x: 9, z: -D / 2 + 3.6, r: 2.6, y: 0, verb: '담기',
+    x: 10, z: -D / 2 + 3.6, r: 2.6, y: 0, verb: '담기',
     use: (toast) => pick(toast, [['ice']]),
   });
 
-  room.place(makeProduceStand(), 11.6, -1, Math.PI / 2, { hw: 1.5, hd: 2.8 });
+  room.place(makeProduceStand(), W / 2 - 4.4, -2, Math.PI / 2, { hw: 1.5, hd: 2.8 });
   room.addSpot({
-    x: 9.0, z: -1, r: 2.6, y: 0, verb: '담기',
+    x: W / 2 - 7.0, z: -2, r: 2.6, y: 0, verb: '담기',
     use: (toast) => pick(toast, [['apple'], ['orange'], ['melon']]),
   });
 
   // -----------------------------------------------------------
   //  💡 천장 형광등
   // -----------------------------------------------------------
-  for (const x of [-9, -3, 3, 9]) {
-    room.hang(makeCeilingLight(14), x, H - 0.3, 0, Math.PI / 2);
+  for (const x of [-12, -6, 0, 6, 12]) {
+    room.hang(makeCeilingLight(D - 6), x, H - 0.3, 0, Math.PI / 2);
   }
 
   // -----------------------------------------------------------
@@ -158,8 +159,8 @@ export function buildMart(ctx) {
   return room.finish({
     npcCount: 3,
     wanderZones: [
-      { x: -3, z: -2, r: 5 }, { x: 3, z: -2, r: 5 },
-      { x: 10, z: 5, r: 3 },  { x: -12, z: 0, r: 3 },
+      { x: -3, z: -3, r: 6 }, { x: 3, z: -3, r: 6 },
+      { x: 12, z: 4, r: 4 },  { x: -14, z: 0, r: 4 },
     ],
     // 계산대 뒤에 서 있는 점원 (걸어 다니지 않는다)
     residents: [{ id: CLERK, x: COUNTER.x, z: COUNTER.z - 1.6, yaw: 0, stay: true }],

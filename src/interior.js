@@ -24,6 +24,14 @@ const DOOR_W = 4.2;      // 나가는 문 너비
 const DOOR_H = 5.4;      // 나가는 문 높이
 const WALL_T = 1.0;      // 벽 두께 (벽 뒤로 못 나가게 막는 두께)
 
+// 🚪 나가는 문을 얼마나 예민하게 볼 것인가
+//  ★ 이 값이 크면 문 근처에서 놀다가 자꾸 밖으로 튕겨 나간다.
+//    그래서 문 감지 자리를 **벽에 바짝 붙이고**(DOOR_BACK) 범위도 좁게(DOOR_R) 둔다.
+//    "문간에 들어서야" 나가진다 — 입구 쪽 방 안에서 놀아도 안 나가진다.
+const DOOR_R    = 1.7;   // 문 감지 반지름 (예전 2.4 → 자꾸 나가져서 줄임)
+const DOOR_BACK = 1.2;   // 남쪽 벽에서 이만큼만 안쪽 (예전 2.2)
+const SPAWN_BACK = 5.5;  // 들어왔을 때 서는 자리 (벽에서 이만큼 안쪽)
+
 // -----------------------------------------------------------
 //  바닥 무늬 — 네모 두 색이 번갈아 나오는 타일
 // -----------------------------------------------------------
@@ -143,6 +151,16 @@ export function makeInterior(cfg) {
   frame.rotation.y = Math.PI;
   scene.add(frame);
 
+  // --- 문간 발판 — "여기 서면 나간다"고 알려주는 매트 ---
+  const mat = new THREE.Mesh(
+    new THREE.PlaneGeometry(DOOR_W - 0.4, DOOR_R * 1.6),
+    new THREE.MeshToonMaterial({ color: cfg.doorFrame ?? 0xffb8d4 })
+  );
+  mat.rotation.x = -Math.PI / 2;
+  mat.position.set(doorX, 0.03, D / 2 - DOOR_BACK);
+  mat.receiveShadow = true;
+  scene.add(mat);
+
   // --- 벽 뒤로 못 나가게 ---
   const obstacles = [
     { x: 0, z: -D / 2 - WALL_T, hw: W / 2 + WALL_T, hd: WALL_T },
@@ -205,7 +223,7 @@ export function makeInterior(cfg) {
     return {
       name: cfg.name,
       scene,
-      spawn: new THREE.Vector3(doorX, 0, D / 2 - 5),
+      spawn: new THREE.Vector3(doorX, 0, D / 2 - SPAWN_BACK),
       yaw: Math.PI,                    // 들어오면 방 안쪽(-z)을 바라본다
       camDist: cfg.camDist ?? 9,       // 방이 좁으니 카메라를 가까이
       camHeight: cfg.camHeight ?? 5.5,
@@ -216,7 +234,7 @@ export function makeInterior(cfg) {
       isBlocked: collider.isBlocked,
       update, rides, spots,
       doors: [{
-        x: doorX, z: D / 2 - 2.2, r: 2.4, y: 0, to: 'village',
+        x: doorX, z: D / 2 - DOOR_BACK, r: DOOR_R, y: 0, to: 'village',
         label: cfg.exitLabel ?? '마을로 나왔어요! 🌳',
         arrive: new THREE.Vector3(cfg.exit.x, 0, cfg.exit.z),
         arriveYaw: cfg.exit.yaw,
