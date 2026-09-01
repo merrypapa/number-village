@@ -153,7 +153,9 @@ function startGame(def) {
   document.getElementById('preview').classList.remove('on');
   document.getElementById('hud').classList.add('on');
   playing = true;
-  window.__player = player;   // 브라우저 콘솔에서 확인할 때 쓴다
+  //  브라우저 콘솔에서 확인할 때 쓴다 (F12 → __player.model.position 등)
+  //  게임 동작에는 아무 영향이 없다
+  window.__player = player;
   toast(`${def.name}(으)로 놀아요!`);
 }
 
