@@ -6,6 +6,12 @@ import * as THREE from 'three';
 import { buildSky } from './sky.js';
 import { buildPlayground } from './playground.js';
 import { buildStable, makeHorseRide } from './horse.js';
+import { createCollider } from './collide.js';
+import { makeMartBuilding, makeMartCarts, makeArtHouseBuilding } from './village-buildings.js';
+import { buildMart } from './mart.js';
+import { HOUSES, buildHouse } from './houses.js';
+import { buildArtHouse } from './art-house.js';
+import { makeSign } from './mart-props.js';
 
 export const WORLD_RADIUS = 90;   // 마을 반지름 (밖으로 못 나감)
 
@@ -18,10 +24,19 @@ const STABLE_POS = { x: 34, z: -34 };
 // 🏰 성 정문 앞 — 여기에 서면 성 안으로 들어간다 (castle-interior.js가 안쪽을 만든다)
 const CASTLE_DOOR = { z: -35.5 };
 
-// 친구들 집 6채가 서는 방향(라디안)과 거리
+// 🛒 마트가 놓일 자리 (광장 북서쪽). 문은 +z 쪽(광장 쪽)을 바라본다
+//   half = 건물 절반 크기 (부딪히는 네모),  door = 문 앞에 서는 자리
+const MART = { x: -19, z: -17, hw: 7.7, hd: 5.7, doorZ: -9.6 };
+
+// 🎨 그림의 집이 놓일 자리 (광장 북동쪽). 여기서 그림을 그린다
+const ART = { x: 16, z: -19, hw: 6.2, hd: 5.2, doorZ: -11.6 };
+
+// 친구들 집이 서는 방향(라디안)과 거리
 //  ★ 북쪽(성 입구, 약 4.7)과 남쪽(우리 집, 약 1.6)은 비워둔다
+//  ★ 집 개수는 src/houses.js의 HOUSES가 정한다. 이 각도 목록도 같은 개수여야 한다
 const FRIEND_HOUSES = [0.4, 1.0, 2.5, 3.2, 3.9, 5.9];
 const FRIEND_DIST = 38;
+const HOUSE_DOOR = 7.6;     // 집 한가운데에서 문 앞 자리까지의 거리
 
 const M = {
   grass:  new THREE.MeshToonMaterial({ color: 0x9fe08a }),
@@ -55,16 +70,31 @@ function mesh(geo, mat, x, y, z, sx, sy, sz) {
   return m;
 }
 
-// --- 집 한 채 ---
-function makeHouse(roofMat, w = 6, h = 4, d = 6) {
+// --- 집 한 채 (문은 +z 쪽에 있다. 들어갈 수 있는 집은 문이 환하게 빛난다) ---
+function makeHouse(roofMat, w = 8, h = 5, d = 8, label = null) {
   const g = new THREE.Group();
   g.add(mesh(G.box, M.wall, 0, h / 2, 0, w, h, d));
-  const roof = mesh(G.cone, roofMat, 0, h + 1.6, 0, w * 0.95, 3.2, d * 0.95);
+  const roof = mesh(G.cone, roofMat, 0, h + 2.0, 0, w * 0.95, 4.0, d * 0.95);
   roof.rotation.y = Math.PI / 4;
   g.add(roof);
-  g.add(mesh(G.box, M.door, 0, 1.1, d / 2 + 0.05, 1.4, 2.2, 0.2));
+
+  // 현관 — 안이 환하게 비친다 (여기로 들어간다고 알려준다)
+  const light = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 3.0),
+    new THREE.MeshBasicMaterial({ color: 0xfff0d8 }));
+  light.position.set(0, 1.5, d / 2 + 0.07);
+  light.userData.noShadow = true;
+  g.add(light);
+  g.add(mesh(G.box, M.door, 0, 1.6, d / 2 + 0.1, 2.5, 3.4, 0.22));
+  g.add(mesh(G.box, M.roofA, 0, 3.6, d / 2 + 0.7, 3.4, 0.3, 1.6));      // 현관 차양
+
   for (const s of [-1, 1]) {
-    g.add(mesh(G.box, M.win, s * w * 0.28, h * 0.65, d / 2 + 0.05, 1.2, 1.2, 0.2));
+    g.add(mesh(G.box, M.win, s * w * 0.3, h * 0.66, d / 2 + 0.05, 1.6, 1.6, 0.2));
+    g.add(mesh(G.box, M.wall, s * w * 0.3, h * 0.66, d / 2 + 0.09, 1.9, 0.2, 0.2));
+  }
+  if (label) {                                    // 문 위에 붙은 이름표
+    const sign = makeSign(label, 5.2, 1.0, '#fff6e8', '#7a4fb0');
+    sign.position.set(0, h + 0.7, d / 2 + 0.15);
+    g.add(sign);
   }
   return g;
 }
@@ -145,67 +175,11 @@ function makeCastleEntrance(z) {
 }
 
 // -----------------------------------------------------------
-//  부딪히기 (충돌)
-//  장애물은 두 가지 모양만 쓴다:
-//    동그란 것 { x, z, r }   /   네모난 것 { x, z, hw, hd }
-//
-//  ★ 층이 있는 곳(성 안 2층)을 위해 두 가지를 더 붙일 수 있다:
-//    { y0, y1 } — 발 높이가 이 사이일 때만 부딪힌다.
-//                 (1층 가구는 y0:-1 y1:3.5 → 2층에서는 통과)
-//    { off:true } — 잠깐 꺼둔다 (지금 내가 타고 있는 말 등)
+//  부딪히기(충돌)는 src/collide.js로 옮겼다.
+//  성 안·마트·집도 똑같은 것을 쓰기 때문이다.
+//  예전처럼 world.js에서 가져다 쓰던 파일이 있어서 그대로 다시 내보낸다.
 // -----------------------------------------------------------
-function pushOut(o, pos, radius, y) {
-  if (o.off) return;
-  if (o.y0 !== undefined && (y < o.y0 || y > o.y1)) return;
-  const dx = pos.x - o.x;
-  const dz = pos.z - o.z;
-
-  if (o.hw !== undefined) {                       // 네모난 장애물 (성)
-    const overlapX = o.hw + radius - Math.abs(dx);
-    const overlapZ = o.hd + radius - Math.abs(dz);
-    if (overlapX <= 0 || overlapZ <= 0) return;
-    // 덜 밀어내도 되는 쪽으로 밀어낸다
-    if (overlapX < overlapZ) pos.x += (dx >= 0 ? 1 : -1) * overlapX;
-    else                     pos.z += (dz >= 0 ? 1 : -1) * overlapZ;
-    return;
-  }
-
-  const min = o.r + radius;                       // 동그란 장애물
-  const d = Math.hypot(dx, dz);
-  if (d >= min) return;
-  if (d < 0.001) { pos.x += min; return; }        // 정확히 한가운데면 옆으로 살짝
-  pos.x = o.x + (dx / d) * min;
-  pos.z = o.z + (dz / d) * min;
-}
-
-// -----------------------------------------------------------
-//  장애물 목록 하나로 "부딪히기" 함수 두 개를 만든다.
-//  마을(world.js)과 성 안(castle-interior.js)이 똑같이 쓴다.
-// -----------------------------------------------------------
-export function createCollider(obstacles) {
-  return {
-    /**
-     * 장애물을 뚫고 들어갔으면 바깥으로 밀어낸다. pos는 그 자리에서 고쳐진다.
-     * y = 지금 발이 있는 높이 (안 주면 1층). 2층 난간은 2층에서만 막는다.
-     */
-    collide(pos, radius, y = 0) {
-      for (const o of obstacles) pushOut(o, pos, radius, y);
-    },
-    /** (x, z)가 장애물 안이면 true — NPC를 세울 자리를 고를 때 쓴다. */
-    isBlocked(x, z, radius, y = 0) {
-      for (const o of obstacles) {
-        if (o.off) continue;
-        if (o.y0 !== undefined && (y < o.y0 || y > o.y1)) continue;
-        if (o.hw !== undefined) {
-          if (Math.abs(x - o.x) < o.hw + radius && Math.abs(z - o.z) < o.hd + radius) return true;
-        } else if (Math.hypot(x - o.x, z - o.z) < o.r + radius) {
-          return true;
-        }
-      }
-      return false;
-    },
-  };
-}
+export { createCollider };
 
 // -----------------------------------------------------------
 //  마을 전체 만들기
@@ -248,6 +222,23 @@ export function buildWorld(scene) {
     obstacles.push({ x: sx * 5, z: CASTLE_DOOR.z + 1 + i * 6, r: 0.7 });   // 등불 기둥
   }
 
+  // 🛒 마트 (편의점) — 문 앞에 서면 마트 안으로 들어간다
+  const mart = makeMartBuilding();
+  mart.position.set(MART.x, 0, MART.z);
+  scene.add(mart);
+  obstacles.push({ x: MART.x, z: MART.z, hw: MART.hw, hd: MART.hd });
+  reserved.push({ x: MART.x, z: MART.z, r: 15 });
+  //  마트 앞에 세워둔 카트 (장식)
+  scene.add(makeMartCarts(MART.x + 4.5, MART.z + 6.6));
+  obstacles.push({ x: MART.x + 6.0, z: MART.z + 7.1, r: 1.8 });
+
+  // 🎨 그림의 집 — 문 앞에 서면 안으로 들어간다
+  const artHouse = makeArtHouseBuilding();
+  artHouse.position.set(ART.x, 0, ART.z);
+  scene.add(artHouse);
+  obstacles.push({ x: ART.x, z: ART.z, hw: ART.hw, hd: ART.hd });
+  reserved.push({ x: ART.x, z: ART.z, r: 14 });
+
   // 우리 집 (남쪽) — 아이가 색을 고를 수 있게 roofC
   const home = makeHouse(M.roofC, 7, 4.5, 7);
   home.position.set(0, 0, 34);
@@ -256,17 +247,34 @@ export function buildWorld(scene) {
   obstacles.push({ x: 0, z: 34, r: 4.7 });
   reserved.push({ x: 0, z: 34, r: 10 });
 
-  // 친구들 집 6채 (광장 둘레)
+  // 친구들 집 (광장 둘레) — 문 앞에 서면 그 집 안으로 들어간다
+  //  ★ 집은 전부 광장(가운데) 쪽을 바라본다. 그래야 아이가 문을 찾기 쉽다
   const roofs = [M.roofA, M.roofB, M.roofC];
-  for (let i = 0; i < FRIEND_HOUSES.length; i++) {
-    const a = FRIEND_HOUSES[i];
-    const h = makeHouse(roofs[i % 3]);
+  const houseDoors = [];
+  for (let i = 0; i < HOUSES.length; i++) {
+    const house = HOUSES[i];
+    const a = FRIEND_HOUSES[i % FRIEND_HOUSES.length];
     const hx = Math.cos(a) * FRIEND_DIST, hz = Math.sin(a) * FRIEND_DIST;
+    // 집 앞(광장 쪽) 방향
+    const fx = -Math.cos(a), fz = -Math.sin(a);
+    const h = makeHouse(roofs[i % 3], 8, 5, 8, house.name);
     h.position.set(hx, 0, hz);
-    h.rotation.y = -a + Math.PI / 2;
+    h.rotation.y = Math.atan2(fx, fz);        // 앞면(+z)이 광장을 보게 돌린다
     scene.add(h);
-    obstacles.push({ x: hx, z: hz, r: 4.1 });
-    reserved.push({ x: hx, z: hz, r: 9 });
+    obstacles.push({ x: hx, z: hz, r: 5.4 });
+    reserved.push({ x: hx, z: hz, r: 11 });
+
+    houseDoors.push({
+      x: hx + fx * HOUSE_DOOR, z: hz + fz * HOUSE_DOOR, r: 2.8,
+      to: `house-${house.id}`,
+      label: `${house.name}에 놀러 왔어요!`,
+      //  ★ 나올 때는 문 반경(2.8)보다 더 멀리 세운다.
+      //    문 안에 서 있으면 다시 들어가려고 할 때 한 번 멀어져야 해서 답답하다
+      build: (ctx) => buildHouse(house, { ...ctx, exit: {
+        x: hx + fx * (HOUSE_DOOR + 3.6), z: hz + fz * (HOUSE_DOOR + 3.6),
+        yaw: Math.atan2(fx, fz),
+      } }),
+    });
   }
 
   // 놀이터
@@ -332,10 +340,26 @@ export function buildWorld(scene) {
     home, collide, isBlocked, update,
     // 탈 수 있는 것 — 그네·미끄럼틀·시소 + 🐴 말 세 마리
     rides: [...playground.rides, ...stable.rides, plazaHorse.ride],
-    // 🏰 성 정문 앞에 서면 성 안으로 들어간다 (main.js가 확인한다)
-    doors: [{
-      x: 0, z: CASTLE_DOOR.z, r: 4.5, to: 'castle',
-      label: '성 안! 👑 안쪽 끝에 왕좌가 있어요',
-    }],
+    // 🚪 문 — 건물 앞에 서면 그 건물 안으로 들어간다 (main.js가 확인한다)
+    //   build(ctx) = 안쪽 공간을 만드는 함수. ctx.exit = 나올 때 설 자리
+    doors: [
+      {
+        x: 0, z: CASTLE_DOOR.z, r: 4.5, to: 'castle',
+        label: '성 안! 👑 안쪽 끝에 왕좌가 있어요',
+      },
+      {
+        x: MART.x, z: MART.doorZ, r: 2.8, to: 'mart',
+        label: '어서 오세요! 🛒 행복마트',
+        build: (ctx) => buildMart({ ...ctx,
+          exit: { x: MART.x, z: MART.doorZ + 3.6, yaw: 0 } }),
+      },
+      {
+        x: ART.x, z: ART.doorZ, r: 2.8, to: 'art',
+        label: '그림의 집! 🎨 이젤 앞에서 그리기를 눌러요',
+        build: (ctx) => buildArtHouse({ ...ctx,
+          exit: { x: ART.x, z: ART.doorZ + 3.6, yaw: 0 } }),
+      },
+      ...houseDoors,        // 🏠 친구 집 (src/houses.js의 HOUSES 개수만큼)
+    ],
   };
 }

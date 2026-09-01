@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { CHARACTERS, createCharacter } from './characters.js';
 import { WORLD_RADIUS } from './world.js';
 import { findFreeRide, mountRide, applyRide, dismountRide, SAME_FLOOR } from './rides.js';
+import { withObject } from './korean.js';
 
 // --- 아이가 바꿔볼 수 있는 값들 ---
 const NPC_COUNT     = 24;      // 마을에 돌아다니는 친구 수
@@ -31,13 +32,6 @@ const PHRASES = [
 ];
 
 const _tmpDir = new THREE.Vector3();
-
-// 받침 유무에 따라 '을/를' 조사를 골라 붙인다 (예: 구름 → 구름을, 하나 → 하나를)
-function withObjectParticle(name) {
-  const code = name.charCodeAt(name.length - 1) - 0xac00;
-  const hasBatchim = code >= 0 && code <= 11171 && code % 28 !== 0;
-  return name + (hasBatchim ? '을' : '를');
-}
 
 // -----------------------------------------------------------
 //  이름표 (Canvas → Sprite), 이름이 같으면 재사용
@@ -170,12 +164,17 @@ export function createNPCs(scene, playerCharId, world, count = NPC_COUNT) {
    * 친구 한 명을 만들어 세운다.
    * pos를 주면 그 자리에, 안 주면 빈 자리를 아무 데나 골라 세운다.
    * (성 안 진열대에서 친구를 부를 때도 이 함수를 쓴다)
+   *
+   * opts = { stay: true, yaw: 방향 }
+   *   stay를 켜면 **걸어 다니지 않고 자기 자리에 서 있는다**.
+   *   집주인이나 마트 점원처럼 "여기 사는 친구"에 쓴다.
    */
-  function addNpc(def, pos) {
+  function addNpc(def, pos, opts = {}) {
     const model = createCharacter(def, 'simple');
     model.traverse(o => { if (o.isMesh && !o.userData.noShadow) o.castShadow = true; });
     if (pos) model.position.set(pos.x, 0, pos.z);
     else pickSpot(world, model.position);
+    if (opts.yaw !== undefined) model.rotation.y = opts.yaw;
     scene.add(model);
 
     const height = model.userData.height || 1.4;
@@ -195,6 +194,7 @@ export function createNPCs(scene, playerCharId, world, count = NPC_COUNT) {
 
     const npc = {
       def, model, height,
+      stay: !!opts.stay,   // true면 제자리에 서 있는다 (집주인·점원)
       target: pickSpot(world, new THREE.Vector3()),
       resting: false,
       restTimer: 0,
@@ -272,6 +272,15 @@ export function createNPCs(scene, playerCharId, world, count = NPC_COUNT) {
 
       if (npc.greetTimer > 0) npc.greetTimer -= dt;
 
+      // 너무 멀면 애니메이션(팔다리/통통 튀기) 업데이트만 건너뛴다
+      const skipAnim = dist > SKIP_DIST;
+
+      // 제자리에 서 있는 친구 (집주인·점원) — 걷지 않고 인사만 한다
+      if (npc.stay) {
+        if (!skipAnim) npc.model.userData.update?.(t, npc.greetTimer > 0);
+        continue;
+      }
+
       // 놀이기구를 타는 중 — 걷지 않고 놀이기구가 자리를 정해준다
       if (npc.ride) {
         npc.rideTime += dt;
@@ -282,9 +291,6 @@ export function createNPCs(scene, playerCharId, world, count = NPC_COUNT) {
         }
         continue;
       }
-
-      // 너무 멀면 애니메이션(팔다리/통통 튀기) 업데이트만 건너뛴다
-      const skipAnim = dist > SKIP_DIST;
 
       let moving = false;
       if (npc.resting) {
@@ -378,7 +384,7 @@ export function createNPCs(scene, playerCharId, world, count = NPC_COUNT) {
     nearest.exclaim.visible = false;
     nearest.greetTimer = GREET_REACT;
 
-    onMeet?.(withObjectParticle(nearest.def.name));
+    onMeet?.(withObject(nearest.def.name));
   }
 
   return { update, greetNearest, add: addNpc, remove: removeNpc };
