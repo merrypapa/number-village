@@ -5,7 +5,7 @@
 //  ★ 상품(라면·과자·물…)은 src/mart-items.js가 만든다.
 // ===========================================================
 import * as THREE from 'three';
-import { C, part, toon, glow, canvasTex } from './castle-props.js';
+import { C, part, toon, glow } from './castle-props.js';
 import { fillShelf, makeItem, makeBanana, makeStrawberry } from './mart-items.js';
 
 // -----------------------------------------------------------
@@ -36,27 +36,37 @@ function glassPane(w, h, d = 0.1) {
   return m;
 }
 
-/** 글씨가 적힌 간판 (Canvas로 글씨를 그린다) */
+/**
+ * 글씨가 적힌 간판 (Canvas로 글씨를 그린다)
+ *  ★ 그림판을 간판과 **같은 가로세로 비율**로 만든다.
+ *    네모난 그림판을 길쭉한 판에 붙이면 글씨가 납작하게 눌려서 안 읽힌다.
+ */
 export function makeSign(text, w = 4, h = 1, bgColor = '#ff7ab0', fgColor = '#ffffff') {
-  const tex = canvasTex(256, (ctx, s) => {
-    ctx.fillStyle = bgColor; ctx.fillRect(0, 0, s, s);
-    ctx.fillStyle = '#ffffff40'; ctx.fillRect(0, 0, s, s * 0.18);
-    ctx.fillStyle = fgColor;
-    let size = Math.round(s * 0.34);
-    const font = px => `bold ${px}px "Apple SD Gothic Neo","Malgun Gothic",sans-serif`;
+  const cw = 512, ch = Math.max(64, Math.round(512 * h / w));
+  const cv = document.createElement('canvas');
+  cv.width = cw; cv.height = ch;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = bgColor; ctx.fillRect(0, 0, cw, ch);
+  ctx.fillStyle = '#ffffff40'; ctx.fillRect(0, 0, cw, ch * 0.18);   // 위쪽 반짝임
+
+  ctx.fillStyle = fgColor;
+  const font = px => `bold ${px}px "Apple SD Gothic Neo","Malgun Gothic",sans-serif`;
+  let size = Math.round(ch * 0.62);
+  ctx.font = font(size);
+  while (ctx.measureText(text).width > cw * 0.9 && size > 10) {     // 길면 줄인다
+    size -= 2;
     ctx.font = font(size);
-    while (ctx.measureText(text).width > s * 0.88 && size > 12) { size -= 4; ctx.font = font(size); }
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(text, s / 2, s * 0.54);
-  });
+  }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, cw / 2, ch * 0.55);
+
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+
   const g = new THREE.Group();
-  const board = new THREE.Mesh(
-    new THREE.PlaneGeometry(w, h),
-    new THREE.MeshBasicMaterial({ map: tex })
-  );
-  g.add(board);
+  g.add(new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex })));
   const back = part('box', 0xffffff, 0, 0, -0.06, w + 0.12, h + 0.12, 0.1);
-  back.castShadow = false;
+  back.castShadow = false; back.receiveShadow = false;
   g.add(back);
   return g;
 }

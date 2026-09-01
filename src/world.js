@@ -7,9 +7,10 @@ import { buildSky } from './sky.js';
 import { buildPlayground } from './playground.js';
 import { buildStable, makeHorseRide } from './horse.js';
 import { createCollider } from './collide.js';
-import { makeMartBuilding, makeMartCarts } from './village-buildings.js';
+import { makeMartBuilding, makeMartCarts, makeArtHouseBuilding } from './village-buildings.js';
 import { buildMart } from './mart.js';
 import { HOUSES, buildHouse } from './houses.js';
+import { buildArtHouse } from './art-house.js';
 import { makeSign } from './mart-props.js';
 
 export const WORLD_RADIUS = 90;   // 마을 반지름 (밖으로 못 나감)
@@ -26,6 +27,9 @@ const CASTLE_DOOR = { z: -35.5 };
 // 🛒 마트가 놓일 자리 (광장 북서쪽). 문은 +z 쪽(광장 쪽)을 바라본다
 //   half = 건물 절반 크기 (부딪히는 네모),  door = 문 앞에 서는 자리
 const MART = { x: -19, z: -17, hw: 7.7, hd: 5.7, doorZ: -9.6 };
+
+// 🎨 그림의 집이 놓일 자리 (광장 북동쪽). 여기서 그림을 그린다
+const ART = { x: 16, z: -19, hw: 6.2, hd: 5.2, doorZ: -11.6 };
 
 // 친구들 집이 서는 방향(라디안)과 거리
 //  ★ 북쪽(성 입구, 약 4.7)과 남쪽(우리 집, 약 1.6)은 비워둔다
@@ -228,6 +232,13 @@ export function buildWorld(scene) {
   scene.add(makeMartCarts(MART.x + 4.5, MART.z + 6.6));
   obstacles.push({ x: MART.x + 6.0, z: MART.z + 7.1, r: 1.8 });
 
+  // 🎨 그림의 집 — 문 앞에 서면 안으로 들어간다
+  const artHouse = makeArtHouseBuilding();
+  artHouse.position.set(ART.x, 0, ART.z);
+  scene.add(artHouse);
+  obstacles.push({ x: ART.x, z: ART.z, hw: ART.hw, hd: ART.hd });
+  reserved.push({ x: ART.x, z: ART.z, r: 14 });
+
   // 우리 집 (남쪽) — 아이가 색을 고를 수 있게 roofC
   const home = makeHouse(M.roofC, 7, 4.5, 7);
   home.position.set(0, 0, 34);
@@ -341,6 +352,12 @@ export function buildWorld(scene) {
         label: '어서 오세요! 🛒 행복마트',
         build: (ctx) => buildMart({ ...ctx,
           exit: { x: MART.x, z: MART.doorZ + 3.6, yaw: 0 } }),
+      },
+      {
+        x: ART.x, z: ART.doorZ, r: 2.8, to: 'art',
+        label: '그림의 집! 🎨 이젤 앞에서 그리기를 눌러요',
+        build: (ctx) => buildArtHouse({ ...ctx,
+          exit: { x: ART.x, z: ART.doorZ + 3.6, yaw: 0 } }),
       },
       ...houseDoors,        // 🏠 친구 집 (src/houses.js의 HOUSES 개수만큼)
     ],

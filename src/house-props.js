@@ -225,7 +225,7 @@ export function makeWindow(w = 3.4, h = 3.0) {
   });
   const pane = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: view }));
   g.add(pane);
-  g.add(part('box', 0xfff6e8, 0, 0, -0.06, w + 0.5, h + 0.5, 0.14));      // 창틀
+  g.add(part('box', 0xfff6e8, 0, 0, -0.12, w + 0.5, h + 0.5, 0.14));      // 창틀
   g.add(part('box', 0xfff6e8, 0, 0, 0.04, 0.14, h, 0.1));                 // 십자 창살
   g.add(part('box', 0xfff6e8, 0, 0, 0.04, w, 0.14, 0.1));
   for (const s of [-1, 1]) {                                              // 커튼
@@ -261,7 +261,8 @@ export function makePicture(kind = 0, w = 1.8, h = 1.4) {
   const g = new THREE.Group();
   const pic = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: art }));
   g.add(pic);
-  g.add(part('box', WOOD, 0, 0, -0.06, w + 0.3, h + 0.3, 0.12));
+  //  ★ 테두리는 그림 뒤에 둔다 (같은 자리에 겹치면 얼룩덜룩해진다)
+  g.add(part('box', WOOD, 0, 0, -0.1, w + 0.3, h + 0.3, 0.12));
   return flat(g);
 }
 

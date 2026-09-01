@@ -64,7 +64,7 @@ export function buildMart(ctx) {
   //    카메라가 문 뒤에서 따라오기 때문에 앞을 가려버린다.
   //    가게 이름표는 맞은편(북쪽 벽)에 붙여서 들어오자마자 보이게 한다.
   // -----------------------------------------------------------
-  room.hang(makeSign(MART_NAME, 8, 1.6, '#ff7ab0'), 0, H - 1.0, -D / 2 + 0.4, 0);
+  room.hang(makeSign(MART_NAME, 8, 1.3, '#ff7ab0'), 0, H - 0.75, -D / 2 + 0.4, 0);
 
   room.place(makeBasketStack(), 10.5, 8.6, 0.2, { r: 1.0 });
   room.place(makeCart(), 12.6, 5.6, 0.3, { r: 1.2 });
@@ -99,7 +99,8 @@ export function buildMart(ctx) {
     room.place(makeShelf(AISLE_LEN, a.front, a.back), a.x, AISLE_Z, Math.PI / 2,
                { hw: 1.0, hd: AISLE_LEN / 2 });
     // 천장에 매단 코너 안내판
-    room.hang(makeSign(a.name, 3.6, 0.9, '#ff9ec4'), a.x, 5.8, AISLE_Z, 0);
+    //  ★ 코너 안내판은 가게 이름표(천장 가까이)와 겹치지 않게 조금 낮게 단다
+    room.hang(makeSign(a.name, 3.6, 0.9, '#ff9ec4'), a.x, 5.0, AISLE_Z, 0);
 
     // 진열대 양옆에서 물건을 담을 수 있다
     for (const side of [-1, 1]) {

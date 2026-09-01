@@ -176,6 +176,46 @@
     pointer-events:none; opacity:1; transition:opacity 1.2s ease 8s; }
   #hud.on #hint { opacity:0; }
 
+
+  /* ---- 🎨 그림 그리기 놀이 (그림의 집) ----
+     화면을 통째로 덮는다. 손가락으로 캔버스를 문지르면 그림이 그려진다.
+     ★ .no-drag 를 붙여야 그림을 그리는 동안 카메라가 돌지 않는다 (player.js) */
+  #draw { position:fixed; inset:0; z-index:40; display:none;
+    flex-direction:column; gap:6px; background:linear-gradient(180deg,#f6e6ff,#ffe8f4);
+    padding:calc(8px + env(safe-area-inset-top)) 8px calc(8px + env(safe-area-inset-bottom)); }
+  #draw.on { display:flex; }
+  #drawTop { flex:none; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  #drawTitle { font-size:clamp(15px,3.4vw,24px); font-weight:900; color:#7a4fb0; }
+  #drawTop button { border:none; border-radius:999px; padding:10px 18px;
+    font-size:clamp(14px,3vw,20px); font-weight:900; cursor:pointer; }
+  #drawClose { background:#fff; color:#7a4fb0; box-shadow:0 4px 0 #d8bfe8; }
+  #drawDone  { background:#ff8fc0; color:#fff; box-shadow:0 4px 0 #e0518f; }
+  #drawTop button:active { transform:translateY(3px); box-shadow:none; }
+
+  /* 그림 종이 */
+  #drawStage { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; }
+  #drawCanvas { max-width:100%; max-height:100%; background:#fff; border-radius:14px;
+    box-shadow:0 6px 20px #0002; touch-action:none; cursor:crosshair; }
+
+  /* 아래쪽 도구 · 색깔 */
+  #drawBar { flex:none; display:flex; flex-direction:column; gap:6px; align-items:center; }
+  #drawTools, #drawColors, #drawExtra { display:flex; gap:6px; flex-wrap:wrap;
+    justify-content:center; }
+  .tool { border:none; border-radius:16px; padding:8px 10px; background:#fff;
+    box-shadow:0 4px 0 #d8bfe8; cursor:pointer; font-size:clamp(11px,2.4vw,15px);
+    font-weight:800; color:#7a4fb0; line-height:1.1; min-width:52px; }
+  .tool .ico { display:block; font-size:clamp(18px,4vw,26px); }
+  .tool.on { background:#ffd93d; box-shadow:0 4px 0 #d9a800; color:#7a4a00; }
+  .tool:active { transform:translateY(3px); box-shadow:none; }
+  .swatch { width:clamp(30px,7vw,44px); height:clamp(30px,7vw,44px); border-radius:50%;
+    border:3px solid #fff; box-shadow:0 3px 0 #00000018; cursor:pointer; padding:0; }
+  .swatch.on { border-color:#7a4fb0; transform:scale(1.12); }
+  .size { width:clamp(34px,7vw,46px); height:clamp(34px,7vw,46px); border-radius:50%;
+    border:none; background:#fff; box-shadow:0 4px 0 #d8bfe8; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; }
+  .size i { display:block; background:#7a4fb0; border-radius:50%; }
+  .size.on { background:#ffd93d; box-shadow:0 4px 0 #d9a800; }
+
   /* 좁은 화면(폰 세로)에서는 무대와 화살표를 줄여서 화면 안에 넣는다 */
   @media (max-width:520px) {
     .row { gap:8px; }
@@ -238,7 +278,23 @@
   <button id="hi" class="no-drag">👋</button>
 
   <div id="toast"></div>
-  <div id="hint">동그라미를 밀어서 걷고<br>점프·👋 버튼을 눌러요<br>놀이터에서 그네·미끄럼틀·시소도 타요!<br>🐴 말 옆에서 <b>타기</b>를 누르면 말을 타고 달려요<br>🏰 성 안에서는 왕좌에 앉고, 계단으로 2층에 올라가요<br>🛒 마트에 들어가서 물건을 담고 계산해 봐요<br>🏠 친구 집에 놀러 가면 집주인이 반겨줘요</div>
+  <div id="hint">동그라미를 밀어서 걷고<br>점프·👋 버튼을 눌러요<br>놀이터에서 그네·미끄럼틀·시소도 타요!<br>🐴 말 옆에서 <b>타기</b>를 누르면 말을 타고 달려요<br>🏰 성 안에서는 왕좌에 앉고, 계단으로 2층에 올라가요<br>🛒 마트에 들어가서 물건을 담고 계산해 봐요<br>🏠 친구 집에 놀러 가면 집주인이 반겨줘요<br>🎨 그림의 집에서 손가락으로 그림을 그려요</div>
+</div>
+
+
+<!-- 🎨 그림 그리기 놀이 — 그림의 집에서 '그리기'를 누르면 열린다 (src/draw-game.js) -->
+<div id="draw" class="no-drag">
+  <div id="drawTop">
+    <button id="drawClose">✕ 나가기</button>
+    <div id="drawTitle">🎨 그림을 그려요!</div>
+    <button id="drawDone">🖼 다 그렸어요</button>
+  </div>
+  <div id="drawStage"><canvas id="drawCanvas" width="800" height="600"></canvas></div>
+  <div id="drawBar">
+    <div id="drawTools"></div>
+    <div id="drawColors"></div>
+    <div id="drawExtra"></div>
+  </div>
 </div>
 
 <!-- 공간이 바뀔 때 화면을 덮는 막 -->
