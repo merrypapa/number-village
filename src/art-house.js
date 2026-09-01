@@ -21,7 +21,7 @@ import { getDrawGame } from './draw-game.js';
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
 // -----------------------------------------------------------
-const W = 26, D = 20, H = 8.5;     // 방 크기
+const W = 32, D = 26, H = 8.5;     // 방 크기 (이젤 사이를 넉넉히 돌아다니게)
 const PAINTER = 'nabi';            // 여기 사는 화가 친구 (characters.js의 id)
 const FRAMES = 6;                  // 벽에 걸 수 있는 그림 수
 
@@ -45,7 +45,7 @@ export function buildArtHouse(ctx) {
   // -----------------------------------------------------------
   const frames = [];
   for (let i = 0; i < FRAMES; i++) {
-    const x = -8.5 + (i % 3) * 8.5;
+    const x = -11 + (i % 3) * 11;
     const y = i < 3 ? 6.0 : 3.2;
     const f = makeWallFrame(3.2, 2.4);
     room.hang(f, x, y, -D / 2 + 0.25, 0);
@@ -65,14 +65,14 @@ export function buildArtHouse(ctx) {
   // -----------------------------------------------------------
   //  🖼 이젤 세 대 — 가운데 이젤 앞에서 그림을 그린다
   // -----------------------------------------------------------
-  room.place(makeEasel(0xffe8f0), -7, -3.5, 0.35, { r: 1.6 });
-  room.place(makeEasel(), 0, -4.0, 0, { r: 1.6 });
-  room.place(makeEasel(0xe8f4ff), 7, -3.5, -0.35, { r: 1.6 });
+  room.place(makeEasel(0xffe8f0), -8, -4.5, 0.35, { r: 1.6 });
+  room.place(makeEasel(), 0, -5.0, 0, { r: 1.6 });
+  room.place(makeEasel(0xe8f4ff), 8, -4.5, -0.35, { r: 1.6 });
 
   //  ★ 그리기 버튼 — 가운데 이젤 바로 앞
   const draw = { spot: null };
   room.addSpot({
-    x: 0, z: -0.6, r: 3.2, y: 0, verb: '그리기',
+    x: 0, z: -1.6, r: 3.2, y: 0, verb: '그리기',
     use(toast) {
       const g = getDrawGame((canvas) => {
         const n = hangDrawing(canvas);
@@ -86,7 +86,7 @@ export function buildArtHouse(ctx) {
   // -----------------------------------------------------------
   //  🖍 미술 도구 책상 (남쪽) — 색연필 · 연필 · 붓 · 물감 · 팔레트 · 물통
   // -----------------------------------------------------------
-  const TABLE = { x: 0, z: 5.0 };
+  const TABLE = { x: 0, z: D / 2 - 9 };
   room.place(makeArtTable(9), TABLE.x, TABLE.z, 0, { hw: 4.6, hd: 1.7 });
   const TOP = 1.26;                    // 책상 윗면 높이
   const SMALL = 0.5;                   // ★ 통·붓·연필은 손에 쥐는 물건이라 작게 놓는다
@@ -103,9 +103,9 @@ export function buildArtHouse(ctx) {
   onTable(makePalette(),       2.6, -0.4, 0.4);
 
   const tubes = makePaintTubes(); tubes.scale.setScalar(0.6);
-  room.place(tubes, -9.5, 3.0, 0.3, { hw: 1.4, hd: 0.8 });
+  room.place(tubes, -W / 2 + 5.0, 2.0, 0.3, { hw: 1.4, hd: 0.8 });
   const crayons = makeCrayonBox(); crayons.scale.setScalar(0.7);
-  room.place(crayons, 9.4, 3.2, -0.3, { hw: 1.2, hd: 0.7 });
+  room.place(crayons, W / 2 - 5.0, 2.2, -0.3, { hw: 1.2, hd: 0.7 });
 
   // 도구 이름표 (여기가 무엇인지 알려준다)
   room.hang(makeSign('색연필 · 연필 · 붓 · 물감', 6.4, 1.0, '#c9b4ff', '#4a2a7a'),
@@ -120,21 +120,22 @@ export function buildArtHouse(ctx) {
   // -----------------------------------------------------------
   //  🪑 앉아서 구경하는 자리 · 화분 · 바닥 물감 자국
   // -----------------------------------------------------------
-  for (const [x, z, c] of [[-10, -1, 0xff9ec4], [10, -1, 0xa8e6ff], [-4, 8, 0xffd45e]]) {
+  for (const [x, z, c] of [[-W / 2 + 3, -2, 0xff9ec4], [W / 2 - 3, -2, 0xa8e6ff],
+                           [-5, D / 2 - 4, 0xffd45e]]) {
     const cu = makeCushion(c);
     room.place(cu, x, z);
   }
-  room.place(makePlant(), -11.5, -7.5, 0, { r: 1.4 });
-  room.place(makePlant(),  11.5, -7.5, 0, { r: 1.4 });
-  for (let i = 0; i < 7; i++) {
+  room.place(makePlant(), -W / 2 + 1.6, -D / 2 + 4.0, 0, { r: 1.4 });
+  room.place(makePlant(),  W / 2 - 1.6, -D / 2 + 4.0, 0, { r: 1.4 });
+  for (let i = 0; i < 8; i++) {
     room.place(makeSplat(ART_COLORS[i * 2 % ART_COLORS.length]),
-               (Math.random() - 0.5) * 20, -2 + (Math.random() - 0.5) * 10);
+               (Math.random() - 0.5) * (W - 8), -2 + (Math.random() - 0.5) * 12);
   }
 
   // -----------------------------------------------------------
   //  마무리 — 화가 친구가 이젤 옆에서 기다린다
   // -----------------------------------------------------------
   return room.finish({
-    residents: [{ id: PAINTER, x: 4.2, z: -0.5, yaw: Math.PI * 0.85, stay: true }],
+    residents: [{ id: PAINTER, x: 4.6, z: -1.5, yaw: Math.PI * 0.85, stay: true }],
   });
 }

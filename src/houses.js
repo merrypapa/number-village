@@ -23,7 +23,7 @@ import { makeBedRide } from './castle-rides.js';
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값 — 집 크기
 // -----------------------------------------------------------
-const W = 24, D = 20, H = 7.5;      // 집 안 가로 · 세로 · 천장
+const W = 30, D = 25, H = 7.5;      // 집 안 가로 · 세로 · 천장 (넓어야 뛰어다니기 좋다)
 
 // -----------------------------------------------------------
 //  ★ 집 여섯 채 — 집주인과 특별한 코너
@@ -81,14 +81,14 @@ export function buildHouse(house, ctx) {
   // -----------------------------------------------------------
   //  🛋 거실 (동쪽) — 소파에 앉아서 TV를 본다
   // -----------------------------------------------------------
-  const SOFA = { x: 7, z: 4 };
-  room.place(makeRug(house.sofa, 7, 8), 7, -0.5);
+  const SOFA = { x: W / 2 - 6.5, z: 4 };
+  room.place(makeRug(house.sofa, 8, 9), SOFA.x, -0.5);
   room.place(makeSofa(house.sofa), SOFA.x, SOFA.z, Math.PI, { hw: 2.4, hd: 1.2 });
   //  ★ 탁자는 소파 앞 "서는 자리"(z 1.4쯤)를 막지 않게 조금 앞으로 놓는다
-  room.place(makeLowTable(), 7, -0.9, 0, { hw: 1.4, hd: 0.9 });
-  const tv = room.place(makeTv(), 7, -6.0, 0, { hw: 2.2, hd: 0.8 });
-  room.place(makeFloorLamp(), 11, 2.4, 0, { r: 0.9 });
-  room.place(makePlant(), 10.8, -4.4, 0, { r: 1.3 });
+  room.place(makeLowTable(), SOFA.x, -0.9, 0, { hw: 1.4, hd: 0.9 });
+  const tv = room.place(makeTv(), SOFA.x, -7.0, 0, { hw: 2.2, hd: 0.8 });
+  room.place(makeFloorLamp(), W / 2 - 2.0, 2.4, 0, { r: 0.9 });
+  room.place(makePlant(), W / 2 - 2.2, -5.0, 0, { r: 1.3 });
 
   //  소파는 -z 쪽(TV 쪽)을 본다 → 앉으면 TV를 바라보게 된다
   room.rides.push(makeSeatRide(SOFA.x, SOFA.z - 0.15, {
@@ -100,7 +100,7 @@ export function buildHouse(house, ctx) {
   let tvOn = false;
   tv.userData.setOn(false);
   room.addSpot({
-    x: 7, z: -4.0, r: 2.2, y: 0,
+    x: SOFA.x, z: -4.6, r: 2.2, y: 0,
     get verb() { return tvOn ? '끄기' : 'TV켜기'; },
     use(toast) {
       tvOn = !tvOn;
@@ -112,16 +112,16 @@ export function buildHouse(house, ctx) {
   // -----------------------------------------------------------
   //  🍳 부엌 (북서쪽) — 싱크대 · 냉장고 · 식탁
   // -----------------------------------------------------------
-  room.place(makeKitchen(8), -6, -D / 2 + 0.9, 0, { hw: 4.1, hd: 1.0 });
-  room.place(makeHomeFridge(), -11, -D / 2 + 1.0, 0, { hw: 1.0, hd: 0.9 });
-  room.place(makeDiningSet(), -7.5, -4.6, 0, { r: 1.9 });
+  room.place(makeKitchen(9), -W / 2 + 6.5, -D / 2 + 0.9, 0, { hw: 4.6, hd: 1.0 });
+  room.place(makeHomeFridge(), -W / 2 + 1.4, -D / 2 + 1.0, 0, { hw: 1.0, hd: 0.9 });
+  room.place(makeDiningSet(), -W / 2 + 6.0, -5.0, 0, { r: 1.9 });
 
   // -----------------------------------------------------------
   //  🛏 침대 (남서쪽) — 옆에서 '잠자기'를 누르면 누워서 잔다
   //    ★ 침대는 돌리지 않는다. castle-rides.js의 잠자기 규칙이
   //      "머리는 +z 쪽, 타는 자리는 양옆"을 전제로 만들어져 있다
   // -----------------------------------------------------------
-  const BED = { x: -7.6, z: 4.2 }, BED_SCALE = 0.7;
+  const BED = { x: -W / 2 + 6.6, z: 4.2 }, BED_SCALE = 0.7;
   const bed = room.place(makeBed(), BED.x, BED.z, 0, { hw: 2.4, hd: 3.1 });
   bed.scale.setScalar(BED_SCALE);            // 성 침대를 조금 줄여서 놓는다
   room.rides.push(makeBedRide(bed, BED.x, BED.z, 0, BED_SCALE));
@@ -129,7 +129,7 @@ export function buildHouse(house, ctx) {
   // -----------------------------------------------------------
   //  ✨ 집마다 다른 특별한 코너 (북쪽 가운데)
   // -----------------------------------------------------------
-  const CORNER = { x: 0, z: -7.0 };
+  const CORNER = { x: 0, z: -D / 2 + 4.5 };
   const make = CORNERS[house.corner];
   const corner = make ? room.place(make(), CORNER.x, CORNER.z, 0, { hw: 2.8, hd: 1.8 }) : null;
   if (corner) {
@@ -147,15 +147,15 @@ export function buildHouse(house, ctx) {
   // -----------------------------------------------------------
   room.hang(makeWindow(3.4, 3.0), -W / 2 + 0.2, 3.8, -1.0, Math.PI / 2);
   room.hang(makeWindow(3.4, 3.0),  W / 2 - 0.2, 3.8, -1.0, -Math.PI / 2);
-  room.hang(makePicture(0), -3.4, 4.4, -D / 2 + 0.2, 0);
-  room.hang(makePicture(1), 11.6, 4.4, 4.0, -Math.PI / 2);
-  room.hang(makePicture(2, 1.4, 1.1), -W / 2 + 0.2, 4.6, 7.0, Math.PI / 2);
+  room.hang(makePicture(0), -4.0, 4.4, -D / 2 + 0.2, 0);
+  room.hang(makePicture(1), W / 2 - 0.2, 4.4, 5.0, -Math.PI / 2);
+  room.hang(makePicture(2, 1.4, 1.1), -W / 2 + 0.2, 4.6, 8.0, Math.PI / 2);
   room.hang(makeWallClock(), 4.0, 5.4, -D / 2 + 0.25, 0);
 
   // -----------------------------------------------------------
   //  마무리 — 집주인이 거실에 서서 반겨준다
   // -----------------------------------------------------------
   return room.finish({
-    residents: [{ id: house.owner, x: 2.6, z: 3.4, yaw: Math.PI * 0.15, stay: true }],
+    residents: [{ id: house.owner, x: 2.4, z: 2.0, yaw: Math.PI * 0.15, stay: true }],
   });
 }
