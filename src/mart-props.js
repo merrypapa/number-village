@@ -6,7 +6,7 @@
 // ===========================================================
 import * as THREE from 'three';
 import { C, part, toon, glow } from './castle-props.js';
-import { fillShelf, makeItem, makeBanana, makeStrawberry } from './mart-items.js';
+import { fillShelf, makeItem, makeBanana, makeStrawberry, getItem, UNIT } from './mart-items.js';
 
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
@@ -72,6 +72,65 @@ export function makeSign(text, w = 4, h = 1, bgColor = '#ff7ab0', fgColor = '#ff
 }
 
 // -----------------------------------------------------------
+//  🏷 가격표 띠 — 선반 앞에 붙는 길쭉한 판. "라면 3코인"이 줄지어 적힌다
+//    ★ 값은 mart-items.js의 price에서 그대로 가져온다.
+//      상품 값을 바꾸면 진열대 가격표도 저절로 바뀐다.
+// -----------------------------------------------------------
+export function makePriceStrip(ids, len, h = 0.22) {
+  //  ★ 그림판을 판과 **같은 가로세로 비율**로 만든다.
+  //    (네모난 그림판을 길쭉한 판에 붙이면 글씨가 납작하게 눌려서 안 읽힌다 — makeSign과 같은 이유)
+  const ch = 32, cw = Math.min(2048, Math.round(ch * len / h));
+  const cv = document.createElement('canvas');
+  cv.width = cw; cv.height = ch;
+  const c = cv.getContext('2d');
+  c.fillStyle = '#fff3d0'; c.fillRect(0, 0, cw, ch);
+  c.fillStyle = '#ffd45e'; c.fillRect(0, ch - 3, cw, 3);
+
+  const list = (ids && ids.length) ? ids : ['candy'];
+  const slots = Math.max(2, Math.round(len / 2.4));      // 몇 칸으로 나눠 적을까
+  const w = cw / slots;
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  for (let i = 0; i < slots; i++) {
+    const def = getItem(list[i % list.length]);
+    c.fillStyle = '#e0518f'; c.fillRect(i * w + 1, 2, w - 2, ch - 6);
+    c.fillStyle = '#ffffff';
+    c.font = `bold ${Math.round(ch * 0.62)}px "Apple SD Gothic Neo","Malgun Gothic",sans-serif`;
+    c.fillText(`${def.name} ${def.price}${UNIT}`, i * w + w / 2, ch * 0.5);
+  }
+
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(len, h),
+                           new THREE.MeshBasicMaterial({ map: tex }));
+  m.userData.noShadow = true;
+  return m;
+}
+
+// -----------------------------------------------------------
+//  🧺 손에 드는 장바구니 — 마트에서 이걸 들고 다니면서 물건을 담는다
+//    (mart-shop.js가 캐릭터 손 옆에 붙여준다)
+// -----------------------------------------------------------
+export function makeHandBasket(color = M.red) {
+  const g = new THREE.Group();
+  const w = 0.95, d = 0.72, hh = 0.5;
+  g.add(part('box', color, 0, 0.04, 0, w, 0.08, d));                    // 바닥
+  g.add(part('box', color, 0, hh / 2,  d / 2, w, hh, 0.07));            // 앞뒤 벽
+  g.add(part('box', color, 0, hh / 2, -d / 2, w, hh, 0.07));
+  g.add(part('box', color, -w / 2, hh / 2, 0, 0.07, hh, d));            // 옆 벽
+  g.add(part('box', color,  w / 2, hh / 2, 0, 0.07, hh, d));
+  g.add(part('box', 0xfff0f6, 0, hh + 0.02, 0, w + 0.08, 0.07, d + 0.08));  // 테두리
+
+  // 손잡이 — 기둥 두 개에 가로대 하나
+  for (const s of [-1, 1]) {
+    g.add(part('cyl', 0x9aa4b4, s * (w / 2 - 0.12), hh + 0.22, 0, 0.07, 0.44, 0.07));
+  }
+  const bar = part('cyl', 0x9aa4b4, 0, hh + 0.42, 0, 0.07, w - 0.2, 0.07);
+  bar.rotation.z = Math.PI / 2;
+  g.add(bar);
+  return g;
+}
+
+// -----------------------------------------------------------
 //  🗄 진열대(곤돌라) — 앞뒤 양쪽에 상품이 놓인다
 //    front / back : 아래 칸부터 위 칸까지 놓을 상품 [['ramen'], ['snack'], …]
 // -----------------------------------------------------------
@@ -96,10 +155,12 @@ export function makeShelf(len, front, back) {
       face.add(part('box', M.steel, 0, y - 0.05, 0.48, len - 0.3, 0.1, 0.9));
       const ids = list?.[i];
       if (ids) fillShelf(face, ids, len - 0.4, y, 0.72, 2);
-      // 선반 앞 가격표 띠
-      const tag = part('box', 0xfff3d0, 0, y + 0.08, 0.94, len - 0.4, 0.16, 0.04);
-      tag.castShadow = false;
-      face.add(tag);
+      // 선반 앞 가격표 띠 — 상품 이름과 값이 적혀 있다 (아이가 읽고 계산한다)
+      if (ids) {
+        const tag = makePriceStrip(ids, len - 0.4, 0.22);
+        tag.position.set(0, y + 0.09, 0.95);
+        face.add(tag);
+      }
     }
     g.add(face);
   }
@@ -226,7 +287,7 @@ export function makeCart() {
 // -----------------------------------------------------------
 //  🍎 과일·채소 매대 — 비스듬한 나무 상자에 과일이 담겨 있다
 // -----------------------------------------------------------
-export function makeProduceStand() {
+export function makeProduceStand(label = '과일 · 채소') {
   const g = new THREE.Group();
   g.add(part('box', M.wood, 0, 0.5, 0, 5.4, 1.0, 2.6));
   g.add(part('box', 0xb5794f, 0, 1.05, 0, 5.6, 0.16, 2.8));
@@ -261,7 +322,7 @@ export function makeProduceStand() {
     g.add(s);
   }
 
-  const sign = makeSign('과일 · 채소', 3.2, 0.8, '#4fbf5f');
+  const sign = makeSign(label, 3.2, 0.8, '#4fbf5f');
   sign.position.set(0, 2.6, -0.1);
   g.add(sign);
   return g;
@@ -270,7 +331,7 @@ export function makeProduceStand() {
 // -----------------------------------------------------------
 //  🍦 아이스크림 냉동고 — 뚜껑이 열린 통 안에 아이스크림이 가득
 // -----------------------------------------------------------
-export function makeFreezer() {
+export function makeFreezer(label = '아이스크림') {
   const g = new THREE.Group();
   g.add(part('box', 0xe8f4ff, 0, 0.8, 0, 4.2, 1.6, 2.2));
   g.add(part('box', 0x8fd0ff, 0, 1.62, 0, 4.0, 0.12, 2.0));       // 안쪽 얼음
@@ -283,7 +344,7 @@ export function makeFreezer() {
     bar.rotation.y = Math.random() * 3;
     g.add(bar);
   }
-  const sign = makeSign('아이스크림', 2.6, 0.7, '#63c8ff');
+  const sign = makeSign(label, 2.6, 0.7, '#63c8ff');
   sign.position.set(0, 2.5, -1.05);
   g.add(sign);
   return g;

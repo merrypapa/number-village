@@ -228,6 +228,86 @@
     .size { width:30px; height:30px; }
   }
 
+  /* ---- 🧮 계산 놀이 (마트 계산대) ----
+     담은 물건의 "값 × 개수"를 모두 더한 금액을 숫자 버튼으로 맞힌다.
+     ★ .no-drag 를 붙여야 버튼을 누르는 동안 카메라가 돌지 않는다 (player.js) */
+  #pay { position:fixed; inset:0; z-index:40; display:none;
+    flex-direction:column; align-items:center; justify-content:center; gap:8px;
+    background:linear-gradient(180deg,#fff3e0,#ffe8f4);
+    padding:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom)); }
+  #pay.on { display:flex; }
+  #payTop { flex:none; width:100%; max-width:620px;
+    display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  #payTitle { font-size:clamp(16px,3.6vw,26px); font-weight:900; color:#7a4a00; }
+  #payTop button { border:none; border-radius:999px; padding:10px 16px;
+    font-size:clamp(13px,3vw,19px); font-weight:900; cursor:pointer; }
+  #payClose { background:#fff; color:#7a4fb0; box-shadow:0 4px 0 #d8bfe8; }
+  #payHint  { background:#ffd93d; color:#7a4a00; box-shadow:0 4px 0 #d9a800; }
+  #payTop button:active { transform:translateY(3px); box-shadow:none; }
+
+  /* 계산서 — 영수증처럼 생긴 종이 */
+  #payList { flex:0 1 auto; min-height:0; max-height:34vh; width:100%; max-width:620px; overflow-y:auto;
+    background:#fff; border-radius:16px; box-shadow:0 5px 16px #0002;
+    padding:8px 12px; }
+  .prow { display:flex; align-items:center; gap:8px; padding:5px 2px;
+    border-bottom:2px dotted #f0dcc0; font-size:clamp(15px,3.4vw,22px);
+    font-weight:800; color:#5b3d8f; }
+  .prow:last-child { border-bottom:none; }
+  .pemoji { font-size:1.25em; }
+  .pname { flex:1; }
+  .pcalc { color:#e0518f; }
+  /* 한 줄 답(= 6코인)은 힌트를 켜야 보인다 */
+  .psum { color:#3aa9e0; visibility:hidden; min-width:4.5em; text-align:right; }
+  #payList.hint .psum { visibility:visible; }
+
+  /* 답 적는 곳과 숫자판을 한 덩어리로 (가로 화면에서 오른쪽으로 모인다) */
+  #payRight { flex:none; width:100%; display:flex; flex-direction:column;
+    align-items:center; gap:8px; }
+
+  /* 답 적는 곳 */
+  #payAnswer { flex:none; display:flex; align-items:center; gap:8px;
+    background:#fff; border:4px solid #ffd93d; border-radius:18px;
+    padding:4px 20px; box-shadow:0 5px 0 #d9a800; }
+  #payInput { font-size:clamp(30px,8vw,52px); font-weight:900; color:#e0518f;
+    min-width:2.2em; text-align:center; }
+  #payUnit { font-size:clamp(16px,4vw,26px); font-weight:900; color:#7a4a00; }
+  #payMsg { flex:none; font-size:clamp(14px,3.2vw,21px); font-weight:800; color:#7a4fb0;
+    text-align:center; min-height:1.4em; }
+  #payMsg.good { color:#1f9a52; }
+  #payMsg.bad  { color:#e0518f; }
+
+  /* 숫자판 */
+  #payKeys { flex:none; display:grid; gap:8px;
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    width:100%; max-width:330px; }
+  .pkey { border:none; border-radius:18px; background:#fff; color:#5b3d8f;
+    font-size:clamp(22px,5.5vw,32px); font-weight:900; cursor:pointer;
+    padding:clamp(6px,1.6vw,12px) 0; box-shadow:0 5px 0 #d8bfe8; }
+  .pkey.erase { background:#ffd0e6; box-shadow:0 5px 0 #e0518f;
+    font-size:clamp(15px,3.8vw,22px); }
+  .pkey.ok { background:#7ad48f; color:#fff; box-shadow:0 5px 0 #2f9a55; }
+  .pkey:active { transform:translateY(3px); box-shadow:none; }
+  /* 맞혔을 때 / 틀렸을 때 */
+  #pay.win #payAnswer { border-color:#7ad48f; box-shadow:0 5px 0 #2f9a55; }
+  #pay.shake #payAnswer { animation:shakeX .38s; }
+  @keyframes shakeX { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-9px)}
+                      75%{transform:translateX(9px)} }
+  /* 화면이 길면(폰 세로) 숫자 버튼을 큼직하게 — 손가락으로 누르기 좋게 */
+  @media (min-height:700px) {
+    #payKeys { max-width:360px; gap:10px; }
+    .pkey { padding:16px 0; }
+  }
+  /* 폰을 눕히면(가로 화면) 계산서는 왼쪽, 숫자판은 오른쪽 */
+  @media (max-height:560px) and (orientation:landscape) {
+    #pay { flex-flow:row wrap; align-items:stretch; gap:6px; }
+    #payTop { flex:0 0 100%; max-width:none; }
+    #payList { flex:1 1 0; max-width:none; margin-right:6px; }
+    #payRight { flex:0 0 46%; display:flex; flex-direction:column;
+      align-items:center; gap:4px; justify-content:center; }
+    .pkey { padding:5px 0; font-size:20px; border-radius:12px; }
+    #payInput { font-size:30px; }
+  }
+
   /* 좁은 화면(폰 세로)에서는 무대와 화살표를 줄여서 화면 안에 넣는다 */
   @media (max-width:520px) {
     .row { gap:8px; }
@@ -290,7 +370,7 @@
   <button id="hi" class="no-drag">👋</button>
 
   <div id="toast"></div>
-  <div id="hint">동그라미를 밀어서 걷고<br>점프·👋 버튼을 눌러요<br>놀이터에서 그네·미끄럼틀·시소도 타요!<br>🐴 말 옆에서 <b>타기</b>를 누르면 말을 타고 달려요<br>🏰 성 안에서는 왕좌에 앉고, 계단으로 2층에 올라가요<br>🛒 마트에 들어가서 물건을 담고 계산해 봐요<br>🏠 친구 집에 놀러 가면 집주인이 반겨줘요<br>🎨 그림의 집에서 손가락으로 그림을 그려요</div>
+  <div id="hint">동그라미를 밀어서 걷고<br>점프·👋 버튼을 눌러요<br>놀이터에서 그네·미끄럼틀·시소도 타요!<br>🐴 말 옆에서 <b>타기</b>를 누르면 말을 타고 달려요<br>🏰 성 안에서는 왕좌에 앉고, 계단으로 2층에 올라가요<br>🛒 마트에서 🧺 장바구니를 들고 물건을 담아 계산해 봐요<br>🏠 친구 집에 놀러 가면 집주인이 반겨줘요<br>🎨 그림의 집에서 손가락으로 그림을 그려요</div>
 </div>
 
 
@@ -306,6 +386,21 @@
     <div id="drawTools"></div>
     <div id="drawColors"></div>
     <div id="drawExtra"></div>
+  </div>
+</div>
+
+<!-- 🧮 계산 놀이 — 마트 계산대에서 '계산'을 누르면 열린다 (src/pay-game.js) -->
+<div id="pay" class="no-drag">
+  <div id="payTop">
+    <button id="payClose">✕ 나중에</button>
+    <div id="payTitle">🧮 얼마일까요?</div>
+    <button id="payHint">💡 힌트</button>
+  </div>
+  <div id="payList"></div>
+  <div id="payRight">
+    <div id="payAnswer"><span id="payInput">?</span><span id="payUnit">코인</span></div>
+    <div id="payMsg"></div>
+    <div id="payKeys"></div>
   </div>
 </div>
 
