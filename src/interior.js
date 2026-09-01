@@ -193,6 +193,8 @@ export function makeInterior(cfg) {
   function finish(extra = {}) {
     const { tick, ...rest } = extra;
     const collider = createCollider(obstacles);
+    // 놀이기구가 화면에 같이 넣을 것을 들고 있으면 넣어준다 (떠오르는 Z 등)
+    for (const r of rides) for (const p of r.parts || []) scene.add(p);
 
     function update(dt, t) {
       for (const fn of ticks) fn(t, dt);

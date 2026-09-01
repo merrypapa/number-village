@@ -137,13 +137,15 @@ export function makeSlideRide() {
 //  ★ 침대는 ry = Math.PI 로 놓는다 (베개가 +z 쪽).
 //    ride.sleep 이 0 → 1 로 바뀌면 castle-interior.js가 불을 어둡게 한다.
 // -----------------------------------------------------------
-export function makeBedRide(bed, x, z) {
-  const HEAD_Z = z + 2.6;                    // 베개 자리
+export function makeBedRide(bed, x, z, floorY = FLOOR2, scale = 1) {
+  //  scale = 침대를 줄여서 놓았으면 그 배수 (친구 집 침대는 0.7)
+  const HEAD_Z = z + 2.6 * scale;            // 베개 자리
+  const top = BED_TOP * scale;               // 매트리스 윗면
   const quilt = bed.userData.quilt;          // 이불 (누우면 끌어올린다)
   const quiltY = quilt.position.y;
 
   const zzz = makeFloaters(['Z', 'Z', 'Z'], '#eaf6ff', 1.4);
-  zzz.position.set(x - 2.2, FLOOR2 + 3.0, HEAD_Z);
+  zzz.position.set(x - 2.2 * scale, floorY + 3.0 * scale, HEAD_Z);
 
   let body = null;        // 지금 누운 친구의 두께 (누울 때 한 번 잰다)
 
@@ -151,9 +153,9 @@ export function makeBedRide(bed, x, z) {
     kind: 'bed', label: '잘 자요… 💤',
     verb: '잠자기', offVerb: '일어나기',
     // ★ 침대 왼쪽·오른쪽 어느 쪽에 가도 '잠자기'가 나온다
-    enters: [{ x: x + 4.9, z }, { x: x - 4.9, z }],
-    enter: { x: x + 4.9, z }, exit: { x: x + 4.9, z },
-    reach: 4.5, enterY: FLOOR2,
+    enters: [{ x: x + 4.9 * scale, z }, { x: x - 4.9 * scale, z }],
+    enter: { x: x + 4.9 * scale, z }, exit: { x: x + 4.9 * scale, z },
+    reach: 4.5, enterY: floorY,
     duration: 600, autoEnd: false, camBase: true, rider: null,
     // 천개(침대 지붕)에 가리지 않게 카메라를 낮춰서 옆에서 본다
     camDist: 10, camHeight: 2.6, lookHeight: 1.6,
@@ -165,7 +167,7 @@ export function makeBedRide(bed, x, z) {
       o.x = x;
       o.z = HEAD_Z - h;                      // 머리가 베개에 오도록 발끝 자리를 잡는다
       // 등이 매트리스에 닿도록 — 두께가 다른 친구도 뜨거나 파묻히지 않는다
-      o.y = FLOOR2 + BED_TOP - (body ? body.back : -0.4) + Math.sin(t * 0.9) * 0.04;
+      o.y = floorY + top - (body ? body.back : -0.4) + Math.sin(t * 0.9) * 0.04;
       o.yaw = Math.PI;
       o.tilt = Math.PI / 2;                  // 반듯이 눕는다
       return o;
@@ -176,7 +178,7 @@ export function makeBedRide(bed, x, z) {
       // 이불은 누운 몸 높이의 70%까지 올라온다 (얼굴은 보이게).
       //  ★ 몸이 두꺼운 친구는 이불도 더 높이 올라간다
       const depth = body ? body.front - body.back : 0.9;
-      const lift = Math.max(0.15, BED_TOP + depth * 0.7 - (quiltY + 0.15));
+      const lift = Math.max(0.15, top + depth * 0.7 - (quiltY + 0.15));
       quilt.position.y = quiltY + ride.sleep * lift + Math.sin(t * 0.9) * 0.03;
       zzz.userData.play(t, ride.sleep > 0.45);
       if (!ride.rider && ride.sleep < 0.02) body = null;   // 다음 친구는 다시 잰다

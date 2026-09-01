@@ -9,6 +9,8 @@ import { buildStable, makeHorseRide } from './horse.js';
 import { createCollider } from './collide.js';
 import { makeMartBuilding, makeMartCarts } from './village-buildings.js';
 import { buildMart } from './mart.js';
+import { HOUSES, buildHouse } from './houses.js';
+import { makeSign } from './mart-props.js';
 
 export const WORLD_RADIUS = 90;   // 마을 반지름 (밖으로 못 나감)
 
@@ -25,10 +27,12 @@ const CASTLE_DOOR = { z: -35.5 };
 //   half = 건물 절반 크기 (부딪히는 네모),  door = 문 앞에 서는 자리
 const MART = { x: -19, z: -17, hw: 7.7, hd: 5.7, doorZ: -9.6 };
 
-// 친구들 집 6채가 서는 방향(라디안)과 거리
+// 친구들 집이 서는 방향(라디안)과 거리
 //  ★ 북쪽(성 입구, 약 4.7)과 남쪽(우리 집, 약 1.6)은 비워둔다
+//  ★ 집 개수는 src/houses.js의 HOUSES가 정한다. 이 각도 목록도 같은 개수여야 한다
 const FRIEND_HOUSES = [0.4, 1.0, 2.5, 3.2, 3.9, 5.9];
 const FRIEND_DIST = 38;
+const HOUSE_DOOR = 7.6;     // 집 한가운데에서 문 앞 자리까지의 거리
 
 const M = {
   grass:  new THREE.MeshToonMaterial({ color: 0x9fe08a }),
@@ -62,16 +66,31 @@ function mesh(geo, mat, x, y, z, sx, sy, sz) {
   return m;
 }
 
-// --- 집 한 채 ---
-function makeHouse(roofMat, w = 6, h = 4, d = 6) {
+// --- 집 한 채 (문은 +z 쪽에 있다. 들어갈 수 있는 집은 문이 환하게 빛난다) ---
+function makeHouse(roofMat, w = 8, h = 5, d = 8, label = null) {
   const g = new THREE.Group();
   g.add(mesh(G.box, M.wall, 0, h / 2, 0, w, h, d));
-  const roof = mesh(G.cone, roofMat, 0, h + 1.6, 0, w * 0.95, 3.2, d * 0.95);
+  const roof = mesh(G.cone, roofMat, 0, h + 2.0, 0, w * 0.95, 4.0, d * 0.95);
   roof.rotation.y = Math.PI / 4;
   g.add(roof);
-  g.add(mesh(G.box, M.door, 0, 1.1, d / 2 + 0.05, 1.4, 2.2, 0.2));
+
+  // 현관 — 안이 환하게 비친다 (여기로 들어간다고 알려준다)
+  const light = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 3.0),
+    new THREE.MeshBasicMaterial({ color: 0xfff0d8 }));
+  light.position.set(0, 1.5, d / 2 + 0.07);
+  light.userData.noShadow = true;
+  g.add(light);
+  g.add(mesh(G.box, M.door, 0, 1.6, d / 2 + 0.1, 2.5, 3.4, 0.22));
+  g.add(mesh(G.box, M.roofA, 0, 3.6, d / 2 + 0.7, 3.4, 0.3, 1.6));      // 현관 차양
+
   for (const s of [-1, 1]) {
-    g.add(mesh(G.box, M.win, s * w * 0.28, h * 0.65, d / 2 + 0.05, 1.2, 1.2, 0.2));
+    g.add(mesh(G.box, M.win, s * w * 0.3, h * 0.66, d / 2 + 0.05, 1.6, 1.6, 0.2));
+    g.add(mesh(G.box, M.wall, s * w * 0.3, h * 0.66, d / 2 + 0.09, 1.9, 0.2, 0.2));
+  }
+  if (label) {                                    // 문 위에 붙은 이름표
+    const sign = makeSign(label, 5.2, 1.0, '#fff6e8', '#7a4fb0');
+    sign.position.set(0, h + 0.7, d / 2 + 0.15);
+    g.add(sign);
   }
   return g;
 }
@@ -217,17 +236,34 @@ export function buildWorld(scene) {
   obstacles.push({ x: 0, z: 34, r: 4.7 });
   reserved.push({ x: 0, z: 34, r: 10 });
 
-  // 친구들 집 6채 (광장 둘레)
+  // 친구들 집 (광장 둘레) — 문 앞에 서면 그 집 안으로 들어간다
+  //  ★ 집은 전부 광장(가운데) 쪽을 바라본다. 그래야 아이가 문을 찾기 쉽다
   const roofs = [M.roofA, M.roofB, M.roofC];
-  for (let i = 0; i < FRIEND_HOUSES.length; i++) {
-    const a = FRIEND_HOUSES[i];
-    const h = makeHouse(roofs[i % 3]);
+  const houseDoors = [];
+  for (let i = 0; i < HOUSES.length; i++) {
+    const house = HOUSES[i];
+    const a = FRIEND_HOUSES[i % FRIEND_HOUSES.length];
     const hx = Math.cos(a) * FRIEND_DIST, hz = Math.sin(a) * FRIEND_DIST;
+    // 집 앞(광장 쪽) 방향
+    const fx = -Math.cos(a), fz = -Math.sin(a);
+    const h = makeHouse(roofs[i % 3], 8, 5, 8, house.name);
     h.position.set(hx, 0, hz);
-    h.rotation.y = -a + Math.PI / 2;
+    h.rotation.y = Math.atan2(fx, fz);        // 앞면(+z)이 광장을 보게 돌린다
     scene.add(h);
-    obstacles.push({ x: hx, z: hz, r: 4.1 });
-    reserved.push({ x: hx, z: hz, r: 9 });
+    obstacles.push({ x: hx, z: hz, r: 5.4 });
+    reserved.push({ x: hx, z: hz, r: 11 });
+
+    houseDoors.push({
+      x: hx + fx * HOUSE_DOOR, z: hz + fz * HOUSE_DOOR, r: 2.8,
+      to: `house-${house.id}`,
+      label: `${house.name}에 놀러 왔어요!`,
+      //  ★ 나올 때는 문 반경(2.8)보다 더 멀리 세운다.
+      //    문 안에 서 있으면 다시 들어가려고 할 때 한 번 멀어져야 해서 답답하다
+      build: (ctx) => buildHouse(house, { ...ctx, exit: {
+        x: hx + fx * (HOUSE_DOOR + 3.6), z: hz + fz * (HOUSE_DOOR + 3.6),
+        yaw: Math.atan2(fx, fz),
+      } }),
+    });
   }
 
   // 놀이터
@@ -304,8 +340,9 @@ export function buildWorld(scene) {
         x: MART.x, z: MART.doorZ, r: 2.8, to: 'mart',
         label: '어서 오세요! 🛒 행복마트',
         build: (ctx) => buildMart({ ...ctx,
-          exit: { x: MART.x, z: MART.doorZ + 1.6, yaw: 0 } }),
+          exit: { x: MART.x, z: MART.doorZ + 3.6, yaw: 0 } }),
       },
+      ...houseDoors,        // 🏠 친구 집 (src/houses.js의 HOUSES 개수만큼)
     ],
   };
 }
