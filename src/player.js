@@ -31,6 +31,18 @@ const RIDE_REACH = 3.2;     // 그네·미끄럼틀에 이만큼 가까이 가�
 // --- 🐴 말 타고 달리기 ---
 const HORSE_R    = 1.8;     // 말 몸 굵기 (이만큼 물건에서 떨어진다)
 
+// --- 📷 카메라가 건물 속에 파묻히지 않게 ---
+//  ★ 카메라는 캐릭터 **뒤쪽** 14칸에 있다. 그런데 집에서 막 나왔을 때는
+//    그 "뒤쪽"이 방금 나온 건물 안이다 → 건물 벽에 가려서 캐릭터가 안 보인다.
+//    그래서 카메라 자리가 건물·나무 안이면 **안 부딪힐 때까지 캐릭터 쪽으로 당긴다.**
+//    (마을에서만 쓴다. 실내는 벽이 안쪽만 보이는 판이라 밖에 있어도 잘 보인다)
+const CAM_MIN   = 4.5;      // 이보다 더 가까이는 안 당긴다 (너무 붙으면 어지럽다)
+const CAM_PROBE = 1.2;      // 카메라 몸 굵기 (이만큼 물건에서 떨어진다)
+const CAM_STEPS = 6;        // 몇 번에 나눠서 당겨볼까
+const CAM_NEAR_LOOK = 1.4;  // 바짝 당겼을 때 바라보는 높이 (캐릭터 가슴께).
+                            //  ★ 멀리서는 하늘도 보이게 위(LOOK_HEIGHT)를 보지만,
+                            //    바짝 당긴 채로 위를 보면 캐릭터가 화면 아래로 밀려난다
+
 /**
  * 말 걸 수 있는 자리(진열대 앞 등) 중 가장 가까운 것을 찾는다. 없으면 null.
  *  ★ y = 지금 서 있는 바닥 높이. 자리마다 s.y(그 자리가 있는 층)와 비교해서
@@ -136,22 +148,49 @@ export function createPlayer(model, camera, world) {
    *   base : 지금 서 있는 바닥 높이 (2층이면 그대로 같이 올라간다)
    *   lift : 바닥에서 얼마나 떠 있는지 (점프·놀이기구 → 조금만 따라 올라간다)
    */
+  /**
+   * 카메라를 놓을 거리를 정한다.
+   *  원하는 거리에 두면 건물·나무 속이라면, 안 부딪히는 데까지 당겨서 돌려준다.
+   *  (area.camCollide를 켜둔 공간에서만 — 지금은 마을)
+   */
+  function safeCamDist(want, y) {
+    if (!area.camCollide || !area.isBlocked) return want;
+    for (let i = 0; i <= CAM_STEPS; i++) {
+      const d = want - (want - CAM_MIN) * (i / CAM_STEPS);
+      const x = model.position.x - Math.sin(camYaw) * d;
+      const z = model.position.z - Math.cos(camYaw) * d;
+      if (!area.isBlocked(x, z, CAM_PROBE, y)) return d;
+    }
+    return CAM_MIN;
+  }
+
   function followCamera(dt, base, lift) {
     // 성 안처럼 좁은 곳은 카메라를 더 가까이 붙인다 (벽이나 가구를 뚫고 나가지 않게)
     //  놀이기구가 camDist/camHeight를 적어두면 타는 동안 그 값을 쓴다
     //  (침대는 천개(지붕)에 가리지 않게 카메라를 낮춘다)
-    const dist = ride?.camDist ?? area.camDist ?? CAM_DIST;
-    const height = ride?.camHeight ?? area.camHeight ?? CAM_HEIGHT;
+    const want   = ride?.camDist   ?? area.camDist   ?? CAM_DIST;
+    const camH   = ride?.camHeight ?? area.camHeight ?? CAM_HEIGHT;
+    const lookH  = ride?.lookHeight ?? area.lookHeight ?? LOOK_HEIGHT;
+
+    // 건물 속이면 당겨온다. t = 얼마나 당겼나 (1이면 그대로, 작을수록 가까이)
+    const dist = safeCamDist(want, base);
+    const t = dist / want;
+
+    // 바라보는 곳 — 당길수록 캐릭터 가슴께를 본다 (화면 밖으로 안 밀려나게)
+    _look.set(
+      model.position.x,
+      base + lookH * t + CAM_NEAR_LOOK * (1 - t) + lift * CAM_FOLLOW * 2,
+      model.position.z
+    );
+
+    // 카메라 자리 — 바라보는 곳에서 원래 자리 쪽으로 t만큼 나간다.
+    //  이렇게 해야 가까이 당겨도 화면에 잡히는 모양(구도)이 그대로다
     _camTarget.set(
       model.position.x - Math.sin(camYaw) * dist,
-      height + base + lift * CAM_FOLLOW,
+      _look.y + (base + camH + lift * CAM_FOLLOW - _look.y) * t,
       model.position.z - Math.cos(camYaw) * dist
     );
     camera.position.lerp(_camTarget, Math.min(1, 6 * dt));
-    // 조금 위를 보게 해서 하늘(고래)도 보이게 한다
-    _look.set(model.position.x,
-              (ride?.lookHeight ?? area.lookHeight ?? LOOK_HEIGHT) + base + lift * CAM_FOLLOW * 2,
-              model.position.z);
     camera.lookAt(_look);
   }
 
