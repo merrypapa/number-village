@@ -3,7 +3,7 @@
 //  Phase 0~1 완료 상태입니다. 다음 작업은 docs/기획안.md 참고.
 // ===========================================================
 import * as THREE from 'three';
-import { createCharacter } from './characters.js';
+import { createCharacter, getCharacter } from './characters.js';
 import { buildWorld } from './world.js';
 import { createPlayer } from './player.js';
 import { createNPCs } from './npcs.js';
@@ -108,24 +108,32 @@ let playing = false;
 let charId = null;
 
 // -----------------------------------------------------------
-//  공간(area) — 마을과 성 안. 문으로 오간다.
+//  공간(area) — 마을 · 성 안 · 마트 · 친구 집 · 그림의 집. 문으로 오간다.
 //  공간 하나는 { scene, spawn, collide, isBlocked, update, rides, doors } 모양이다.
 //  성 안처럼 층이 있는 공간은 groundY(x, z, 지금높이)도 있다 (계단·2층).
-//  성 안처럼 층이 있는 공간은 groundY(x, z, 지금높이)도 있다 (계단·2층).
-//  성 안은 처음 들어갈 때 한 번만 만든다 (처음 로딩을 빠르게).
+//  안쪽 공간은 처음 들어갈 때 한 번만 만든다 (처음 로딩을 빠르게).
 // -----------------------------------------------------------
 const areas = { village: world };
 let area = world;                 // 지금 있는 공간
 let npcs = null;                  // 지금 공간의 친구들
 const areaNpcs = {};              // 공간마다 친구들을 따로 기억해 둔다
 
-function getArea(name) {
+/**
+ * 문 하나로 들어갈 공간을 가져온다. 없으면 그때 만든다 (처음 로딩을 빠르게).
+ *   door.build(ctx) 가 있으면 그걸로 만든다  ← 마트·친구 집·그림의 집
+ *   없으면 이름으로 찾는다                    ← 성 안
+ */
+function getArea(name, door) {
   if (!areas[name]) {
-    if (name === 'castle') areas[name] = buildCastleInterior(envMap, charId);
+    const ctx = { envMap, charId };
+    areas[name] = door?.build ? door.build(ctx) : buildCastleInterior(envMap, charId);
   }
   const a = areas[name];
   if (!areaNpcs[name]) {
-    areaNpcs[name] = createNPCs(a.scene, charId, a, a.npcCount ?? undefined);
+    const made = createNPCs(a.scene, charId, a, a.npcCount ?? undefined);
+    // 그 공간에 사는 친구들 (집주인·마트 점원) — 자기 자리에 가만히 서 있다
+    for (const r of a.residents || []) made.add(getCharacter(r.id), r, r);
+    areaNpcs[name] = made;
   }
   return a;
 }
@@ -145,6 +153,7 @@ function startGame(def) {
   document.getElementById('preview').classList.remove('on');
   document.getElementById('hud').classList.add('on');
   playing = true;
+  window.__player = player;   // 브라우저 콘솔에서 확인할 때 쓴다
   toast(`${def.name}(으)로 놀아요!`);
 }
 
@@ -172,6 +181,7 @@ document.getElementById('bookBtn').onclick = () => toast('친구 도감은 곧 �
 //  🅰 행동 버튼 — 지금 서 있는 자리에서 할 수 있는 일을 보여준다
 //    그네·미끄럼틀 옆 → 타기 / 내리기
 //    성 안 요정 친구 앞 → 부르기 / 보내기
+//    마트 진열대 앞 → 담기 / 계산,  그림의 집 → 그리기
 // -----------------------------------------------------------
 const actionBtn = document.getElementById('ride');
 let actionLabel = '';
@@ -181,7 +191,11 @@ function updateActionButton() {
   //  놀이기구가 verb / offVerb를 적어두면 그 말을 쓴다 (잠자기·공부하기 등)
   if (player.ride) want = player.ride.autoEnd ? '' : (player.ride.offVerb || '내리기');
   else if (player.nearRide) want = player.nearRide.verb || '타기';
-  else if (player.nearSpot) want = player.nearSpot.npc ? '보내기' : '부르기';
+  else if (player.nearSpot) {
+    //  자리마다 버튼에 뜰 말이 다르다 (담기 · 계산 · 그리기…).
+    //  요정 진열대처럼 verb를 안 적어둔 자리는 부르기/보내기를 쓴다
+    want = player.nearSpot.verb || (player.nearSpot.npc ? '보내기' : '부르기');
+  }
 
   if (want === actionLabel) return;                // 바뀔 때만 손댄다
   actionLabel = want;
@@ -197,6 +211,8 @@ function updateActionButton() {
 //    부르면 그 친구가 성 안을 돌아다니고, 다시 누르면 제자리로 돌아간다.
 // -----------------------------------------------------------
 function useSpot(spot) {
+  //  자리가 스스로 할 일을 들고 있으면 그걸 한다 (마트에서 물건 담기·계산하기 등)
+  if (spot.use) { spot.use(toast); return; }
   if (spot.kind !== 'summon' || !npcs) return;
   if (spot.npc) {
     npcs.remove(spot.npc);
@@ -237,7 +253,7 @@ function goThroughDoor(door) {
   doorArmed = false;
   fade.classList.add('on');
   setTimeout(() => {
-    area = getArea(door.to);
+    area = getArea(door.to, door);
     npcs = areaNpcs[door.to];
     player.moveTo(area, door.arrive, door.arriveYaw);
     fade.classList.remove('on');
