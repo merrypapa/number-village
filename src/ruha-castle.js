@@ -187,7 +187,8 @@ export function buildRuhaCastle(ctx) {
   // -----------------------------------------------------------
   room.place(makeMoonThrone(), THRONE.x, THRONE.z, 0, { hw: 5.6, hd: 4.2, ...RF1 });
   const throneRide = makeSeatRide(THRONE.x, THRONE.z - 1.0, {
-    seatY: THRONE_SEAT, yaw: 0, front: 5.4, reach: 5.0,
+    //  reach를 5.0에서 줄였다. 너무 넓으면 옆 회전목마 앞에서도 '앉기'가 떠버린다
+    seatY: THRONE_SEAT, yaw: 0, front: 5.4, reach: 4.0,
     label: '달의 옥좌에 앉았어요! 🌙', verb: '앉기',
   });
   throneRide.camDist = 13;      // 큰 옥좌라 카메라를 멀리 (가까우면 달이 화면을 덮는다)
@@ -212,7 +213,11 @@ export function buildRuhaCastle(ctx) {
     }),
     enter: { x: CAROUSEL.x + 7.2, z: CAROUSEL.z },
     exit:  { x: CAROUSEL.x + 7.2, z: CAROUSEL.z },
-    reach: 4.2, duration: 999, autoEnd: false, rider: null,
+    //  ★ noNpc = 마을 친구는 안 탄다. **아이 자리다.**
+    //    이걸 안 붙이면 친구가 올라타서 안 내리고, 아이는 '타기' 버튼이 영영 안 뜬다
+    //    (duration이 길면 친구가 내리지 않는다 — npcs.js는 duration이 지나야 내린다)
+    //  ★ duration은 넉넉하되 무한이 아니게. autoEnd가 false라 **아이는 계속 탄다**
+    reach: 4.2, duration: 60, autoEnd: false, rider: null, noNpc: true,
     //  탈 때 카메라 — 조금 가까이, 그리고 **캐릭터 높이**를 본다
     //  (기본값은 하늘도 보이게 위를 봐서, 앉은 캐릭터가 화면 아래로 처진다)
     camDist: 12, camHeight: 6.5, lookHeight: 3.0,
@@ -259,7 +264,8 @@ export function buildRuhaCastle(ctx) {
     verb: '타기', offVerb: '내리기',
     enters: [{ x: SWING.x, z: SWING.z + 4.6 }, { x: SWING.x, z: SWING.z - 4.6 }],
     enter: { x: SWING.x, z: SWING.z + 4.6 }, exit: { x: SWING.x, z: SWING.z + 5.0 },
-    reach: 3.4, duration: 999, autoEnd: false, rider: null,
+    //  ★ 회전목마와 같은 이유로 아이 자리다 (위 설명 참고)
+    reach: 3.4, duration: 60, autoEnd: false, rider: null, noNpc: true,
     camDist: 13, camHeight: 6.5,
     tick(t) { now = t; },
     pose(rideTime, o) {

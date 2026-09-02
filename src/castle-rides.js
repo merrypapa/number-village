@@ -156,7 +156,9 @@ export function makeBedRide(bed, x, z, floorY = FLOOR2, scale = 1) {
     enters: [{ x: x + 4.9 * scale, z }, { x: x - 4.9 * scale, z }],
     enter: { x: x + 4.9 * scale, z }, exit: { x: x + 4.9 * scale, z },
     reach: 4.5, enterY: floorY,
-    duration: 600, autoEnd: false, camBase: true, rider: null,
+    //  duration은 **친구(NPC)가 언제 내리는지**만 정한다 (아이는 autoEnd:false라 계속 있는다).
+    //  너무 크게 적으면 친구가 안 내려서 아이가 못 쓴다 → 1분으로 짧게
+    duration: 60, autoEnd: false, camBase: true, rider: null,
     // 천개(침대 지붕)에 가리지 않게 카메라를 낮춰서 옆에서 본다
     camDist: 10, camHeight: 2.6, lookHeight: 1.6,
     sleep: 0,                                // 0 = 깨어 있음, 1 = 푹 잠
@@ -206,7 +208,9 @@ export function makeDeskRide(desk, x, z, ry = 0) {
     enter: { x: x + sin * (CHAIR_Z + 2.3), z: z + cos * (CHAIR_Z + 2.3) },
     exit:  { x: x + sin * (CHAIR_Z + 2.7), z: z + cos * (CHAIR_Z + 2.7) },
     enterY: FLOOR2,
-    duration: 600, autoEnd: false, camBase: true, rider: null,
+    //  duration은 **친구(NPC)가 언제 내리는지**만 정한다 (아이는 autoEnd:false라 계속 있는다).
+    //  너무 크게 적으면 친구가 안 내려서 아이가 못 쓴다 → 1분으로 짧게
+    duration: 60, autoEnd: false, camBase: true, rider: null,
     study: 0,
     parts: [numbers],
     pose(t, o) {
