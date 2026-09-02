@@ -80,8 +80,11 @@ export function makeInterior(cfg) {
   scene.environment = cfg.envMap || null;
 
   // --- 조명 — 실내라 밝고 그늘이 옅다 ---
-  scene.add(new THREE.HemisphereLight(cfg.skyLight ?? 0xffffff, cfg.floorLight ?? 0xe6d8ff, 1.35));
-  const lamp = new THREE.DirectionalLight(0xfff4e0, 0.85);
+  //  light = 밝기 배수. 밤 느낌을 내려면 0.5쯤으로 낮춘다 (루하성)
+  const power = cfg.light ?? 1;
+  scene.add(new THREE.HemisphereLight(cfg.skyLight ?? 0xffffff, cfg.floorLight ?? 0xe6d8ff,
+                                      1.35 * power));
+  const lamp = new THREE.DirectionalLight(cfg.lampColor ?? 0xfff4e0, 0.85 * power);
   lamp.position.set(W * 0.4, H * 2.4, D * 0.5);
   lamp.castShadow = true;
   lamp.shadow.mapSize.set(1024, 1024);
@@ -208,8 +211,14 @@ export function makeInterior(cfg) {
    * 공간을 완성한다. extra에 적은 것은 그대로 area에 붙는다
    * (residents, wanderZones, npcCount 등).
    */
+  /**
+   * 공간을 완성한다.
+   *   extra.tick  = 매 프레임 할 일
+   *   extra.doors = 나가는 문 말고 **더 있는 문** (루하성은 마을 문 + 징검다리 문)
+   *   나머지는 그대로 area에 붙는다 (residents, npcCount …)
+   */
   function finish(extra = {}) {
-    const { tick, ...rest } = extra;
+    const { tick, doors: moreDoors, ...rest } = extra;
     const collider = createCollider(obstacles);
     // 놀이기구가 화면에 같이 넣을 것을 들고 있으면 넣어준다 (떠오르는 Z 등)
     for (const r of rides) for (const p of r.parts || []) scene.add(p);
@@ -233,12 +242,15 @@ export function makeInterior(cfg) {
       collide: collider.collide,
       isBlocked: collider.isBlocked,
       update, rides, spots,
-      doors: [{
-        x: doorX, z: D / 2 - DOOR_BACK, r: DOOR_R, y: 0, to: 'village',
-        label: cfg.exitLabel ?? '마을로 나왔어요! 🌳',
-        arrive: new THREE.Vector3(cfg.exit.x, 0, cfg.exit.z),
-        arriveYaw: cfg.exit.yaw,
-      }],
+      doors: [
+        {
+          x: doorX, z: D / 2 - DOOR_BACK, r: DOOR_R, y: 0, to: 'village',
+          label: cfg.exitLabel ?? '마을로 나왔어요! 🌳',
+          arrive: new THREE.Vector3(cfg.exit.x, 0, cfg.exit.z),
+          arriveYaw: cfg.exit.yaw,
+        },
+        ...(moreDoors || []),
+      ],
       ...rest,
     };
   }

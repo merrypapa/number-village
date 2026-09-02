@@ -6,7 +6,8 @@
 //  ★ 건물은 전부 +z 쪽(광장 쪽)을 바라본다. 그래야 문을 찾기 쉽다.
 // ===========================================================
 import * as THREE from 'three';
-import { part, toon, glow } from './castle-props.js';
+import { part, toon, glow, makeHeart } from './castle-props.js';
+import { makeStar, makeMoon, R } from './ruha-props.js';
 import { makeSign, makeCart } from './mart-props.js';
 
 /** 줄무늬 차양(천막) — 빨강·하양 줄무늬 */
@@ -146,5 +147,77 @@ export function makeArtHouseBuilding() {
   const sign = makeSign('그림의 집', 6.4, 1.5, '#c9b4ff', '#4a2a7a');
   sign.position.set(0, H + 3.9, D / 2 - 0.4);
   g.add(sign);
+  return g;
+}
+
+// -----------------------------------------------------------
+//  🌙 루하성 — 별과 달의 성 (인하성 옆에 서 있다)
+//     문은 +z 쪽(마을 쪽)에 있다
+// -----------------------------------------------------------
+export function makeRuhaCastle() {
+  const g = new THREE.Group();
+
+  // 본체 — 남색 성벽에 은빛 띠
+  g.add(part('box', R.deep,   0, 6, 0, 19, 12, 13));
+  g.add(part('box', R.violet, 0, 12.4, 0, 20, 1.0, 14));
+  const roof = part('cone', R.night, 0, 16, 0, 16, 7, 12);
+  roof.rotation.y = Math.PI / 4;
+  g.add(roof);
+
+  // 탑 네 개 — 인하성보다 가늘고 높다
+  for (const [x, z] of [[-10.5, -7.5], [10.5, -7.5], [-10.5, 7.5], [10.5, 7.5]]) {
+    g.add(part('cyl', R.deep,   x, 9, z, 4.4, 18, 4.4));
+    g.add(part('cyl', R.violet, x, 18.4, z, 5.0, 0.8, 5.0));
+    g.add(part('cone', R.night, x, 22, z, 5.6, 7, 5.6));
+    // 꼭대기 초승달
+    const m = makeMoon(1.5);
+    m.position.set(x, 27.5, z);
+    m.rotation.z = 0.35;
+    g.add(m);
+    // 창문에서 새어 나오는 별빛
+    for (const y of [5, 10, 15]) {
+      g.add(part('box', R.star, x, y, z + 2.3, 1.0, 1.8, 0.25, glow(R.star)));
+    }
+  }
+
+  // 정문 — 안이 은은하게 빛난다
+  const doorLight = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 7.0), glow(0xcfd8ff));
+  doorLight.position.set(0, 3.5, 6.6);
+  doorLight.userData.noShadow = true;
+  g.add(doorLight);
+  g.add(part('box', R.silver, 0, 3.5, 6.75, 5.8, 7.6, 0.4));
+  g.add(part('box', R.violet, 0, 7.6, 6.8, 7.0, 0.8, 0.6));
+
+  // 문 위의 큰 별
+  const star = makeStar(R.star, 2.2);
+  star.position.set(0, 10.4, 6.9);
+  g.add(star);
+  g.userData.tick = (t) => { star.rotation.z = t * 0.4; };
+
+  // 성벽에 박힌 작은 별들
+  for (let i = 0; i < 10; i++) {
+    const st = makeStar(i % 2 ? R.ice : R.star, 0.55);
+    st.position.set(-8 + (i % 5) * 4, i < 5 ? 8.5 : 4.5, 6.6);
+    g.add(st);
+  }
+  return g;
+}
+
+/** 두 성 사이에 걸린 하늘 다리 그림자 — 마을에서 올려다보면 보인다 (장식) */
+export function makeSkyBridgeHint(fromX, fromZ, toX, toZ) {
+  const g = new THREE.Group();
+  const n = 9;
+  for (let i = 1; i < n; i++) {
+    const u = i / n;
+    const x = fromX + (toX - fromX) * u;
+    const z = fromZ + (toZ - fromZ) * u;
+    const y = 26 + Math.sin(u * Math.PI) * 7;
+    const stone = part('cyl', 0xe8e0ff, x, y, z, 3.4, 0.7, 3.4);
+    stone.castShadow = false;
+    g.add(stone);
+    const h = makeHeart(i % 2 ? 0xff9ec4 : 0xa8e6ff, 0.7);
+    h.position.set(x, y + 2.2, z);
+    g.add(h);
+  }
   return g;
 }

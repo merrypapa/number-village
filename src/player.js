@@ -395,11 +395,15 @@ export function createPlayer(model, camera, world) {
   function moveTo(next, pos, yaw) {
     if (ride) getOff();
     area = next;
-    model.position.copy(pos || next.spawn);
+    const target = pos || next.spawn;
+    //  ★ 도착 자리의 y는 "몇 층에 내려서는지"를 알려준다 (성 2층이면 7.5).
+    //    안 적으면 0(1층)이다. 이걸 안 보면 2층 문으로 들어와도 1층 바닥에 선다
+    const fromY = target.y || 0;
+    model.position.copy(target);
     model.position.y = 0;
     model.rotation.set(0, yaw ?? next.yaw ?? 0, 0);
     camYaw = yaw ?? next.yaw ?? 0;
-    settleOnFloor();                    // 새 공간의 바닥 높이에 발을 맞춘다
+    settleOnFloor(fromY);               // 새 공간의 바닥 높이에 발을 맞춘다 (2층일 수도 있다)
     nearRide = null;
     nearSpot = null;
     next.scene.add(model);              // 새 공간의 화면으로 옮긴다
