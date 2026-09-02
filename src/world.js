@@ -227,7 +227,7 @@ export function buildWorld(scene) {
   mart.position.set(MART.x, 0, MART.z);
   scene.add(mart);
   obstacles.push({ x: MART.x, z: MART.z, hw: MART.hw, hd: MART.hd });
-  reserved.push({ x: MART.x, z: MART.z, r: 15 });
+  reserved.push({ x: MART.x, z: MART.z, r: 17 });   // 문 앞 길까지 나무를 안 심는다
   //  마트 앞에 세워둔 카트 (장식)
   scene.add(makeMartCarts(MART.x + 4.5, MART.z + 6.6));
   obstacles.push({ x: MART.x + 6.0, z: MART.z + 7.1, r: 1.8 });
@@ -237,7 +237,7 @@ export function buildWorld(scene) {
   artHouse.position.set(ART.x, 0, ART.z);
   scene.add(artHouse);
   obstacles.push({ x: ART.x, z: ART.z, hw: ART.hw, hd: ART.hd });
-  reserved.push({ x: ART.x, z: ART.z, r: 14 });
+  reserved.push({ x: ART.x, z: ART.z, r: 17 });   // 문 앞 길까지 나무를 안 심는다
 
   // 우리 집 (남쪽) — 아이가 색을 고를 수 있게 roofC
   const home = makeHouse(M.roofC, 7, 4.5, 7);
@@ -263,15 +263,19 @@ export function buildWorld(scene) {
     scene.add(h);
     obstacles.push({ x: hx, z: hz, r: 5.4 });
     reserved.push({ x: hx, z: hz, r: 11 });
+    //  ★ 문 앞 길에는 나무를 심지 않는다.
+    //    집에서 나오면 여기에 서는데, 나무가 있으면 화면을 가린다
+    reserved.push({ x: hx + fx * 12, z: hz + fz * 12, r: 8.5 });
 
     houseDoors.push({
       x: hx + fx * HOUSE_DOOR, z: hz + fz * HOUSE_DOOR, r: 2.8,
       to: `house-${house.id}`,
       label: `${house.name}에 놀러 왔어요!`,
-      //  ★ 나올 때는 문 반경(2.8)보다 더 멀리 세운다.
-      //    문 안에 서 있으면 다시 들어가려고 할 때 한 번 멀어져야 해서 답답하다
+      //  ★ 나올 때는 문에서 넉넉히 떨어뜨려 세운다.
+      //    - 문 반경(2.8) 안에 서 있으면 다시 들어가려 할 때 한 번 멀어져야 해서 답답하다
+      //    - 카메라가 캐릭터 뒤에 서므로, 너무 가까우면 카메라가 집 안에 파묻힌다
       build: (ctx) => buildHouse(house, { ...ctx, exit: {
-        x: hx + fx * (HOUSE_DOOR + 3.6), z: hz + fz * (HOUSE_DOOR + 3.6),
+        x: hx + fx * (HOUSE_DOOR + 6.0), z: hz + fz * (HOUSE_DOOR + 6.0),
         yaw: Math.atan2(fx, fz),
       } }),
     });
@@ -338,6 +342,10 @@ export function buildWorld(scene) {
     yaw: 0,
     bounds: 88,                // 마을 밖으로 못 나가는 원의 반지름
     home, collide, isBlocked, update,
+    // 📷 마을에서는 카메라가 건물·나무 속에 파묻히면 캐릭터 쪽으로 당긴다.
+    //   (집에서 막 나왔을 때 건물에 가려서 캐릭터가 안 보이던 문제)
+    //   실내는 벽이 안쪽만 보이는 판이라 밖에 있어도 잘 보이므로 켜지 않는다
+    camCollide: true,
     // 탈 수 있는 것 — 그네·미끄럼틀·시소 + 🐴 말 세 마리
     rides: [...playground.rides, ...stable.rides, plazaHorse.ride],
     // 🚪 문 — 건물 앞에 서면 그 건물 안으로 들어간다 (main.js가 확인한다)
@@ -351,13 +359,13 @@ export function buildWorld(scene) {
         x: MART.x, z: MART.doorZ, r: 2.8, to: 'mart',
         label: '어서 오세요! 🛒 행복마트',
         build: (ctx) => buildMart({ ...ctx,
-          exit: { x: MART.x, z: MART.doorZ + 3.6, yaw: 0 } }),
+          exit: { x: MART.x, z: MART.doorZ + 6.0, yaw: 0 } }),
       },
       {
         x: ART.x, z: ART.doorZ, r: 2.8, to: 'art',
         label: '그림의 집! 🎨 이젤 앞에서 그리기를 눌러요',
         build: (ctx) => buildArtHouse({ ...ctx,
-          exit: { x: ART.x, z: ART.doorZ + 3.6, yaw: 0 } }),
+          exit: { x: ART.x, z: ART.doorZ + 6.0, yaw: 0 } }),
       },
       ...houseDoors,        // 🏠 친구 집 (src/houses.js의 HOUSES 개수만큼)
     ],
