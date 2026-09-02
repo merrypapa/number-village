@@ -13,6 +13,7 @@ import { createSelectScreen } from './select.js';
 import { createTitleScreen } from './title.js';
 import { buildCastleInterior } from './castle-interior.js';
 import { SAME_FLOOR } from './rides.js';
+import { createMusic } from './music.js';
 
 // -----------------------------------------------------------
 //  렌더러 / 씬 / 카메라
@@ -61,6 +62,11 @@ const select = createSelectScreen(def => startGame(def));
 const title = createTitleScreen(renderer, envMap);
 let onTitle = true;
 
+// 🎵 배경음악 (소리를 코드로 만든다 → src/music.js)
+//  브라우저 규칙상 **손가락을 한 번 댄 뒤**에만 소리를 낼 수 있어서
+//  오프닝 화면을 누를 때 켠다
+const music = createMusic();
+
 /**
  * 화면이 바뀔 때 새 화면의 버튼을 잠깐 막는다.
  *  ★ 손가락을 한 번 눌렀을 뿐인데 두 화면이 연달아 넘어가던 문제를 막는다.
@@ -86,6 +92,7 @@ function blockTaps(el, ms = 450) {
 function leaveTitle() {
   if (!onTitle) return;
   onTitle = false;
+  music.start();
   document.getElementById('title').classList.remove('on');
   const pick = document.getElementById('pick');
   pick.classList.add('on');
@@ -153,6 +160,8 @@ function startGame(def) {
   document.getElementById('preview').classList.remove('on');
   document.getElementById('hud').classList.add('on');
   playing = true;
+  music.start();
+  music.setScene('village');
   //  브라우저 콘솔에서 확인할 때 쓴다 (F12 → __player.model.position 등)
   //  게임 동작에는 아무 영향이 없다
   window.__player = player;
@@ -178,6 +187,15 @@ function sayHi() {
 //  스페이스는 점프라서, 키보드 인사는 엔터로 한다.
 addEventListener('keydown', e => { if (e.code === 'Enter') sayHi(); });
 document.getElementById('bookBtn').onclick = () => toast('친구 도감은 곧 만들 거예요 📖');
+
+// 🎵 배경음악 켜기 / 끄기
+const musicBtn = document.getElementById('musicBtn');
+musicBtn.classList.toggle('off', !music.on);
+musicBtn.onclick = () => {
+  const on = music.toggle();
+  musicBtn.classList.toggle('off', !on);
+  toast(on ? '음악을 켰어요 🎵' : '음악을 껐어요 🔇');
+};
 
 // -----------------------------------------------------------
 //  🅰 행동 버튼 — 지금 서 있는 자리에서 할 수 있는 일을 보여준다
@@ -262,6 +280,7 @@ function goThroughDoor(door) {
     area.onLeave?.(player);
     area = getArea(door.to, door);
     npcs = areaNpcs[door.to];
+    music.setScene(area.name);          // 공간마다 다른 곡이 흐른다
     player.moveTo(area, door.arrive, door.arriveYaw);
     area.onEnter?.(player);
     fade.classList.remove('on');

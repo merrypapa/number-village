@@ -14,7 +14,7 @@
 import * as THREE from 'three';
 import { createCollider } from './world.js';
 import {
-  C, part,
+  C, part, glow,
   makeThrone, makeFireplace, makeCakeTable, makeBookshelf, makeNook,
   makeCandleStand, makePlant, makeNumberBlocks, makeBalloons, makeRockingHorse,
 } from './castle-props.js';
@@ -221,6 +221,11 @@ export function buildCastleInterior(envMap, playerCharId) {
   hang(part('box', C.gold, 0, 0, 0, 0.6, 0.6, 7.0), HALF_X - 0.4, FLOOR2 + 6.9, SKY_DOOR.z, 0);
   hang(makeSign('구름 징검다리 ☁️ 루하성 가는 길', 6.6, 1.1, '#a8e6ff', '#2c2a6b'),
        HALF_X - 0.45, FLOOR2 + 8.0, SKY_DOOR.z, -Math.PI / 2);
+  //  문간 발판 — "여기 서면 징검다리로 나간다"고 눈으로 알려준다
+  const skyMat = part('box', 0xa8e6ff, 0, 0, 0, 2.6, 0.12, 4.2, glow(0xa8e6ff));
+  skyMat.castShadow = false;
+  hang(skyMat, HALF_X - 1.4, FLOOR2 + 0.08, SKY_DOOR.z, 0);
+
   //  발코니 양옆에 등불 (여기가 나가는 곳이라고 알려준다)
   for (const dz of [-4.6, 4.6]) {
     place(makeCandleStand(), HALF_X - 2.2, SKY_DOOR.z + dz, 0, { r: 1.0, ...F2 }, FLOOR2);
@@ -328,7 +333,9 @@ export function buildCastleInterior(envMap, playerCharId) {
     }, {
       // ☁️ 2층 동쪽 발코니 → 구름 징검다리 → 루하성
       //  y: FLOOR2 를 적어야 1층에서 이 자리를 지나가도 안 나가진다
-      x: HALF_X - 2.6, z: SKY_DOOR.z, r: 2.4, y: FLOOR2, to: 'skyway',
+      //  ★ 감지 범위를 좁히고 문간에 바짝 붙였다 (예전 x 31.4 · 반지름 2.4).
+      //    발코니를 걸어 다니기만 해도 자꾸 징검다리로 넘어갔다
+      x: HALF_X - 1.4, z: SKY_DOOR.z, r: 1.7, y: FLOOR2, to: 'skyway',
       label: '구름 징검다리! ☁️ 루하성으로 가요',
       build: buildSkywayArea,
       arrive: SKY_FROM_CASTLE.pos.clone(), arriveYaw: SKY_FROM_CASTLE.yaw,
