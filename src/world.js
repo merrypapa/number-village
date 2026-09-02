@@ -7,7 +7,9 @@ import { buildSky } from './sky.js';
 import { buildPlayground } from './playground.js';
 import { buildStable, makeHorseRide } from './horse.js';
 import { createCollider } from './collide.js';
-import { makeMartBuilding, makeMartCarts, makeArtHouseBuilding } from './village-buildings.js';
+import { makeMartBuilding, makeMartCarts, makeArtHouseBuilding,
+         makeRuhaCastle, makeSkyBridgeHint } from './village-buildings.js';
+import { RUHA_SITE, buildRuhaCastle } from './ruha-castle.js';
 import { buildMart } from './mart.js';
 import { HOUSES, buildHouse } from './houses.js';
 import { buildArtHouse } from './art-house.js';
@@ -21,8 +23,9 @@ const PLAYGROUND_POS = { x: 42, z: 40 };
 // 🐴 마구간이 놓일 자리 (성으로 가는 길 옆). 말을 타고 마을을 달릴 수 있다
 const STABLE_POS = { x: 34, z: -34 };
 
-// 🏰 성 정문 앞 — 여기에 서면 성 안으로 들어간다 (castle-interior.js가 안쪽을 만든다)
+// 🏰 인하성 정문 앞 — 여기에 서면 성 안으로 들어간다 (castle-interior.js가 안쪽을 만든다)
 const CASTLE_DOOR = { z: -35.5 };
+const CASTLE_POS = { x: 0, z: -48 };
 
 // 🛒 마트가 놓일 자리 (광장 북서쪽). 문은 +z 쪽(광장 쪽)을 바라본다
 //   half = 건물 절반 크기 (부딪히는 네모),  door = 문 앞에 서는 자리
@@ -188,6 +191,7 @@ export { createCollider };
 export function buildWorld(scene) {
   const obstacles = [];        // 부딪히는 물건 목록
   const reserved = [];         // 나무를 심으면 안 되는 자리
+  let ruhaTick = null;         // 루하성 문 위의 별을 돌리는 함수
 
   // 바닥
   const ground = new THREE.Mesh(
@@ -209,12 +213,32 @@ export function buildWorld(scene) {
   obstacles.push({ x: 0, z: 0, r: 4.2 });
   reserved.push({ x: 0, z: 0, r: 14 });
 
-  // 성 (북쪽) — 탑까지 덮는 네모로 막는다
+  // 🏰 인하성 (북쪽) — 탑까지 덮는 네모로 막는다
   const castle = makeCastle();
-  castle.position.set(0, 0, -48);
+  castle.position.set(CASTLE_POS.x, 0, CASTLE_POS.z);
   scene.add(castle);
-  obstacles.push({ x: 0, z: -48, hw: 13.5, hd: 10.5 });
-  reserved.push({ x: 0, z: -48, r: 22 });
+  obstacles.push({ x: CASTLE_POS.x, z: CASTLE_POS.z, hw: 13.5, hd: 10.5 });
+  reserved.push({ x: CASTLE_POS.x, z: CASTLE_POS.z, r: 22 });
+
+  // 🌙 루하성 (북동쪽) — 마을 정문으로도 가고, 인하성 2층 징검다리로도 간다
+  const ruha = makeRuhaCastle();
+  ruha.position.set(RUHA_SITE.x, 0, RUHA_SITE.z);
+  scene.add(ruha);
+  obstacles.push({ x: RUHA_SITE.x, z: RUHA_SITE.z, hw: RUHA_SITE.hw, hd: RUHA_SITE.hd });
+  reserved.push({ x: RUHA_SITE.x, z: RUHA_SITE.z, r: 22 });
+  if (ruha.userData.tick) ruhaTick = ruha.userData.tick;
+
+  // ☁️ 두 성 사이에 걸린 구름 징검다리 (마을에서 올려다보면 보이는 장식)
+  scene.add(makeSkyBridgeHint(CASTLE_POS.x + 12, CASTLE_POS.z + 2,
+                              RUHA_SITE.x - 12, RUHA_SITE.z + 2));
+
+  // 두 성 이름표
+  const inhaSign = makeSign('인하성', 12, 2.2, '#ff7ab0');
+  inhaSign.position.set(CASTLE_POS.x, 14.5, CASTLE_POS.z + 7.4);
+  scene.add(inhaSign);
+  const ruhaSign = makeSign('루하성', 12, 2.2, '#4a44a8');
+  ruhaSign.position.set(RUHA_SITE.x, 14.5, RUHA_SITE.z + 6.9);
+  scene.add(ruhaSign);
 
   // 성 입구 (융단 + 등불) — 여기 서면 성 안으로 들어간다
   scene.add(makeCastleEntrance(CASTLE_DOOR.z));
@@ -326,9 +350,10 @@ export function buildWorld(scene) {
 
   const { collide, isBlocked } = createCollider(obstacles);
 
-  /** 매 프레임 움직이는 것들 (구름, 고래, 그네, 시소, 말) */
+  /** 매 프레임 움직이는 것들 (구름, 고래, 그네, 시소, 말, 루하성 별) */
   function update(dt, t) {
     sky.update(dt, t);
+    ruhaTick?.(t, dt);
     playground.update(dt, t);
     stable.update(dt, t);
     plazaHorse.update(dt, t);
@@ -353,7 +378,7 @@ export function buildWorld(scene) {
     doors: [
       {
         x: 0, z: CASTLE_DOOR.z, r: 4.5, to: 'castle',
-        label: '성 안! 👑 안쪽 끝에 왕좌가 있어요',
+        label: '인하성! 👑 안쪽 끝에 왕좌가 있어요',
       },
       {
         x: MART.x, z: MART.doorZ, r: 2.8, to: 'mart',
@@ -366,6 +391,11 @@ export function buildWorld(scene) {
         label: '그림의 집! 🎨 이젤 앞에서 그리기를 눌러요',
         build: (ctx) => buildArtHouse({ ...ctx,
           exit: { x: ART.x, z: ART.doorZ + 6.0, yaw: 0 } }),
+      },
+      {
+        x: RUHA_SITE.x, z: RUHA_SITE.doorZ, r: 2.8, to: 'ruha',
+        label: '루하성! 🌙 별과 달의 성',
+        build: buildRuhaCastle,
       },
       ...houseDoors,        // 🏠 친구 집 (src/houses.js의 HOUSES 개수만큼)
     ],

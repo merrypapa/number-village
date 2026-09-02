@@ -29,6 +29,9 @@ import {
 } from './castle-layout.js';
 import { buildShell, buildSparkles } from './castle-shell.js';
 import { buildGallery } from './castle-gallery.js';
+import { buildSkywayArea } from './ruha-castle.js';
+import { SKY_FROM_CASTLE } from './skyway.js';
+import { makeSign } from './mart-props.js';
 import {
   SLIDE, makeThroneRide, makeRockingHorseRide, makeSlideRide,
   makeBedRide, makeDeskRide,
@@ -43,6 +46,9 @@ const HORSE  = { x: 27,  z: 34 };    // 🐴 흔들목마 (1층 파티방)
 const BED    = { x: 22,  z: 28 };    // 🛏 침대 (2층 공주 침실)
 const DESK   = { x: -32.4, z: 31 };  // 📖 책상 (2층 별 전망대 · 책장 옆)
 const SHELF2 = { x: -32.8, z: 24 };  // 📚 2층 책장
+
+// ☁️ 2층 동쪽 발코니에 난 바깥 문 — 구름 징검다리를 건너 루하성으로 간다
+const SKY_DOOR = { z: -13 };
 
 // -----------------------------------------------------------
 //  성 안 공간 만들기
@@ -195,7 +201,30 @@ export function buildCastleInterior(envMap, playerCharId) {
   place(makeArmorStand(), 30, -16, Math.PI, { r: 1.1, ...F2 }, FLOOR2);
   place(makeArmorStand(), 19, -16, Math.PI, { r: 1.1, ...F2 }, FLOOR2);
   //  ★ 발코니 통로 한가운데에는 아무것도 놓지 않는다 (길을 막으면 못 지나간다)
-  hang(makeBanner(C.red), HALF_X - 0.4, FLOOR2 + 9.0, -13, -Math.PI / 2);
+  //  ★ 깃발은 z -13에 있었는데, 거기에 징검다리로 나가는 문을 냈다.
+  //    문 앞을 가리지 않게 옆으로 옮긴다
+  hang(makeBanner(C.red), HALF_X - 0.4, FLOOR2 + 9.0, -3, -Math.PI / 2);
+
+  // ☁️ 2층 동쪽 발코니의 바깥 문 — 여기로 나가면 구름 징검다리다
+  //   (벽이 안쪽만 보이는 판이라, 밝은 판을 붙여서 "뚫린 문"처럼 보이게 한다)
+  const skyGlow = new THREE.Mesh(
+    new THREE.PlaneGeometry(5.4, 6.6),
+    new THREE.MeshBasicMaterial({ color: 0xdff3ff })
+  );
+  skyGlow.position.set(HALF_X - 0.12, FLOOR2 + 3.3, SKY_DOOR.z);
+  skyGlow.rotation.y = -Math.PI / 2;
+  scene.add(skyGlow);
+  for (const dz of [-3.2, 3.2]) {
+    hang(part('box', C.gold, 0, 0, 0, 0.6, 7.0, 0.6), HALF_X - 0.4, FLOOR2 + 3.3,
+         SKY_DOOR.z + dz, 0);
+  }
+  hang(part('box', C.gold, 0, 0, 0, 0.6, 0.6, 7.0), HALF_X - 0.4, FLOOR2 + 6.9, SKY_DOOR.z, 0);
+  hang(makeSign('구름 징검다리 ☁️ 루하성 가는 길', 6.6, 1.1, '#a8e6ff', '#2c2a6b'),
+       HALF_X - 0.45, FLOOR2 + 8.0, SKY_DOOR.z, -Math.PI / 2);
+  //  발코니 양옆에 등불 (여기가 나가는 곳이라고 알려준다)
+  for (const dz of [-4.6, 4.6]) {
+    place(makeCandleStand(), HALF_X - 2.2, SKY_DOOR.z + dz, 0, { r: 1.0, ...F2 }, FLOOR2);
+  }
 
   // 🛏 공주 침실 (2층 남동) — 침대 옆에서 '잠자기'를 누르면 누워서 잔다
   const bed = makeBed();
@@ -289,13 +318,20 @@ export function buildCastleInterior(envMap, playerCharId) {
     groundY,                   // ★ 계단과 2층 — player.js가 매 프레임 물어본다
     update, rides,
     spots: gallery.spots,      // 말 걸 수 있는 자리 (요정 친구 부르기)
-    // 남쪽 문으로 나가면 마을로 돌아간다
+    // 남쪽 문으로 나가면 마을, 2층 동쪽 문으로 나가면 구름 징검다리
     doors: [{
       x: 0, z: HALF_Z - 2.5, r: 3.0, y: 0, to: 'village',
       label: '마을로 나왔어요! 🌳',
       // ★ y = 이 문이 있는 층. 2층에서 이 자리 위를 지나가도 나가지지 않는다
       // 성 문 앞은 카메라가 성벽에 파묻히므로 조금 앞쪽(광장 쪽)에 내려준다
       arrive: new THREE.Vector3(0, 0, -24), arriveYaw: 0,
+    }, {
+      // ☁️ 2층 동쪽 발코니 → 구름 징검다리 → 루하성
+      //  y: FLOOR2 를 적어야 1층에서 이 자리를 지나가도 안 나가진다
+      x: HALF_X - 2.6, z: SKY_DOOR.z, r: 2.4, y: FLOOR2, to: 'skyway',
+      label: '구름 징검다리! ☁️ 루하성으로 가요',
+      build: buildSkywayArea,
+      arrive: SKY_FROM_CASTLE.pos.clone(), arriveYaw: SKY_FROM_CASTLE.yaw,
     }],
   };
 }
