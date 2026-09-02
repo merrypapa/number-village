@@ -183,7 +183,8 @@ document.getElementById('bookBtn').onclick = () => toast('친구 도감은 곧 �
 //  🅰 행동 버튼 — 지금 서 있는 자리에서 할 수 있는 일을 보여준다
 //    그네·미끄럼틀 옆 → 타기 / 내리기
 //    성 안 요정 친구 앞 → 부르기 / 보내기
-//    마트 진열대 앞 → 담기 / 계산,  그림의 집 → 그리기
+//    마트 입구 → 바구니 / 카트,  진열대 앞 → 담기,  계산대 → 계산
+//    그림의 집 → 그리기
 // -----------------------------------------------------------
 const actionBtn = document.getElementById('ride');
 let actionLabel = '';
@@ -214,7 +215,8 @@ function updateActionButton() {
 // -----------------------------------------------------------
 function useSpot(spot) {
   //  자리가 스스로 할 일을 들고 있으면 그걸 한다 (마트에서 물건 담기·계산하기 등)
-  if (spot.use) { spot.use(toast); return; }
+  //  player도 같이 넘긴다 — 마트 장바구니처럼 **손에 들려주는** 것이 있기 때문이다
+  if (spot.use) { spot.use(toast, player); return; }
   if (spot.kind !== 'summon' || !npcs) return;
   if (spot.npc) {
     npcs.remove(spot.npc);
@@ -255,9 +257,13 @@ function goThroughDoor(door) {
   doorArmed = false;
   fade.classList.add('on');
   setTimeout(() => {
+    //  공간마다 나갈 때·들어올 때 할 일이 있을 수 있다
+    //  (마트: 들고 있던 장바구니를 잠깐 내려놨다가 다시 쥐여준다)
+    area.onLeave?.(player);
     area = getArea(door.to, door);
     npcs = areaNpcs[door.to];
     player.moveTo(area, door.arrive, door.arriveYaw);
+    area.onEnter?.(player);
     fade.classList.remove('on');
     moving = false;
     toast(door.label);

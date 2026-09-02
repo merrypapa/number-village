@@ -28,52 +28,63 @@ function word(c, s, text, col = '#3a2a55', size = 0.2, y = 0.5) {
 }
 
 // -----------------------------------------------------------
+//  ★ 값의 단위 — '코인'을 '원'으로 바꾸고 price를 100배로 하면 어른 놀이가 된다.
+//    지금은 7세가 곱셈·덧셈을 할 수 있게 1~5짜리 작은 수로 두었다.
+// -----------------------------------------------------------
+export const UNIT = '코인';
+
+// -----------------------------------------------------------
 //  ★ 상품 목록 — 아이랑 같이 늘려보는 곳!
 //    shape : 'box'(상자·봉지) 'cyl'(캔·병) 'ball'(과일)
 //    size  : [가로, 세로, 깊이]  (1 = 1칸)
+//    price : 값 (계산 놀이에서 쓴다. 1~5가 좋다)
+//    emoji : 계산서에 뜨는 그림
 //    draw  : 포장에 그릴 그림
 // -----------------------------------------------------------
 export const ITEMS = [
-  { id:'ramen',  name:'라면',   shape:'box', size:[0.72, 0.62, 0.5],
+  { id:'ramen',  name:'라면',   emoji:'🍜', price:3, shape:'box', size:[0.72, 0.62, 0.5],
     draw:(c,s)=>{ fill(c,s,'#e4453c'); band(c,s,'#ffd45e',0.06,0.16);
                   dot(c,s/2,s*0.52,s*0.22,'#fff3d8'); dot(c,s/2,s*0.52,s*0.14,'#f0a83c');
                   word(c,s,'라면','#fff',0.2,0.87); } },
-  { id:'snack',  name:'과자',   shape:'box', size:[0.56, 0.78, 0.32],
+  { id:'snack',  name:'과자',   emoji:'🍪', price:2, shape:'box', size:[0.56, 0.78, 0.32],
     draw:(c,s)=>{ fill(c,s,'#ffc93c'); band(c,s,'#ff7a4d',0.0,0.22);
                   for(let i=0;i<6;i++) dot(c,(i%3)*s/3+s/6,(i<3?0.55:0.78)*s,s*0.07,'#8b5a3c');
                   word(c,s,'과자','#7a3d00',0.22,0.36); } },
-  { id:'cookie', name:'쿠키',   shape:'box', size:[0.62, 0.5, 0.42],
+  { id:'cookie', name:'쿠키',   emoji:'🍘', price:2, shape:'box', size:[0.62, 0.5, 0.42],
     draw:(c,s)=>{ fill(c,s,'#8fd0ff'); band(c,s,'#fff',0.34,0.32);
                   dot(c,s*0.5,s*0.5,s*0.13,'#b5794f'); word(c,s,'쿠키','#2a5b8f',0.18,0.14); } },
-  { id:'milk',   name:'우유',   shape:'box', size:[0.4, 0.78, 0.4],
+  { id:'milk',   name:'우유',   emoji:'🥛', price:3, shape:'box', size:[0.4, 0.78, 0.4],
     draw:(c,s)=>{ fill(c,s,'#fdfdff'); band(c,s,'#4a9be0',0.0,0.2); band(c,s,'#4a9be0',0.86,0.14);
                   dot(c,s*0.5,s*0.55,s*0.16,'#dbe8f5'); word(c,s,'우유','#2a5b8f',0.2,0.55); } },
-  { id:'juice',  name:'주스',   shape:'box', size:[0.38, 0.7, 0.38],
+  { id:'juice',  name:'주스',   emoji:'🧃', price:3, shape:'box', size:[0.38, 0.7, 0.38],
     draw:(c,s)=>{ fill(c,s,'#ffa733'); band(c,s,'#fff0c0',0.42,0.24);
                   dot(c,s*0.5,s*0.54,s*0.1,'#ff7a4d'); word(c,s,'주스','#7a3d00',0.18,0.2); } },
-  { id:'water',  name:'물',     shape:'cyl', size:[0.34, 0.9, 0.34],
+  { id:'water',  name:'물',     emoji:'💧', price:1, shape:'cyl', size:[0.34, 0.9, 0.34],
     draw:(c,s)=>{ fill(c,s,'#bfe8ff'); band(c,s,'#3aa9e0',0.4,0.24);
                   word(c,s,'물','#fff',0.22,0.52); } },
-  { id:'soda',   name:'음료수', shape:'cyl', size:[0.34, 0.5, 0.34],
+  { id:'soda',   name:'음료수', emoji:'🥤', price:2, shape:'cyl', size:[0.34, 0.5, 0.34],
     draw:(c,s)=>{ fill(c,s,'#7ad4a0'); band(c,s,'#fff',0.44,0.16);
                   word(c,s,'톡톡','#1f7a52',0.17,0.52); } },
-  { id:'can',    name:'통조림', shape:'cyl', size:[0.4, 0.42, 0.4],
+  { id:'can',    name:'통조림', emoji:'🥫', price:4, shape:'cyl', size:[0.4, 0.42, 0.4],
     draw:(c,s)=>{ fill(c,s,'#dfe3ea'); band(c,s,'#ff7a9c',0.3,0.4);
                   word(c,s,'콩','#fff',0.2,0.5); } },
-  { id:'egg',    name:'계란',   shape:'box', size:[0.78, 0.28, 0.5],
+  { id:'egg',    name:'계란',   emoji:'🥚', price:4, shape:'box', size:[0.78, 0.28, 0.5],
     draw:(c,s)=>{ fill(c,s,'#fff0d8');
                   for(let i=0;i<5;i++) dot(c,(i+0.5)*s/5,s*0.5,s*0.075,'#f2d3a0');
                   word(c,s,'계란','#8a6a3a',0.16,0.14); } },
-  { id:'bread',  name:'빵',     shape:'box', size:[0.7, 0.42, 0.44],
+  { id:'bread',  name:'빵',     emoji:'🍞', price:3, shape:'box', size:[0.7, 0.42, 0.44],
     draw:(c,s)=>{ fill(c,s,'#ffe6b8'); band(c,s,'#d99a4e',0.0,0.28);
                   dot(c,s*0.5,s*0.62,s*0.16,'#c98a56'); word(c,s,'빵','#7a4a00',0.2,0.16); } },
-  { id:'candy',  name:'사탕',   shape:'box', size:[0.36, 0.34, 0.28],
+  { id:'candy',  name:'사탕',   emoji:'🍬', price:1, shape:'box', size:[0.36, 0.34, 0.28],
     draw:(c,s)=>{ fill(c,s,'#ff9ec4');
                   for(let i=0;i<4;i++){ c.fillStyle='#fff'; c.fillRect(i*s/4,0,s/8,s); }
                   word(c,s,'♥','#e0518f',0.4,0.5); } },
-  { id:'apple',  name:'사과',   shape:'ball', size:[0.42, 0.42, 0.42], color:0xff5a5a },
-  { id:'orange', name:'귤',     shape:'ball', size:[0.36, 0.36, 0.36], color:0xffa733 },
-  { id:'melon',  name:'수박',   shape:'ball', size:[0.9, 0.9, 0.9],    color:0x4fbf5f },
+  { id:'ice',    name:'아이스크림', emoji:'🍦', price:2, shape:'box', size:[0.34, 0.66, 0.3],
+    draw:(c,s)=>{ fill(c,s,'#ff9ec4'); band(c,s,'#fff3d8',0.0,0.34);
+                  band(c,s,'#ffd45e',0.78,0.22); word(c,s,'아이스','#e0518f',0.16,0.55); } },
+  { id:'apple',  name:'사과',   emoji:'🍎', price:2, shape:'ball', size:[0.42, 0.42, 0.42], color:0xff5a5a },
+  { id:'orange', name:'귤',     emoji:'🍊', price:1, shape:'ball', size:[0.36, 0.36, 0.36], color:0xffa733 },
+  { id:'melon',  name:'수박',   emoji:'🍉', price:5, shape:'ball', size:[0.9, 0.9, 0.9],    color:0x4fbf5f },
 ];
 
 // -----------------------------------------------------------
