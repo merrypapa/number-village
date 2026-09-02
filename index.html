@@ -112,6 +112,11 @@
   #bookBtn { position:absolute; top:16px; right:16px; width:64px; height:64px;
     border:none; border-radius:20px; background:#fff9; font-size:32px;
     pointer-events:auto; cursor:pointer; }
+  /* 🎵 배경음악 켜기/끄기 */
+  #musicBtn { position:absolute; top:88px; right:16px; width:64px; height:64px;
+    border:none; border-radius:20px; background:#fff9; font-size:30px;
+    pointer-events:auto; cursor:pointer; }
+  #musicBtn.off { opacity:.45; }
   /* ---- 오른쪽 버튼 (인사 · 점프 · 타기) ---- */
   #hi, #jump, #ride { position:absolute; border:none; border-radius:50%; color:#fff;
     pointer-events:auto; cursor:pointer; touch-action:none;
@@ -360,6 +365,7 @@
 <!-- 게임 HUD -->
 <div id="hud">
   <button id="bookBtn">📖</button>
+  <button id="musicBtn">🎵</button>
 
   <!-- 왼쪽: 손가락으로 미는 조이스틱 -->
   <div id="stick" class="no-drag"><div id="knob"></div></div>
@@ -370,7 +376,7 @@
   <button id="hi" class="no-drag">👋</button>
 
   <div id="toast"></div>
-  <div id="hint">동그라미를 밀어서 걷고<br>점프·👋 버튼을 눌러요<br>놀이터에서 그네·미끄럼틀·시소도 타요!<br>🐴 말 옆에서 <b>타기</b>를 누르면 말을 타고 달려요<br>🏰 인하성 2층 발코니로 나가면 ☁️ 징검다리로 루하성에 가요<br>🛒 마트에서 🧺 장바구니를 들고 물건을 담아 계산해 봐요<br>🏠 친구 집에 놀러 가면 집주인이 반겨줘요<br>🎨 그림의 집에서 손가락으로 그림을 그려요</div>
+  <div id="hint">동그라미를 밀어서 걷고<br>점프·👋 버튼을 눌러요<br>놀이터에서 그네·미끄럼틀·시소도 타요!<br>🐴 말 옆에서 <b>타기</b>를 누르면 말을 타고 달려요<br>🏰 인하성 2층 발코니 → ☁️ 징검다리 → 🌙 루하성 2층<br>🎵 오른쪽 위 버튼으로 음악을 켜고 꺼요<br>🛒 마트에서 🧺 장바구니를 들고 물건을 담아 계산해 봐요<br>🏠 친구 집에 놀러 가면 집주인이 반겨줘요<br>🎨 그림의 집에서 손가락으로 그림을 그려요</div>
 </div>
 
 

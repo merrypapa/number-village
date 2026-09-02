@@ -322,6 +322,9 @@ export function createPlayer(model, camera, world) {
     // 0) 놀이기구를 타는 중이면 조작 대신 놀이기구가 자리와 각도를 정해준다
     if (ride) {
       if (ride.drive) return driveRide(dt, t);        // 말은 내가 몬다
+      //  놀이기구가 카메라 각도를 직접 정하기도 한다.
+      //  (회전목마는 카메라를 늘 **바깥쪽**에 둔다. 안 그러면 기둥이 앞을 가린다)
+      if (ride.camYawAt) camYaw = ride.camYawAt(t);
       rideTime += dt;
       const done = applyRide(ride, model, rideTime, t);
       rideY = model.position.y;
