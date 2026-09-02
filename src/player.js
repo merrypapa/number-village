@@ -38,7 +38,16 @@ const HORSE_R    = 1.8;     // 말 몸 굵기 (이만큼 물건에서 떨어진�
 //    (마을에서만 쓴다. 실내는 벽이 안쪽만 보이는 판이라 밖에 있어도 잘 보인다)
 const CAM_MIN   = 4.5;      // 이보다 더 가까이는 안 당긴다 (너무 붙으면 어지럽다)
 const CAM_PROBE = 1.2;      // 카메라 몸 굵기 (이만큼 물건에서 떨어진다)
-const CAM_STEPS = 6;        // 몇 번에 나눠서 당겨볼까
+const CAM_STEPS = 14;       // 몇 번에 나눠서 당겨볼까 (많을수록 촘촘하다)
+
+// 카메라 거리가 **스르륵** 변하게 하는 속도.
+//  ★ 당겨보는 자리는 CAM_STEPS 칸으로 뚝뚝 끊겨 있다. 그 값을 그대로 쓰면
+//    시선(lookAt)이 계단처럼 튀어서 화면이 덜컹거린다.
+//    그래서 지금 거리(camDist)를 따로 두고 거기로 조금씩 다가간다.
+//  ★ 당길 때는 빠르게(안 그러면 벽에 잠깐 파묻힌다),
+//    물러날 때는 천천히(갑자기 확 멀어지면 어지럽다).
+const CAM_IN_RATE  = 14;    // 당기는 속도
+const CAM_OUT_RATE = 2.2;   // 물러나는 속도
 const CAM_NEAR_LOOK = 1.4;  // 바짝 당겼을 때 바라보는 높이 (캐릭터 가슴께).
                             //  ★ 멀리서는 하늘도 보이게 위(LOOK_HEIGHT)를 보지만,
                             //    바짝 당긴 채로 위를 보면 캐릭터가 화면 아래로 밀려난다
@@ -70,6 +79,7 @@ export function createPlayer(model, camera, world) {
 
   const keys = new Set();
   let camYaw = 0;            // 카메라 좌우 각도
+  let camDist = CAM_DIST;    // 지금 카메라 거리 (건물에 닿으면 줄었다가 스르륵 돌아온다)
   let dragId = null, lastX = 0;   // 화면을 끌어서 카메라 돌리기 (손가락 하나만)
   // joy는 src/touch.js의 가상 조이스틱이 채워준다. mag = 얼마나 많이 밀었나(0~1)
   const joy = { x: 0, y: 0, mag: 0, active: false };
@@ -154,7 +164,6 @@ export function createPlayer(model, camera, world) {
    *  (area.camCollide를 켜둔 공간에서만 — 지금은 마을)
    */
   function safeCamDist(want, y) {
-    if (!area.camCollide || !area.isBlocked) return want;
     for (let i = 0; i <= CAM_STEPS; i++) {
       const d = want - (want - CAM_MIN) * (i / CAM_STEPS);
       const x = model.position.x - Math.sin(camYaw) * d;
@@ -162,6 +171,18 @@ export function createPlayer(model, camera, world) {
       if (!area.isBlocked(x, z, CAM_PROBE, y)) return d;
     }
     return CAM_MIN;
+  }
+
+  /**
+   * 이번 프레임에 쓸 카메라 거리. 끊기지 않게 조금씩 움직인다.
+   *  dt를 크게 주면(공간을 옮길 때) 그 자리에서 바로 맞춘다.
+   */
+  function stepCamDist(want, y, dt) {
+    if (!area.camCollide || !area.isBlocked) { camDist = want; return want; }
+    const safe = safeCamDist(want, y);
+    const rate = safe < camDist ? CAM_IN_RATE : CAM_OUT_RATE;
+    camDist += (safe - camDist) * Math.min(1, rate * dt);
+    return camDist;
   }
 
   function followCamera(dt, base, lift) {
@@ -173,8 +194,8 @@ export function createPlayer(model, camera, world) {
     const lookH  = ride?.lookHeight ?? area.lookHeight ?? LOOK_HEIGHT;
 
     // 건물 속이면 당겨온다. t = 얼마나 당겼나 (1이면 그대로, 작을수록 가까이)
-    const dist = safeCamDist(want, base);
-    const t = dist / want;
+    const dist = stepCamDist(want, base, dt);
+    const t = Math.min(1, dist / want);
 
     // 바라보는 곳 — 당길수록 캐릭터 가슴께를 본다 (화면 밖으로 안 밀려나게)
     _look.set(
@@ -396,6 +417,7 @@ export function createPlayer(model, camera, world) {
     get nearSpot() { return nearSpot; },    // 바로 앞에 있는 말 거는 자리
     get ride()     { return ride; },       // 지금 타고 있는 놀이기구
     get nearRide() { return nearRide; },   // 바로 옆에 있는 빈 놀이기구
+    get camDist()  { return camDist; },    // 지금 카메라 거리 (덜컹거림을 확인할 때 본다)
   };
   return api;
 }
