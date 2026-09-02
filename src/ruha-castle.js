@@ -41,8 +41,12 @@ const THRONE   = { x: 0,   z: -19 };   // 👑 달의 옥좌 (북쪽)
 const CAROUSEL = { x: -17, z: 6 };     // 🎠 별 회전목마 (서쪽)
 const SWING    = { x: 17,  z: 6 };     // 🌙 달 그네 (동쪽)
 const WELL     = { x: -17, z: -12 };   // 🌠 소원 우물
-const DOME     = { x: 17,  z: -12 };   // 🔭 별자리 돔
-const SKY_DOOR = { x: 15,  z: -D / 2 + 2.4 };   // ☁️ 징검다리로 나가는 북쪽 문
+const DOME     = { x: 12,  z: -14 };   // 🔭 별자리 돔
+//  ☁️ 징검다리로 나가는 북쪽 문.
+//  ★ 문 앞(x = SKY_DOOR.x)에서 홀 안쪽으로 이어지는 길은 **비워둔다.**
+//    카메라가 캐릭터 뒤(문 쪽)에 서기 때문에, 이 길에 큰 물건이 있으면
+//    들어오자마자 그 물건이 화면을 다 가린다
+const SKY_DOOR = { x: 21,  z: -D / 2 + 2.4 };
 
 // 별자리 돔에서 나오는 이야기
 const STARS_TALK = [
@@ -287,7 +291,9 @@ export function buildSkywayArea(ctx) {
     ...ctx,
     buildRuha: buildRuhaCastle,
     // 징검다리 → 루하성 북쪽 문으로 들어올 때 서는 자리
-    ruhaArrive: new THREE.Vector3(SKY_DOOR.x, 0, -D / 2 + 6.0),
+    //  ★ 문에서 넉넉히 안쪽에 세운다. 문 바로 앞에 세우면 카메라가
+    //    성벽 바깥에 서서 문틀이 화면을 가린다 (건물에서 나올 때와 같은 문제)
+    ruhaArrive: new THREE.Vector3(SKY_DOOR.x, 0, -D / 2 + 18),
     ruhaYaw: 0,
     // 징검다리 → 인하성 2층 동쪽 발코니로 돌아갈 때 서는 자리
     //  ★ y에 FLOOR2를 적어야 1층이 아니라 2층에 내려선다 (player.js의 moveTo)

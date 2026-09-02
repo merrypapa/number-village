@@ -17,7 +17,7 @@ import { buildSky } from './sky.js';
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
 // -----------------------------------------------------------
-const PATH_HALF = 2.6;      // 길의 반 너비 (이만큼까지 걸어도 된다)
+const PATH_HALF = 3.4;      // 길의 반 너비 (이만큼까지 걸어도 된다)
 const STONE_R   = 3.2;      // 징검다리 돌 하나의 크기
 const STONE_GAP = 7.0;      // 돌과 돌 사이 간격
 
@@ -27,25 +27,35 @@ const B_PLAT = { x: 0, z: -77.5 };   // 🌙 루하성 쪽
 const PLAT_R = 5.8;                  // 승강장에서 걸어 다닐 수 있는 반지름
 const ARCH_Z = 5.0;                  // 승강장 한가운데에서 아치 문까지 (뒤쪽 끝)
 
-// 길 — 인하성에서 루하성까지. 살짝 S자로 휘어 있어서 걷는 맛이 있다
-const PATH = [
-  { x: 0,   z: 8 },
-  { x: 0,   z: -10 },
-  { x: -5,  z: -20 },
-  { x: -7,  z: -30 },
-  { x: -3,  z: -40 },
-  { x: 4,   z: -50 },
-  { x: 4,   z: -62 },
-  { x: 0,   z: -82 },
+// 길이 지나가는 자리 — 인하성에서 루하성까지. 살짝 S자로 휘어 있다
+//  ★ 이 점들을 그대로 직선으로 이으면 **꺾이는 모퉁이**가 생긴다.
+//    모퉁이 바깥에는 쐐기 같은 틈이 생겨서, 거기 끼면 밀어내는 방향이
+//    매 프레임 뒤집히며 **걸음이 멈춘다**. 그래서 아래에서 부드러운 곡선으로 바꾼다.
+//  ★ 길은 승강장 안에서 시작하고 끝나야 한다. 승강장 밖까지 이으면
+//    그 끝자락(길 반 너비만큼)이 허공에 튀어나와서 아무것도 없는 데를 걷게 된다
+const CONTROL = [
+  { x: 0,   z: 4 },
+  { x: 0,   z: -8 },
+  { x: -5,  z: -26 },
+  { x: -5,  z: -44 },
+  { x: 3,   z: -62 },
+  { x: 0,   z: -80 },
 ];
+
+// 부드러운 곡선으로 바꾼 뒤, 촘촘한 점으로 잘라 둔다.
+//  점이 촘촘하면 이웃한 두 토막이 거의 일직선이라 모퉁이 쐐기가 생기지 않는다.
+const CURVE = new THREE.CatmullRomCurve3(
+  CONTROL.map(p => new THREE.Vector3(p.x, 0, p.z))
+);
+const PATH = CURVE.getSpacedPoints(240);
 
 // -----------------------------------------------------------
 //  ★ 오갈 때 서는 자리 — 두 성과 이어지는 약속
 // -----------------------------------------------------------
 /** 인하성 2층에서 징검다리로 나왔을 때 서는 자리 */
-export const SKY_FROM_CASTLE = { pos: new THREE.Vector3(0, 0, 2.5), yaw: Math.PI };
+export const SKY_FROM_CASTLE = { pos: new THREE.Vector3(0, 0, 1.5), yaw: Math.PI };
 /** 루하성에서 징검다리로 나왔을 때 서는 자리 */
-export const SKY_FROM_RUHA   = { pos: new THREE.Vector3(0, 0, -76.5), yaw: 0 };
+export const SKY_FROM_RUHA   = { pos: new THREE.Vector3(0, 0, -75.5), yaw: 0 };
 
 const STONE_COLORS = [0xa8ead8, 0xffd9e8, 0xc9b4ff, 0xa8e6ff, 0xfff3c8];
 
@@ -60,6 +70,7 @@ function nearestOnPath(x, z) {
     const a = PATH[i], b = PATH[i + 1];
     const dx = b.x - a.x, dz = b.z - a.z;
     const len2 = dx * dx + dz * dz;
+    if (len2 < 1e-9) continue;
     let u = ((x - a.x) * dx + (z - a.z) * dz) / len2;
     u = Math.max(0, Math.min(1, u));
     const px = a.x + dx * u, pz = a.z + dz * u;
@@ -72,18 +83,8 @@ function nearestOnPath(x, z) {
 
 /** 길을 따라 STONE_GAP 간격으로 돌 놓을 자리를 뽑는다 (승강장 위는 뺀다) */
 function stoneSpots() {
-  const spots = [];
-  let carry = 0;
-  for (let i = 0; i < PATH.length - 1; i++) {
-    const a = PATH[i], b = PATH[i + 1];
-    const len = Math.hypot(b.x - a.x, b.z - a.z);
-    for (let t = carry; t < len; t += STONE_GAP) {
-      const u = t / len;
-      spots.push({ x: a.x + (b.x - a.x) * u, z: a.z + (b.z - a.z) * u });
-      carry = t + STONE_GAP - len;
-    }
-  }
-  return spots.filter(p =>
+  const n = Math.max(2, Math.round(CURVE.getLength() / STONE_GAP));
+  return CURVE.getSpacedPoints(n).filter(p =>
     Math.hypot(p.x - A_PLAT.x, p.z - A_PLAT.z) > PLAT_R + 3 &&
     Math.hypot(p.x - B_PLAT.x, p.z - B_PLAT.z) > PLAT_R + 3);
 }
@@ -301,13 +302,15 @@ export function buildSkyway(ctx) {
     doors: [
       {
         // 뒤로 돌아가기 — 인하성 2층 발코니 (승강장 아치 안쪽)
-        x: A_PLAT.x, z: A_PLAT.z + ARCH_Z - 1.7, r: 2.2, y: 0, to: 'castle',
+        //  ★ 감지 반지름을 넓게 준다(3.8). 길이 넓어서 한쪽으로 붙어 걸으면
+        //    좁은 문은 그냥 지나쳐 버린다. 승강장은 넓으니 넉넉해도 괜찮다
+        x: A_PLAT.x, z: A_PLAT.z + ARCH_Z - 1.7, r: 3.8, y: 0, to: 'castle',
         label: '인하성 2층으로 돌아왔어요 🏰',
         arrive: ctx.castleArrive, arriveYaw: ctx.castleYaw,
       },
       {
         // 앞으로 — 루하성
-        x: B_PLAT.x, z: B_PLAT.z - ARCH_Z + 1.7, r: 2.2, y: 0, to: 'ruha',
+        x: B_PLAT.x, z: B_PLAT.z - ARCH_Z + 1.7, r: 3.8, y: 0, to: 'ruha',
         label: '루하성에 도착! 🌙 별과 달의 성',
         //  ★ 루하성을 만드는 함수는 밖에서 받는다 (파일끼리 서로 부르지 않게)
         build: (c) => ctx.buildRuha(c),
