@@ -17,7 +17,8 @@ import {
   R, makeStar, makeMoon, makeStarFountain, makeMoonSwing, makeStarCarousel,
   makeWishWell, makeConstellationDome, makeMoonThrone, makeCrystal,
   makeNightCeiling, nightFloorTexture,
-  SWING_SEAT, SWING_TOP, CAROUSEL_R, CAROUSEL_SEAT, CAROUSEL_SPD, THRONE_SEAT,
+  SWING_SEAT, SWING_TOP, CAROUSEL_R, CAROUSEL_SEAT, CAROUSEL_SPD, CAROUSEL_OUT,
+  THRONE_SEAT,
 } from './ruha-props.js';
 import { makeSeatRide } from './house-props.js';
 import { makeCushion } from './castle-props2.js';
@@ -167,7 +168,9 @@ export function buildRuhaCastle(ctx) {
     enter: { x: CAROUSEL.x + 7.4, z: CAROUSEL.z },
     exit:  { x: CAROUSEL.x + 7.4, z: CAROUSEL.z },
     reach: 3.4, duration: 999, autoEnd: false, rider: null,
-    camDist: 14, camHeight: 7,
+    //  탈 때 카메라 — 조금 가까이, 그리고 **캐릭터 높이**를 본다
+    //  (기본값은 하늘도 보이게 위를 봐서, 앉은 캐릭터가 화면 아래로 처진다)
+    camDist: 12, camHeight: 6.5, lookHeight: 3.0,
     onRide(on, model) {
       if (!on) return;
       // 서 있던 쪽에서 그대로 올라탄다 (갑자기 반대편으로 순간이동하지 않게)
@@ -175,12 +178,21 @@ export function buildRuhaCastle(ctx) {
                    - now * CAROUSEL_SPD;
     },
     tick(t) { now = t; },
+    //  ★ 카메라를 늘 회전목마 **바깥쪽**에 둔다.
+    //    안 그러면 가운데 기둥과 매다는 봉이 계속 앞을 가린다
+    camYawAt() {
+      const a = now * CAROUSEL_SPD + boardAngle;
+      return Math.atan2(-Math.cos(a), -Math.sin(a));
+    },
+    //  ★ a = 지금 내가 있는 각도. 회전목마 자리와 **똑같은 식**으로 돌아야
+    //    말과 캐릭터가 따로 놀지 않는다 (ruha-props.js의 spin.rotation.y 참고)
     pose(rideTime, o) {
       const a = now * CAROUSEL_SPD + boardAngle;
-      o.x = CAROUSEL.x + Math.cos(a) * CAROUSEL_R;
-      o.z = CAROUSEL.z + Math.sin(a) * CAROUSEL_R;
+      const rr = CAROUSEL_R + CAROUSEL_OUT;   // 자리보다 조금 바깥에 앉는다
+      o.x = CAROUSEL.x + Math.cos(a) * rr;
+      o.z = CAROUSEL.z + Math.sin(a) * rr;
       o.y = CAROUSEL_SEAT + Math.sin(now * 2.2) * 0.18;   // 위아래로 살짝
-      o.yaw = -a + Math.PI / 2;                           // 도는 방향을 바라본다
+      o.yaw = -a;                                         // 자리와 같은 쪽을 바라본다
       o.tilt = 0;
       void rideTime;
       return o;

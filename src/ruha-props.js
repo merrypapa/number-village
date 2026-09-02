@@ -133,6 +133,10 @@ export function makeMoonSwing() {
 export const CAROUSEL_R    = 5.2;    // 자리가 놓인 반지름
 export const CAROUSEL_SEAT = 2.4;    // 앉는 높이
 export const CAROUSEL_SPD  = 0.55;   // 도는 빠르기 (라디안/초)
+// 타는 사람은 자리보다 이만큼 **바깥쪽**에 앉는다.
+//  ★ 카메라가 바깥에서 들여다보기 때문에, 달·별 장식이 캐릭터 앞을 가리지 않게
+//    캐릭터를 제일 바깥에 둔다
+export const CAROUSEL_OUT  = 1.0;
 
 export function makeStarCarousel() {
   const g = new THREE.Group();
@@ -160,7 +164,9 @@ export function makeStarCarousel() {
   for (let i = 0; i < SEATS; i++) {
     const a = (i / SEATS) * Math.PI * 2;
     const x = Math.cos(a) * CAROUSEL_R, z = Math.sin(a) * CAROUSEL_R;
-    spin.add(part('cyl', R.silver, x, 9, z, 0.3, 14, 0.3));         // 매다는 봉
+    //  매다는 봉은 자리보다 안쪽에 (캐릭터 앞을 가리지 않게)
+    spin.add(part('cyl', R.silver, Math.cos(a) * (CAROUSEL_R - 1.2), 9,
+                  Math.sin(a) * (CAROUSEL_R - 1.2), 0.3, 14, 0.3));
 
     const seat = new THREE.Group();
     seat.position.set(x, CAROUSEL_SEAT - 0.7, z);
@@ -173,13 +179,19 @@ export function makeStarCarousel() {
         seat.add(part('ball', 0xffffff, dx, dy, 0, r));
       }
     }
-    seat.add(part('box', R.moon, 0, 0.6, 0, 2.6, 0.35, 1.8, glow(R.moon)));  // 방석
+    //  방석은 바깥쪽으로 길게 — 캐릭터가 이 위 바깥쪽 끝에 앉는다
+    //  (자리 그룹 안에서 **+x가 바깥쪽**이다)
+    seat.add(part('box', R.moon, 0.5, 0.6, 0, 3.4, 0.35, 1.8, glow(R.moon)));
     spin.add(seat);
   }
 
   g.userData.spin = spin;
   g.userData.tick = (t) => {
-    spin.rotation.y = t * CAROUSEL_SPD;
+    //  ★ 부호에 주의! 그룹을 rotation.y = +θ로 돌리면 그 안의 점은
+    //    각도가 **줄어드는** 쪽으로 간다. 그래서 -를 붙여서
+    //    "각도가 늘어나는 쪽"으로 돌게 맞춘다.
+    //    (타는 사람 자리를 계산하는 ruha-castle.js와 방향을 같게 하려고)
+    spin.rotation.y = -t * CAROUSEL_SPD;
     topStar.rotation.y = -t * 1.6;
   };
   return g;
