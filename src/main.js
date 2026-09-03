@@ -27,7 +27,8 @@ document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xbfe8ff);
-scene.fog = new THREE.Fog(0xbfe8ff, 120, 220);
+//  마을이 넓어져서 안개도 멀리 물러나게 한다 (예전 120~220)
+scene.fog = new THREE.Fog(0xbfe8ff, 190, 340);
 
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 500);
 
@@ -37,9 +38,10 @@ const sun = new THREE.DirectionalLight(0xfff6e0, 1.6);
 sun.position.set(40, 70, 30);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
-sun.shadow.camera.left = -90; sun.shadow.camera.right = 90;
-sun.shadow.camera.top = 90;   sun.shadow.camera.bottom = -90;
-sun.shadow.camera.far = 200;
+//  넓어진 마을 전체에 그림자가 지도록 범위를 키웠다
+sun.shadow.camera.left = -140; sun.shadow.camera.right = 140;
+sun.shadow.camera.top = 140;   sun.shadow.camera.bottom = -140;
+sun.shadow.camera.far = 280;
 sun.shadow.normalBias = 0.6;      // 넓은 지붕에 얼룩(줄무늬)이 생기지 않게
 scene.add(sun);
 
@@ -229,6 +231,36 @@ function updateActionButton() {
 }
 
 // -----------------------------------------------------------
+//  🛗 놀이기구가 들고 있는 버튼 두 개 (엘리베이터 ▲▼)
+//    놀이기구에 buttons = [{ label, press() }, …] 를 적어두면 화면에 나온다.
+//    지금은 엄마성 엘리베이터만 쓴다 (src/mom-layout.js)
+// -----------------------------------------------------------
+//  누르는 것은 src/touch.js가 맡는다 (다른 버튼과 똑같이 pointerdown으로)
+const rideBtns = [document.getElementById('liftUp'), document.getElementById('liftDn')];
+let shownBtns = '';
+//  키보드로도 (위·아래 화살표)
+addEventListener('keydown', (e) => {
+  const list = player?.ride?.buttons;
+  if (!list) return;
+  if (e.code === 'ArrowUp')   list[0]?.press();
+  if (e.code === 'ArrowDown') list[1]?.press();
+});
+
+function updateRideButtons() {
+  const list = player.ride?.buttons || [];
+  //  글씨가 바뀔 때만 손댄다 (매 프레임 DOM을 만지지 않게)
+  const key = list.map(b => b.label).join('|');
+  if (key === shownBtns) return;
+  shownBtns = key;
+  rideBtns.forEach((el, i) => {
+    el.style.display = list[i] ? 'flex' : 'none';
+    //  ★ 글씨가 바뀔 때만 손댄다. 누르고 있는 동안 글씨를 갈아치우면
+    //    기기에 따라 누른 것이 취소될 수 있다
+    if (list[i] && el.textContent !== list[i].label) el.textContent = list[i].label;
+  });
+}
+
+// -----------------------------------------------------------
 //  🧚 요정 친구 부르기 — 성 안 진열대에서 버튼을 눌렀을 때
 //    부르면 그 친구가 성 안을 돌아다니고, 다시 누르면 제자리로 돌아간다.
 // -----------------------------------------------------------
@@ -313,6 +345,7 @@ function loop() {
     player.update(dt, t);
     npcs?.update(dt, t, player.model.position);
     updateActionButton();
+    updateRideButtons();
     //  놀이기구가 하고 싶은 말이 있으면 화면에 띄운다
     //  (엘리베이터가 "3층 미끄럼틀!" 하고 층을 알려준다)
     if (player.ride?.say) { toast(player.ride.say); player.ride.say = null; }

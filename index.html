@@ -138,6 +138,17 @@
   /* 글자가 길면(공부하기·일어나기) 글씨를 줄여서 동그라미 안에 넣는다 */
   #ride[data-len="4"] { font-size:19px; }
   #ride[data-len="5"] { font-size:16px; }
+  /* 🛗 엘리베이터 ▲▼ 버튼 — 탈 때만 나타난다 (main.js가 보여준다).
+     조이스틱 위 왼쪽에 둔다. 오른손은 '내리기'를 누르니까 서로 안 겹친다 */
+  #liftUp, #liftDn { position:absolute; left:calc(34px + env(safe-area-inset-left));
+    border:none; border-radius:26px; width:92px; height:78px;
+    background:#b39ddb; color:#fff; font-size:17px; font-weight:800; line-height:1.15;
+    white-space:pre-line; box-shadow:0 6px 0 #7e57c2;
+    pointer-events:auto; cursor:pointer; touch-action:none;
+    display:none; align-items:center; justify-content:center; }
+  #liftUp { bottom:calc(300px + env(safe-area-inset-bottom)); }
+  #liftDn { bottom:calc(206px + env(safe-area-inset-bottom)); }
+  #liftUp:active, #liftDn:active { transform:translateY(4px); box-shadow:0 2px 0 #7e57c2; }
   #hi:active   { transform:translateY(4px); box-shadow:0 2px 0 #e0518f; }
   #jump:active { transform:translateY(4px); box-shadow:0 2px 0 #3aa9e0; }
   #ride:active { transform:translateY(4px); box-shadow:0 2px 0 #d9a800; }
@@ -164,6 +175,9 @@
              bottom:calc(212px + env(safe-area-inset-bottom)); }
     #ride[data-len="4"] { font-size:15px; }
     #ride[data-len="5"] { font-size:13px; }
+    #liftUp, #liftDn { width:78px; height:64px; font-size:14px; }
+    #liftUp { bottom:calc(238px + env(safe-area-inset-bottom)); }
+    #liftDn { bottom:calc(166px + env(safe-area-inset-bottom)); }
   }
   /* 공간이 바뀔 때 화면을 잠깐 덮는 막 (성에 들어가고 나올 때) */
   #fade { position:fixed; inset:0; z-index:30; background:#fff;
@@ -370,13 +384,17 @@
   <!-- 왼쪽: 손가락으로 미는 조이스틱 -->
   <div id="stick" class="no-drag"><div id="knob"></div></div>
 
+  <!-- 왼쪽: 🛗 엘리베이터 위·아래 버튼 (엘리베이터를 탔을 때만 보인다) -->
+  <button id="liftUp" class="no-drag">▲</button>
+  <button id="liftDn" class="no-drag">▼</button>
+
   <!-- 오른쪽: 타기(놀이기구 옆에서만) · 점프 · 인사 -->
   <button id="ride" class="no-drag">타기</button>
   <button id="jump" class="no-drag">점프</button>
   <button id="hi" class="no-drag">👋</button>
 
   <div id="toast"></div>
-  <div id="hint">동그라미를 밀어서 걷고<br>점프·👋 버튼을 눌러요<br>놀이터에서 그네·미끄럼틀·시소도 타요!<br>🐴 말 옆에서 <b>타기</b>를 누르면 말을 타고 달려요<br>🏰 인하성 2층 발코니 → ☁️ 징검다리 → 🌙 루하성 2층<br>🎵 오른쪽 위 버튼으로 음악을 켜고 꺼요<br>🛒 마트에서 🧺 장바구니를 들고 물건을 담아 계산해 봐요<br>🏠 친구 집에 놀러 가면 집주인이 반겨줘요<br>🎨 그림의 집에서 손가락으로 그림을 그려요</div>
+  <div id="hint">동그라미를 밀어서 걷고<br>점프·👋 버튼을 눌러요<br>놀이터에서 그네·미끄럼틀·시소도 타요!<br>🐴 말 옆에서 <b>타기</b>를 누르면 말을 타고 달려요<br>🏰 인하성 2층 발코니 → ☁️ 징검다리 → 🌙 루하성 2층<br>🎵 오른쪽 위 버튼으로 음악을 켜고 꺼요<br>🛒 마트에서 🧺 장바구니를 들고 물건을 담아 계산해 봐요<br>🏠 친구 집에 놀러 가면 집주인이 반겨줘요<br>🎨 그림의 집에서 손가락으로 그림을 그려요<br>💗 엄마성 🛗 엘리베이터를 타고 ▲▼로 10층까지 올라가요</div>
 </div>
 
 

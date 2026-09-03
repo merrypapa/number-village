@@ -4,16 +4,17 @@
 // ===========================================================
 import * as THREE from 'three';
 import { CHARACTERS, createCharacter } from './characters.js';
-import { WORLD_RADIUS } from './world.js';
 import { findFreeRide, mountRide, applyRide, dismountRide, SAME_FLOOR } from './rides.js';
 import { withObject } from './korean.js';
 
 // --- 아이가 바꿔볼 수 있는 값들 ---
-const NPC_COUNT     = 24;      // 마을에 돌아다니는 친구 수
+const NPC_COUNT     = 30;      // 마을에 돌아다니는 친구 수 (마을이 넓어져서 조금 늘림)
 const WALK_SPEED    = 2.4;     // NPC 걷기 속도 (천천히)
 const REST_MIN      = 1;       // 도착 후 쉬는 시간 (최소, 초)
 const REST_MAX      = 3;       // 도착 후 쉬는 시간 (최대, 초)
-const WANDER_RADIUS = WORLD_RADIUS - 8;  // NPC가 돌아다니는 반경
+//  ★ 마을 반지름 전부를 쓰면 친구들이 너무 흩어져서 만나기 어렵다.
+//    광장과 집들 주변(약 70칸)에서만 놀게 한다
+const WANDER_RADIUS = 70;      // NPC가 돌아다니는 반경
 const NEAR_DIST     = 6;       // 이 거리 안이면 '!' 표시
 const SKIP_DIST     = 45;      // 이 거리보다 멀면 애니메이션 업데이트 생략
 const NPC_RADIUS    = 0.7;     // NPC 몸 굵기 (물건에 부딪히는 크기)

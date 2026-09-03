@@ -32,6 +32,7 @@ import { buildGallery } from './castle-gallery.js';
 import { buildSkywayArea, SKY_FROM_CASTLE } from './skyway.js';
 import { buildRainbowArea, RB_FROM_CASTLE, CASTLE_RB_DOOR } from './rainbow-bridge.js';
 import { registerArea } from './area-link.js';
+import { CASTLE } from './village-sites.js';
 import { makeWallDoor } from './castle-door.js';
 import { buildTrainWay, TW_FROM_CASTLE, CASTLE_TW_DOOR } from './dad-bridges.js';
 import { makeSign } from './mart-props.js';
@@ -343,7 +344,8 @@ export function buildCastleInterior(envMap, playerCharId) {
       label: '마을로 나왔어요! 🌳',
       // ★ y = 이 문이 있는 층. 2층에서 이 자리 위를 지나가도 나가지지 않는다
       // 성 문 앞은 카메라가 성벽에 파묻히므로 조금 앞쪽(광장 쪽)에 내려준다
-      arrive: new THREE.Vector3(0, 0, -24), arriveYaw: 0,
+      //  ★ 자리는 마을 지도(village-sites.js)에서 가져온다 — 성을 옮기면 같이 따라온다
+      arrive: new THREE.Vector3(CASTLE.x, 0, CASTLE.exitZ), arriveYaw: 0,
     }, {
       // ☁️ 2층 동쪽 발코니 → 구름 징검다리 → 루하성
       //  y: FLOOR2 를 적어야 1층에서 이 자리를 지나가도 안 나가진다
