@@ -110,7 +110,8 @@ export function buildDadCastle(ctx) {
   room.hang(makeToolWall(11, 5.4), BENCH.x, 4.6, -DAD_D / 2 + 0.4, 0);
   room.place(makeCarLift(), LIFT.x, LIFT.z, 0, { hw: 4.2, hd: 2.6, ...DF1 });
   const robot = room.place(makeRobot(), ROBOT.x, ROBOT.z, 0, { r: 1.8, ...DF1 });
-  for (const [cx, cz, s] of [[-27, 6, 2.4], [-27, 9, 2.0], [-25.6, 7.4, 1.8], [27, 16, 2.4]]) {
+  //  ★ 계단 자리(x -26~-17, z 1~15) · 계단 올라가는 길 · 🪨 돌다리 문(x 28, z 10) 앞은 비워둔다
+  for (const [cx, cz, s] of [[-13, 22, 2.4], [-10, 22, 2.0], [-11.5, 19.4, 1.8], [25, 21, 2.4]]) {
     room.place(makeCrate(s), cx, cz, Math.random(), { r: s * 0.7, ...DF1 });
   }
   room.place(makeLantern(), -27, -8, 0, { r: 0.8, ...DF1 });

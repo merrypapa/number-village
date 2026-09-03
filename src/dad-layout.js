@@ -10,7 +10,7 @@
 //    │  ▒▒▒▒▒▒ 2층 캠핑 데크 ▒▒▒▒▒▒  │  z -26 ~ -6
 //    ├───┬─────────────────────────┤
 //    │2층│                         │  z -6 ~ 16
-//    │계단│      1층 공작소 · 기차     │
+//    │계단│      1층 공작소 · 기차     │  (계단은 벽에서 4칸 떨어져 있다)
 //    │   │   (가운데는 천장까지 뻥)    │
 //    ├───┴─────────────────────────┤
 //    │        1층 기차역 홀          │  z 16 ~ 26
@@ -51,7 +51,13 @@ const SLAB = [
 
 // 계단 — **서쪽** 벽에 붙어서 남(z 15)에서 북(z 1)으로 올라간다
 //  ★ 동쪽 벽에는 🪨 돌다리로 나가는 문이 있어서 계단을 서쪽으로 옮겼다
-const STAIR = { x0: -29, x1: -21, zBot: 15, zTop: 1, steps: 22 };
+//  ★★ 계단은 **벽에서 떨어뜨려** 놓고, 양옆을 둘 다 막는다.
+//     ① 예전에 x0을 -29로 두었더니 벽(-30)과 계단 사이에 1칸 틈이 생겼고,
+//        몸 굵기(0.8)가 그 틈에 빠져서 **계단을 오르다 아래로 떨어졌다.**
+//     ② 벽에 딱 붙이면 이번엔 계단을 올라와 그대로 북쪽으로 걸을 때
+//        벽에 난 🪢 밧줄 다리 문에 **저절로 들어가 버린다.**
+//     → 그래서 벽에서 4칸 떼고, 계단 양옆을 막아 틈을 아예 없앴다.
+const STAIR = { x0: -26, x1: -17, zBot: 15, zTop: 1, steps: 22 };
 
 function inRect(r, x, z) { return x > r.x0 && x < r.x1 && z > r.z0 && z < r.z1; }
 
@@ -132,15 +138,18 @@ function stairs(g, obstacles) {
     g.add(part('box', i % 2 ? D.wood : D.plank, cx, h / 2, z, w, h, depth));
     g.add(part('box', D.yellow, cx, h + 0.03, z, w - 2.4, 0.1, depth * 0.5));  // 미끄럼 방지 띠
   }
-  // 계단 옆 난간 (성벽 반대쪽인 동쪽에 세운다)
+  // 계단 옆 난간 — **양쪽 다** 세운다 (옆으로 떨어지지 않게)
   for (let i = 0; i <= STAIR.steps; i += 3) {
     const h = i / STAIR.steps * DAD_F2;
     const z = STAIR.zBot - depth * i;
+    g.add(part('cyl', D.iron, STAIR.x0 + 0.4, h + 0.9, z, 0.36, 1.8, 0.36));
     g.add(part('cyl', D.iron, STAIR.x1 - 0.4, h + 0.9, z, 0.36, 1.8, 0.36));
   }
-  // 계단 옆구리 — 여기로는 못 지나간다
-  obstacles.push({ x: STAIR.x1 + 0.2, z: (STAIR.zBot + STAIR.zTop) / 2,
-                   hw: 0.4, hd: (STAIR.zBot - STAIR.zTop) / 2 });
+  // 계단 옆구리 — 여기로는 못 지나간다 (양옆 모두)
+  for (const x of [STAIR.x0 - 0.2, STAIR.x1 + 0.2]) {
+    obstacles.push({ x, z: (STAIR.zBot + STAIR.zTop) / 2,
+                     hw: 0.4, hd: (STAIR.zBot - STAIR.zTop) / 2 });
+  }
   // 계단 뒤(북쪽) — 1층에서 계단 밑으로 파고들지 못하게
   obstacles.push({ x: cx, z: STAIR.zTop - 0.4, hw: w / 2, hd: 0.4, ...DF1 });
 }
@@ -180,9 +189,10 @@ export function buildDadStructure(scene) {
 
   // --- 2층 난간 (떨어지지 않게) ---
   railing(g, obstacles, -14, -6, DAD_W / 2, -6);     // 캠핑 데크 남쪽
-  railing(g, obstacles, -21, 1, -14, 1);             // 계단참 남쪽 (계단 옆만)
+  railing(g, obstacles, -17, 1, -14, 1);             // 계단참 남쪽 (계단 동쪽 자투리)
+  railing(g, obstacles, -DAD_W / 2, 1, -26, 1);      // 계단참 남쪽 (계단 서쪽 자투리)
   railing(g, obstacles, -14, -6, -14, 1);            // 계단참 동쪽
-  //  ★ 계단이 올라오는 자리(x -29~-21, z 1)에는 난간을 두지 않는다
+  //  ★ 계단이 올라오는 자리(x -26~-17, z 1)에만 난간을 비워둔다
 
   // --- 천장에 매달린 작업등 (아빠성다운 장식) ---
   for (const x of [-16, 0, 16]) {
