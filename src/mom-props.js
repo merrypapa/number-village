@@ -176,8 +176,9 @@ export function makeCarTrack(r = 10) {
   // 가운데 점선
   for (let i = 0; i < 24; i++) {
     const a = (i / 24) * Math.PI * 2;
+    //  ★ 가운데 점선은 **달리는 방향**으로 길게 누워야 한다
     const d = part('box', P.cream, Math.cos(a) * r, 0.09, Math.sin(a) * r, 1.2, 0.04, 0.4);
-    d.rotation.y = -a;
+    d.rotation.y = Math.PI / 2 - a;
     d.castShadow = false;
     g.add(d);
   }

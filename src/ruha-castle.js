@@ -26,10 +26,12 @@ import { makeSign } from './mart-props.js';
 import { buildSkywayArea, SKY_FROM_RUHA } from './skyway.js';
 import { registerArea } from './area-link.js';
 import { buildFlowerArea, FP_FROM_RUHA, RUHA_FP_DOOR } from './flower-path.js';
+import { buildStoneWay, SW_FROM_RUHA, RUHA_SW_DOOR } from './dad-bridges.js';
 import { RUHA_W, RUHA_D, RUHA_H, RUHA_F2, RF1, RF2,
          ruhaGroundY, buildRuhaStructure } from './ruha-layout.js';
 import { makeTelescope } from './castle-props2.js';
 import { glow, part } from './castle-props.js';
+import { makeWallDoor } from './castle-door.js';
 import { HALF_X, FLOOR2 } from './castle-layout.js';
 
 // -----------------------------------------------------------
@@ -116,16 +118,11 @@ export function buildRuhaCastle(ctx) {
   //   ★ 문 그림은 **한쪽만 보이는 판**이다. 문틀을 두껍게 두면
   //     들어올 때 카메라가 문 뒤에 서서 앞을 다 가린다
   // -----------------------------------------------------------
-  const DOOR_Y = RUHA_F2 + 3.4;
-  const doorGlow = new THREE.Mesh(new THREE.PlaneGeometry(6.0, 6.8), glow(0xdfe8ff));
-  doorGlow.userData.noShadow = true;
-  room.hang(doorGlow, SKY_DOOR.x, DOOR_Y, -D / 2 + 0.12, 0);
-  room.hang(makeSign('구름 징검다리 ☁️ 인하성 가는 길', 9, 1.3, '#8fa8ff', '#1b1b45'),
-            SKY_DOOR.x, DOOR_Y + 4.6, -D / 2 + 0.3, 0);
-  //  문간 발판 — 여기 서면 나간다고 눈으로 알려준다
-  const skyMat = part('box', R.ice, 0, 0, 0, 5.0, 0.12, 3.0, glow(R.ice));
-  skyMat.castShadow = false;
-  room.hang(skyMat, SKY_DOOR.x, RUHA_F2 + 0.08, -D / 2 + 2.0, 0);
+  makeWallDoor(room.scene, {
+    side: 'n', wall: -D / 2, at: SKY_DOOR.x, base: RUHA_F2,
+    frame: R.silver, light: 0xdfe8ff, mat: R.ice,
+    text: '구름 징검다리 ☁️ 인하성 가는 길', bg: '#8fa8ff', fg: '#1b1b45',
+  });
 
   // -----------------------------------------------------------
   //  🌙 2층 꾸미기 — 발코니 등불 · 방석 · 수정 전시 · 별 망원경
@@ -312,22 +309,22 @@ export function buildRuhaCastle(ctx) {
   //  🌸 1층 서쪽 벽의 바깥 문 — 여기로 나가면 꽃길이다 (엄마성으로)
   //   ★ 문 그림은 한쪽만 보이는 판. 두꺼운 문틀을 앞에 두면 카메라가 가린다
   // -----------------------------------------------------------
-  const fpGlow = new THREE.Mesh(new THREE.PlaneGeometry(5.4, 6.6), glow(0xd8f5c8));
-  fpGlow.position.set(-W / 2 + 0.12, 3.3, RUHA_FP_DOOR.z);
-  fpGlow.rotation.y = Math.PI / 2;
-  fpGlow.userData.noShadow = true;
-  room.scene.add(fpGlow);
-  for (const dz of [-3.2, 3.2]) {
-    room.hang(part('box', R.silver, 0, 0, 0, 0.6, 7.0, 0.6),
-              -W / 2 + 0.4, 3.3, RUHA_FP_DOOR.z + dz, 0);
-  }
-  room.hang(part('box', R.silver, 0, 0, 0, 0.6, 0.6, 7.0),
-            -W / 2 + 0.4, 6.9, RUHA_FP_DOOR.z, 0);
-  room.hang(makeSign('꽃길 🌸 엄마성 가는 길', 6.6, 1.1, '#9fe08a', '#1b1b45'),
-            -W / 2 + 0.45, 8.0, RUHA_FP_DOOR.z, Math.PI / 2);
-  const fpMat = part('box', 0x9fe08a, 0, 0, 0, 2.6, 0.12, 4.2, glow(0x9fe08a));
-  fpMat.castShadow = false;
-  room.hang(fpMat, -W / 2 + 1.4, 0.08, RUHA_FP_DOOR.z, 0);
+  makeWallDoor(room.scene, {
+    side: 'w', wall: -W / 2, at: RUHA_FP_DOOR.z, base: 0,
+    frame: R.silver, light: 0xd8f5c8, mat: 0x9fe08a,
+    text: '꽃길 🌸 엄마성 가는 길', bg: '#9fe08a', fg: '#1b1b45',
+  });
+
+  // -----------------------------------------------------------
+  //  🪨 1층 북쪽 벽의 바깥 문 — 여기로 나가면 돌다리다 (아빠성으로)
+  //   ★ 2층 발코니 밑이라 천장이 9칸뿐이다. 간판을 낮게 단다
+  // -----------------------------------------------------------
+  //  ★ 2층 발코니 밑이라 천장이 9칸뿐이다 → 문을 조금 낮게(h 6.0) 만든다
+  makeWallDoor(room.scene, {
+    side: 'n', wall: -D / 2, at: RUHA_SW_DOOR.x, base: 0, h: 6.0,
+    frame: R.silver, light: 0xdfe4ea, mat: 0x8d93a8,
+    text: '돌다리 🪨 아빠성 가는 길', bg: '#8d93a8', fg: '#ffffff',
+  });
 
   // -----------------------------------------------------------
   //  ⭐ 바닥에 흩뿌린 작은 별과 떠다니는 달
@@ -375,6 +372,13 @@ export function buildRuhaCastle(ctx) {
       label: '꽃길! 🌸 엄마성으로 가요',
       build: buildFlowerArea,
       arrive: FP_FROM_RUHA.pos.clone(), arriveYaw: FP_FROM_RUHA.yaw,
+    }, {
+      // 🪨 1층 북쪽 문 — 돌다리로 나간다 (아빠성으로 이어진다)
+      //   ★ y: 0 을 적어야 2층 발코니를 걸을 때 이 자리 위에서 안 나가진다
+      x: RUHA_SW_DOOR.x, z: -D / 2 + 1.7, r: 1.7, y: 0, to: 'stoneway',
+      label: '돌다리! 🪨 아빠성으로 가요',
+      build: buildStoneWay,
+      arrive: SW_FROM_RUHA.pos.clone(), arriveYaw: SW_FROM_RUHA.yaw,
     }],
   });
 }

@@ -19,9 +19,11 @@ import { P } from './mom-props.js';
 import { fillFloors } from './mom-floors.js';
 import { makeSign } from './mart-props.js';
 import { part, glow } from './castle-props.js';
+import { makeWallDoor } from './castle-door.js';
 import { buildRainbowArea, RB_FROM_MOM, MOM_RB_DOOR } from './rainbow-bridge.js';
 import { registerArea } from './area-link.js';
 import { buildFlowerArea, FP_FROM_MOM, MOM_FP_DOOR } from './flower-path.js';
+import { buildRopeWay, RW_FROM_MOM, MOM_RW_DOOR } from './dad-bridges.js';
 
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
@@ -95,47 +97,26 @@ export function buildMomCastle(ctx) {
   // -----------------------------------------------------------
   //  🌸 1층 동쪽 벽의 바깥 문 — 여기로 나가면 꽃길이다 (루하성으로)
   // -----------------------------------------------------------
-  {
-    const fpGlow = new THREE.Mesh(new THREE.PlaneGeometry(5.4, 6.6),
-                                  new THREE.MeshBasicMaterial({ color: 0xd8f5c8 }));
-    fpGlow.position.set(MOM_W / 2 - 0.12, 3.3, MOM_FP_DOOR.z);
-    fpGlow.rotation.y = -Math.PI / 2;
-    room.scene.add(fpGlow);
-    for (const dz of [-3.2, 3.2]) {
-      room.hang(part('box', P.lime, 0, 0, 0, 0.6, 7.0, 0.6),
-                MOM_W / 2 - 0.4, 3.3, MOM_FP_DOOR.z + dz, 0);
-    }
-    room.hang(part('box', P.lime, 0, 0, 0, 0.6, 0.6, 7.0),
-              MOM_W / 2 - 0.4, 6.9, MOM_FP_DOOR.z, 0);
-    room.hang(makeSign('꽃길 🌸 루하성 가는 길', 6.6, 1.1, '#b6e58a', '#2b2340'),
-              MOM_W / 2 - 0.45, 8.0, MOM_FP_DOOR.z, -Math.PI / 2);
-    const fpMat = part('box', P.lime, 0, 0, 0, 2.6, 0.12, 4.2, glow(P.lime));
-    fpMat.castShadow = false;
-    room.hang(fpMat, MOM_W / 2 - 1.4, 0.08, MOM_FP_DOOR.z, 0);
-  }
+  makeWallDoor(room.scene, {
+    side: 'e', wall: MOM_W / 2, at: MOM_FP_DOOR.z, base: 0,
+    frame: P.lime, light: 0xd8f5c8,
+    text: '꽃길 🌸 루하성 가는 길', bg: '#b6e58a', fg: '#2b2340',
+  });
 
-  {
-    const i = FLOORS - 1, base = floorY(i);
-    // 🌈 서쪽 벽에 난 바깥 문 — 여기로 나가면 무지개 다리다 (인하성으로)
-    //   ★ 문 그림은 **한쪽만 보이는 판**이다. 두꺼운 문틀을 앞에 두면
-    //     들어올 때 카메라가 문 뒤에 서서 앞을 다 가린다
-    const rbGlow = new THREE.Mesh(new THREE.PlaneGeometry(5.4, 6.6),
-                                  new THREE.MeshBasicMaterial({ color: 0xdff3ff }));
-    rbGlow.position.set(-MOM_W / 2 + 0.12, base + 3.3, MOM_RB_DOOR.z);
-    rbGlow.rotation.y = Math.PI / 2;
-    room.scene.add(rbGlow);
-    for (const dz of [-3.2, 3.2]) {
-      room.hang(part('box', P.hot, 0, 0, 0, 0.6, 7.0, 0.6),
-                -MOM_W / 2 + 0.4, base + 3.3, MOM_RB_DOOR.z + dz, 0);
-    }
-    room.hang(part('box', P.hot, 0, 0, 0, 0.6, 0.6, 7.0),
-              -MOM_W / 2 + 0.4, base + 6.9, MOM_RB_DOOR.z, 0);
-    room.hang(makeSign('무지개 다리 🌈 인하성 가는 길', 6.6, 1.1, '#ff9ec4', '#5b3d8f'),
-              -MOM_W / 2 + 0.45, base + 8.0, MOM_RB_DOOR.z, Math.PI / 2);
-    const rbMat = part('box', P.hot, 0, 0, 0, 2.6, 0.12, 4.2, glow(P.hot));
-    rbMat.castShadow = false;
-    room.hang(rbMat, -MOM_W / 2 + 1.4, base + 0.08, MOM_RB_DOOR.z, 0);
-  }
+  // -----------------------------------------------------------
+  //  🪢 5층 서쪽 벽의 바깥 문 — 여기로 나가면 밧줄 다리다 (아빠성으로)
+  // -----------------------------------------------------------
+  makeWallDoor(room.scene, {
+    side: 'w', wall: -MOM_W / 2, at: MOM_RW_DOOR.z, base: floorY(MOM_RW_DOOR.floor),
+    frame: P.orange, light: 0xffe8c8,
+    text: '밧줄 다리 🪢 아빠성 가는 길', bg: '#ffb166', fg: '#2b2340',
+  });
+
+  makeWallDoor(room.scene, {
+    side: 'w', wall: -MOM_W / 2, at: MOM_RB_DOOR.z, base: floorY(FLOORS - 1),
+    frame: P.hot, light: 0xdff3ff,
+    text: '무지개 다리 🌈 인하성 가는 길', bg: '#ff9ec4', fg: '#5b3d8f',
+  });
 
   // -----------------------------------------------------------
   //  마무리 — 주인 하트핑과 1층에서 노는 친구들
@@ -164,6 +145,13 @@ export function buildMomCastle(ctx) {
       label: '꽃길! 🌸 루하성으로 가요',
       build: buildFlowerArea,
       arrive: FP_FROM_MOM.pos.clone(), arriveYaw: FP_FROM_MOM.yaw,
+    }, {
+      // 🪢 5층 서쪽 문 — 밧줄 다리로 나간다 (아빠성 2층으로 이어진다)
+      x: -MOM_W / 2 + 1.4, z: MOM_RW_DOOR.z, r: 1.7, y: floorY(MOM_RW_DOOR.floor),
+      to: 'ropeway',
+      label: '밧줄 다리! 🪢 아빠성으로 가요',
+      build: buildRopeWay,
+      arrive: RW_FROM_MOM.pos.clone(), arriveYaw: RW_FROM_MOM.yaw,
     }],
   });
 }

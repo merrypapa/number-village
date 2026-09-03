@@ -8,13 +8,18 @@ import { buildPlayground } from './playground.js';
 import { buildStable, makeHorseRide } from './horse.js';
 import { createCollider } from './collide.js';
 import { makeMartBuilding, makeMartCarts, makeArtHouseBuilding,
-         makeRuhaCastle, makeMomCastle, makeSkyBridgeHint } from './village-buildings.js';
+         makeRuhaCastle, makeMomCastle, makeDadCastle,
+         makeSkyBridgeHint } from './village-buildings.js';
 import { RUHA_SITE, buildRuhaCastle } from './ruha-castle.js';
 import { MOM_SITE, buildMomCastle } from './mom-castle.js';
+import { DAD_SITE, buildDadCastle } from './dad-castle.js';
 import { buildMart } from './mart.js';
 import { HOUSES, buildHouse } from './houses.js';
 import { buildArtHouse } from './art-house.js';
 import { makeSign } from './mart-props.js';
+//  🏡 집·성·나무·분수 모양은 src/village-props.js로 옮겼다 (world.js가 너무 길어져서)
+import { M, makeHouse, makeCastle, makeTree, makeFountain,
+         makeCastleEntrance } from './village-props.js';
 
 export const WORLD_RADIUS = 90;   // 마을 반지름 (밖으로 못 나감)
 
@@ -42,142 +47,6 @@ const FRIEND_HOUSES = [0.4, 1.0, 2.5, 3.2, 3.9, 5.9];
 const FRIEND_DIST = 38;
 const HOUSE_DOOR = 7.6;     // 집 한가운데에서 문 앞 자리까지의 거리
 
-const M = {
-  grass:  new THREE.MeshToonMaterial({ color: 0x9fe08a }),
-  path:   new THREE.MeshToonMaterial({ color: 0xf3e0c0 }),
-  wall:   new THREE.MeshToonMaterial({ color: 0xfff3f8 }),
-  roofA:  new THREE.MeshToonMaterial({ color: 0xff9ec4 }),
-  roofB:  new THREE.MeshToonMaterial({ color: 0x8fd0ff }),
-  roofC:  new THREE.MeshToonMaterial({ color: 0xc3b1f5 }),
-  door:   new THREE.MeshToonMaterial({ color: 0xb5794f }),
-  win:    new THREE.MeshToonMaterial({ color: 0xa8e6ff }),
-  trunk:  new THREE.MeshToonMaterial({ color: 0xa9744f }),
-  leafA:  new THREE.MeshToonMaterial({ color: 0x69c96b }),
-  leafB:  new THREE.MeshToonMaterial({ color: 0xffb3d9 }),
-  water:  new THREE.MeshToonMaterial({ color: 0x7fd4ff }),
-  flag:   new THREE.MeshToonMaterial({ color: 0xffd93d }),
-};
-
-const G = {
-  box:  new THREE.BoxGeometry(1, 1, 1),
-  cyl:  new THREE.CylinderGeometry(0.5, 0.5, 1, 16),
-  cone: new THREE.ConeGeometry(0.5, 1, 16),
-  ball: new THREE.SphereGeometry(0.5, 14, 12),
-};
-
-function mesh(geo, mat, x, y, z, sx, sy, sz) {
-  const m = new THREE.Mesh(geo, mat);
-  m.position.set(x, y, z);
-  m.scale.set(sx, sy ?? sx, sz ?? sx);
-  m.castShadow = true;
-  m.receiveShadow = true;
-  return m;
-}
-
-// --- 집 한 채 (문은 +z 쪽에 있다. 들어갈 수 있는 집은 문이 환하게 빛난다) ---
-function makeHouse(roofMat, w = 8, h = 5, d = 8, label = null) {
-  const g = new THREE.Group();
-  g.add(mesh(G.box, M.wall, 0, h / 2, 0, w, h, d));
-  const roof = mesh(G.cone, roofMat, 0, h + 2.0, 0, w * 0.95, 4.0, d * 0.95);
-  roof.rotation.y = Math.PI / 4;
-  g.add(roof);
-
-  // 현관 — 안이 환하게 비친다 (여기로 들어간다고 알려준다)
-  const light = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 3.0),
-    new THREE.MeshBasicMaterial({ color: 0xfff0d8 }));
-  light.position.set(0, 1.5, d / 2 + 0.07);
-  light.userData.noShadow = true;
-  g.add(light);
-  g.add(mesh(G.box, M.door, 0, 1.6, d / 2 + 0.1, 2.5, 3.4, 0.22));
-  g.add(mesh(G.box, M.roofA, 0, 3.6, d / 2 + 0.7, 3.4, 0.3, 1.6));      // 현관 차양
-
-  for (const s of [-1, 1]) {
-    g.add(mesh(G.box, M.win, s * w * 0.3, h * 0.66, d / 2 + 0.05, 1.6, 1.6, 0.2));
-    g.add(mesh(G.box, M.wall, s * w * 0.3, h * 0.66, d / 2 + 0.09, 1.9, 0.2, 0.2));
-  }
-  if (label) {                                    // 문 위에 붙은 이름표
-    const sign = makeSign(label, 5.2, 1.0, '#fff6e8', '#7a4fb0');
-    sign.position.set(0, h + 0.7, d / 2 + 0.15);
-    g.add(sign);
-  }
-  return g;
-}
-
-// --- 성 ---
-function makeCastle() {
-  const g = new THREE.Group();
-  g.add(mesh(G.box, M.wall, 0, 6, 0, 20, 12, 14));            // 본체
-  const mainRoof = mesh(G.cone, M.roofA, 0, 15, 0, 16, 7, 12);
-  mainRoof.rotation.y = Math.PI / 4;
-  g.add(mainRoof);
-
-  // 탑 4개
-  const towers = [[-11, -8], [11, -8], [-11, 8], [11, 8]];
-  for (const [x, z] of towers) {
-    g.add(mesh(G.cyl, M.wall, x, 8, z, 5, 16, 5));
-    g.add(mesh(G.cone, M.roofB, x, 19, z, 6.4, 7, 6.4));
-    g.add(mesh(G.cyl, M.wall, x, 22.6, z, 0.3, 3, 0.3));      // 깃대
-    g.add(mesh(G.box, M.flag, x + 0.9, 23.4, z, 1.8, 1.1, 0.1)); // 깃발
-  }
-
-  // 정문
-  g.add(mesh(G.box, M.door, 0, 3, 7.1, 4.5, 6, 0.4));
-  return g;
-}
-
-// --- 나무 ---
-function makeTree(pink = false) {
-  const g = new THREE.Group();
-  g.add(mesh(G.cyl, M.trunk, 0, 1.6, 0, 0.7, 3.2, 0.7));
-  const leafMat = pink ? M.leafB : M.leafA;
-  g.add(mesh(G.ball, leafMat, 0, 4.2, 0, 3.4));
-  g.add(mesh(G.ball, leafMat, 1.2, 3.4, 0.6, 2.2));
-  g.add(mesh(G.ball, leafMat, -1.1, 3.6, -0.5, 2.0));
-  return g;
-}
-
-// --- 분수 ---
-function makeFountain() {
-  const g = new THREE.Group();
-  g.add(mesh(G.cyl, M.wall, 0, 0.5, 0, 8, 1, 8));
-  g.add(mesh(G.cyl, M.water, 0, 1.05, 0, 7.2, 0.2, 7.2));
-  g.add(mesh(G.cyl, M.wall, 0, 2, 0, 1.2, 3, 1.2));
-  g.add(mesh(G.ball, M.water, 0, 3.8, 0, 1.8));
-  return g;
-}
-
-// --- 성 입구 표시 — 여기로 들어가면 된다고 알려주는 융단과 등불 ---
-function makeCastleEntrance(z) {
-  const g = new THREE.Group();
-
-  // 문 앞까지 이어지는 분홍 융단
-  const carpet = mesh(G.box, M.roofA, 0, 0.06, z + 1.5, 7, 0.12, 13);
-  carpet.castShadow = false;
-  g.add(carpet);
-  g.add(mesh(G.box, M.flag, 0, 0.1, z + 1.5, 4.2, 0.12, 11.6));   // 가운데 금색 길
-
-  // 양쪽 등불 기둥 (밤이 아니어도 반짝반짝 보이게 밝은 재질)
-  //  ★ 성에서 나올 때 카메라를 가리지 않도록 융단 바깥쪽(x = ±5)에 세운다
-  const lampMat = new THREE.MeshBasicMaterial({ color: 0xfff0a8 });
-  for (const sx of [-1, 1]) {
-    for (let i = 0; i < 2; i++) {
-      const x = sx * 5, lz = z + 1 + i * 6;
-      g.add(mesh(G.cyl, M.wall, x, 1.6, lz, 0.5, 3.2, 0.5));
-      const bulb = new THREE.Mesh(G.ball, lampMat);
-      bulb.position.set(x, 3.6, lz);
-      bulb.scale.setScalar(1.1);
-      g.add(bulb);
-      g.add(mesh(G.cone, M.roofB, x, 4.4, lz, 1.4, 1.1, 1.4));
-    }
-  }
-
-  // 성 문 위에 붙은 하트 세 개 (여기가 입구라고 알려준다)
-  for (let i = 0; i < 3; i++) {
-    g.add(mesh(G.ball, M.roofA, (i - 1) * 2.2, 9 - Math.abs(i - 1) * 0.8, -40.5, 0.9));
-  }
-  return g;
-}
-
 // -----------------------------------------------------------
 //  부딪히기(충돌)는 src/collide.js로 옮겼다.
 //  성 안·마트·집도 똑같은 것을 쓰기 때문이다.
@@ -194,6 +63,7 @@ export function buildWorld(scene) {
   const reserved = [];         // 나무를 심으면 안 되는 자리
   let ruhaTick = null;         // 루하성 문 위의 별을 돌리는 함수
   let momTick = null;          // 엄마성 꼭대기 하트를 돌리는 함수
+  let dadTick = null;          // 아빠성 지붕 바람개비를 돌리는 함수
 
   // 바닥
   const ground = new THREE.Mesh(
@@ -240,6 +110,15 @@ export function buildWorld(scene) {
   reserved.push({ x: MOM_SITE.x, z: MOM_SITE.doorZ + 8, r: 12 });
   if (mom.userData.tick) momTick = mom.userData.tick;
 
+  // 🛠 아빠성 (서쪽) — 2층짜리 뚝딱 공작소
+  const dad = makeDadCastle();
+  dad.position.set(DAD_SITE.x, 0, DAD_SITE.z);
+  scene.add(dad);
+  obstacles.push({ x: DAD_SITE.x, z: DAD_SITE.z, hw: DAD_SITE.hw, hd: DAD_SITE.hd });
+  reserved.push({ x: DAD_SITE.x, z: DAD_SITE.z, r: 24 });
+  reserved.push({ x: DAD_SITE.x, z: DAD_SITE.doorZ + 8, r: 12 });   // 문 앞 길
+  if (dad.userData.tick) dadTick = dad.userData.tick;
+
   // ☁️ 두 성 사이에 걸린 구름 징검다리 (마을에서 올려다보면 보이는 장식)
   scene.add(makeSkyBridgeHint(CASTLE_POS.x + 12, CASTLE_POS.z + 2,
                               RUHA_SITE.x - 12, RUHA_SITE.z + 2));
@@ -254,6 +133,9 @@ export function buildWorld(scene) {
   const momSign = makeSign('엄마성', 12, 2.2, '#ff6fa5');
   momSign.position.set(MOM_SITE.x, 42.0, MOM_SITE.z + 6.4);   // 10층 탑이라 높이 단다
   scene.add(momSign);
+  const dadSign = makeSign('아빠성', 12, 2.2, '#8b5a3c');
+  dadSign.position.set(DAD_SITE.x, 12.6, DAD_SITE.z + 7.6);   // 2층 성이라 지붕 밑에 단다
+  scene.add(dadSign);
 
   // 성 입구 (융단 + 등불) — 여기 서면 성 안으로 들어간다
   scene.add(makeCastleEntrance(CASTLE_DOOR.z));
@@ -370,6 +252,7 @@ export function buildWorld(scene) {
     sky.update(dt, t);
     ruhaTick?.(t, dt);
     momTick?.(t, dt);
+    dadTick?.(t, dt);
     playground.update(dt, t);
     stable.update(dt, t);
     plazaHorse.update(dt, t);
@@ -417,6 +300,11 @@ export function buildWorld(scene) {
         x: MOM_SITE.x, z: MOM_SITE.doorZ, r: 2.8, to: 'mom',
         label: '엄마성! 💗 10층 놀이터. 엘리베이터를 타요',
         build: buildMomCastle,
+      },
+      {
+        x: DAD_SITE.x, z: DAD_SITE.doorZ, r: 2.8, to: 'dad',
+        label: '아빠성! 🛠 뚝딱 공작소. 기차를 타요',
+        build: buildDadCastle,
       },
       ...houseDoors,        // 🏠 친구 집 (src/houses.js의 HOUSES 개수만큼)
     ],

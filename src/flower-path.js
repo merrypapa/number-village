@@ -232,21 +232,23 @@ export function buildFlowerArea(ctx) {
       mom.rotation.y = Math.PI;
       scene.add(mom);
 
-      // --- 길 한가운데 이름표 ---
-      const sign = makeSign('🌸 꽃 길 🌸', 9, 1.6, '#ff9ec4', '#ffffff');
-      sign.position.set(-7, 5.4, -30);
+      // --- 길가에 세운 이름표 ---
+      //  ★ 길 한가운데(z −30에서 길은 x −7쯤)를 피해 **옆으로 8칸** 비켜 세운다.
+      //    길 위에 세우면 지나갈 때 화면을 가리고 몸이 통과해 버린다
+      const SIGN = { x: 1, z: -30 };
+      const sign = makeSign('🌸 꽃 길 🌸', 8, 1.5, '#ff9ec4', '#ffffff');
+      sign.position.set(SIGN.x, 6.0, SIGN.z);
+      sign.rotation.y = -0.6;
       scene.add(sign);
-      const post = part('cyl', 0xfff6e8, -7, 2.6, -30.1, 0.5, 5.2, 0.5);
-      scene.add(post);
-      // 이름표 옆에 반짝이는 꽃 화분
+      scene.add(part('cyl', 0xfff6e8, SIGN.x, 3.0, SIGN.z - 0.1, 0.5, 6.0, 0.5));
+      // 이름표 밑에 반짝이는 꽃 화분
       for (const sx of [-1, 1]) {
-        const pot = part('cyl', 0xffb166, -7 + sx * 3.4, 0.6, -30, 1.8, 1.2, 1.8);
-        scene.add(pot);
+        const px = SIGN.x + sx * 2.6;
+        scene.add(part('cyl', 0xffb166, px, 0.6, SIGN.z, 1.8, 1.2, 1.8));
         const f = makeFlower(sx > 0 ? 0xff7a9c : 0xffd93d, 1.5);
-        f.position.set(-7 + sx * 3.4, 1.2, -30);
+        f.position.set(px, 1.2, SIGN.z);
         scene.add(f);
-        const spark = part('ball', 0xfff6c0, -7 + sx * 3.4, 3.6, -30, 0.5,
-                           0.5, 0.5, glow(0xfff6c0));
+        const spark = part('ball', 0xfff6c0, px, 3.6, SIGN.z, 0.5, 0.5, 0.5, glow(0xfff6c0));
         spark.castShadow = false;
         scene.add(spark);
         api.addTick((t) => { spark.position.y = 3.6 + Math.sin(t * 1.6 + sx) * 0.3; });
