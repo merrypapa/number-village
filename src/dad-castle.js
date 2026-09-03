@@ -201,9 +201,49 @@ export function buildDadCastle(ctx) {
     void chair;
   }
   room.place(makeTelescope(), 20, -23, 0.4, { r: 1.6, ...DF2 }, DAD_F2);
-  room.place(makeLantern(), -25, -10, 0, { r: 0.8, ...DF2 }, DAD_F2);
+  room.place(makeLantern(), -28, -10, 0, { r: 0.8, ...DF2 }, DAD_F2);
   room.place(makeLantern(0xffd48a), 25, -12, 0, { r: 0.8, ...DF2 }, DAD_F2);
   room.place(makeCrate(2.0), -25, -23, 0.4, { r: 1.4, ...DF2 }, DAD_F2);
+
+  // -----------------------------------------------------------
+  //  🪜 "여기로 내려가요" — 2층에서 계단을 한눈에 찾게 해준다
+  //   ★ 아이가 "내려가는 계단이 없어"라고 알려줬다. 계단은 서남쪽 구석에 있는데
+  //     데크 한가운데에서는 난간에 막혀서 안 보였다.
+  //     그래서 ① 계단참을 넓히고 ② 바닥에 노란 길을 깔고 ③ 큰 이름표를 달았다
+  // -----------------------------------------------------------
+  {
+    const TRAIL = D.yellow;
+    //  데크 한가운데(x 0)에서 서쪽으로, 그다음 남쪽 계단 입구로 이어지는 노란 길
+    const lane = [
+      [-6, -12, 20, 2.4],       // 가로 길 (x -16 ~ 4)
+      [-20.5, -3.5, 2.4, 11],   // 세로 길 (z -9 ~ 2.5)
+      [-16, -12, 2.4, 2.4],     // 모퉁이 이음 (가로 길과 세로 길을 잇는다)
+    ];
+    for (const [cx, cz, w, d] of lane) {
+      const p2 = part('box', TRAIL, cx, DAD_F2 + 0.06, cz, w, 0.12, d, glow(TRAIL));
+      p2.castShadow = false;
+      room.scene.add(p2);
+    }
+    //  ↓ 화살표 세 개 (계단 쪽을 가리킨다)
+    for (let i = 0; i < 3; i++) {
+      const a = part('cone', D.red, -20.5, DAD_F2 + 0.5, -6 + i * 3, 1.8, 1.4, 1.8,
+                     glow(D.red));
+      //  ★ 뿔은 원래 위(+y)를 본다. +90°로 눕혀야 **남쪽(+z, 계단 쪽)**을 가리킨다
+      //    (-90°로 눕히면 반대인 북쪽을 가리킨다)
+      a.rotation.x = Math.PI / 2;
+      a.castShadow = false;
+      room.scene.add(a);
+    }
+    //  계단 입구 이름표 — 데크 쪽(북쪽)을 바라본다
+    //  ★ 이름표는 **데크 쪽(북쪽)을 바라보게** 돌린다(Math.PI).
+    //    0으로 두면 뒤통수(하얀 판)만 보인다
+    room.hang(makeSign('🪜 아래층으로', 8, 1.5, '#ffc93d', '#5b3d24'),
+              -20.5, DAD_F2 + 3.6, -1.2, Math.PI);
+    //  입구 양옆 등불 (계단 폭 밖에 세운다 — 내려가는 길을 막지 않게)
+    for (const x of [-27.4, -13.6]) {
+      room.place(makeLantern(0xffd48a), x, 0.4, 0, { r: 0.8, ...DF2 }, DAD_F2);
+    }
+  }
 
   let vtalk = 0;
   room.addSpot({
