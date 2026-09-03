@@ -22,6 +22,8 @@ import { part, glow } from './castle-props.js';
 import { makeWallDoor } from './castle-door.js';
 import { buildRainbowArea, RB_FROM_MOM, MOM_RB_DOOR } from './rainbow-bridge.js';
 import { registerArea } from './area-link.js';
+//  마을에서 이 성이 서 있는 자리 (마을 지도 → src/village-sites.js)
+import { MOM_SITE } from './village-sites.js';
 import { buildFlowerArea, FP_FROM_MOM, MOM_FP_DOOR } from './flower-path.js';
 import { buildRopeWay, RW_FROM_MOM, MOM_RW_DOOR } from './dad-bridges.js';
 
@@ -30,8 +32,6 @@ import { buildRopeWay, RW_FROM_MOM, MOM_RW_DOOR } from './dad-bridges.js';
 // -----------------------------------------------------------
 const OWNER = 'heartping';        // 엄마성 주인 (characters.js의 id)
 
-// 마을에서 엄마성이 서 있는 자리 (world.js가 이 값을 보고 건물을 놓는다)
-export const MOM_SITE = { x: -50, z: -54, hw: 12.5, hd: 10.5, doorZ: -41.5 };
 
 // 층 이름 — 엘리베이터 버튼과 층수판에 그대로 나온다
 export const FLOOR_NAMES = [
@@ -64,6 +64,8 @@ export function buildMomCastle(ctx) {
   const structure = buildMomStructure(room.scene, FLOOR_NAMES);
   room.obstacles.push(...structure.obstacles);
   const lift = makeLift(room.scene, FLOOR_NAMES);
+  //  ★ 엘리베이터 칸은 매 프레임 목표 층 쪽으로 조금씩 움직인다
+  room.addTick((t, dt) => lift.step(dt));
   const rides = [...lift.rides];
   const spots = [];
 

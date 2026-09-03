@@ -25,6 +25,8 @@ import { makeCushion } from './castle-props2.js';
 import { makeSign } from './mart-props.js';
 import { buildSkywayArea, SKY_FROM_RUHA } from './skyway.js';
 import { registerArea } from './area-link.js';
+//  마을에서 이 성이 서 있는 자리 (마을 지도 → src/village-sites.js)
+import { RUHA_SITE } from './village-sites.js';
 import { buildFlowerArea, FP_FROM_RUHA, RUHA_FP_DOOR } from './flower-path.js';
 import { buildStoneWay, SW_FROM_RUHA, RUHA_SW_DOOR } from './dad-bridges.js';
 import { RUHA_W, RUHA_D, RUHA_H, RUHA_F2, RF1, RF2,
@@ -43,8 +45,6 @@ import { HALF_X, FLOOR2 } from './castle-layout.js';
 const W = RUHA_W, D = RUHA_D, H = RUHA_H;
 const OWNER = 'aurora';            // 루하성 주인 (characters.js의 id) — 오로라핑
 
-// 마을에서 루하성이 서 있는 자리 (world.js가 이 값을 보고 건물을 놓는다)
-export const RUHA_SITE = { x: 50, z: -54, hw: 12.5, hd: 10.5, doorZ: -41.5 };
 
 // 물건이 놓이는 자리 — 여기 숫자만 바꾸면 배치가 달라진다
 //  ★ 키 큰 것(분수·회전목마·옥좌·그네)은 **가운데 뻥 뚫린 곳**에 놓는다.

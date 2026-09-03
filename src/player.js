@@ -130,6 +130,9 @@ export function createPlayer(model, camera, world) {
     if (!nearRide || nearRide.rider) { nearRide = null; return; }
     ride = mountRide(nearRide, model);
     rideTime = 0;
+    //  놀이기구가 camYaw를 적어두면 **탈 때 한 번** 카메라를 그쪽으로 돌린다.
+    //  (엘리베이터는 칸 뒤에서 문 밖을 보게 한다. 그 뒤로는 아이가 자유롭게 돌린다)
+    if (ride.camYaw !== undefined) camYaw = ride.camYaw;
     nearRide = null;
     vy = 0; onGround = true;              // 뛰다가 타도 착지한 것으로 친다
     api.onMount?.(ride);             // 화면에 '그네를 타요!' 같은 말을 띄운다

@@ -97,6 +97,9 @@ export function setupTouchControls(player, onGreet) {
   // 🅰 행동 버튼 — 놀이기구 옆이나 요정 친구 앞에서만 나타난다 (main.js가 보여준다)
   //  타기 / 내리기 / 부르기 / 보내기 — 무슨 글씨가 쓰일지는 main.js가 정한다
   tapButton(document.getElementById('ride'), () => player.action());
+  // 🛗 엘리베이터 ▲▼ — 놀이기구가 buttons를 들고 있을 때만 화면에 나온다 (main.js)
+  tapButton(document.getElementById('liftUp'), () => player.ride?.buttons?.[0]?.press());
+  tapButton(document.getElementById('liftDn'), () => player.ride?.buttons?.[1]?.press());
 
   reset();
 }

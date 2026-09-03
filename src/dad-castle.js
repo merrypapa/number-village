@@ -27,6 +27,8 @@ import { makeTelescope } from './castle-props2.js';
 import { part, glow } from './castle-props.js';
 import { makeWallDoor } from './castle-door.js';
 import { registerArea } from './area-link.js';
+//  마을에서 이 성이 서 있는 자리 (마을 지도 → src/village-sites.js)
+import { DAD_SITE } from './village-sites.js';
 import {
   buildTrainWay, buildStoneWay, buildRopeWay,
   TW_FROM_DAD, SW_FROM_DAD, RW_FROM_DAD,
@@ -38,20 +40,19 @@ import {
 // -----------------------------------------------------------
 const OWNER = 'ttukttak';         // 아빠성 주인 (characters.js의 id) — 뚝딱핑
 
-// 마을에서 아빠성이 서 있는 자리 (world.js가 이 값을 보고 건물을 놓는다)
-export const DAD_SITE = { x: -62, z: 8, hw: 12.5, hd: 10.5, doorZ: 20.5 };
 
-// 물건이 놓이는 자리
-const BENCH  = { x: -14, z: -12 };   // 🔨 작업대 (1층 북서)
-const LIFT   = { x: 14,  z: -13 };   // 🚙 자동차 리프트 (1층 북동)
-const ROBOT  = { x: -6,  z: 1 };     // 🤖 로봇 친구 (기차 레일 **안쪽**에 둔다)
-//  ★★ 레일이 **마을로 나가는 문(z 18.8)을 지나가면 안 된다.**
-//     기차를 타고 한 바퀴 돌다가 문에 닿아서 마을로 튕겨 나갔다.
-//     레일 남쪽 끝 = z 4 + 10 = 14 → 문에서 4.8칸 떨어져 있다
-const RAIL   = { x: 0,   z: 4, r: 10 };   // 🚂 기차 레일 (1층 가운데~남쪽)
-const TRAIN_SPD = 0.42;              // 기차가 도는 빠르기
-const FIRE   = { x: 0,   z: -11 };   // 🔥 모닥불 (2층)
-const TENT   = { x: -13, z: -14 };   // ⛺ 텐트 (2층)
+// 물건이 놓이는 자리 (성이 60×52로 넓어져서 전부 넉넉하게 벌려 놓았다)
+const BENCH  = { x: -19, z: -19 };   // 🔨 작업대 (1층 북서)
+const LIFT   = { x: 19,  z: -19 };   // 🚙 자동차 리프트 (1층 북동)
+const ROBOT  = { x: -7,  z: 3 };     // 🤖 로봇 친구 (기차 레일 **안쪽**에 둔다)
+//  ★★ 레일이 **마을로 나가는 문(z 24.8)을 지나가면 안 된다.**
+//     기차를 타고 한 바퀴 돌다가 문에 닿아서 마을로 튕겨 나간 적이 있다.
+//     레일 남쪽 끝 = z 0 + 12 + 2.4 = 14.4 → 문에서 10칸 넘게 떨어져 있다.
+//     들어오는 자리(z 20.5)에서도 6칸 떨어져 있어 이제 코앞이 아니다
+const RAIL   = { x: 0,   z: 0, r: 12 };   // 🚂 기차 레일 (1층 한가운데)
+const TRAIN_SPD = 0.38;              // 기차가 도는 빠르기
+const FIRE   = { x: 0,   z: -15 };   // 🔥 모닥불 (2층)
+const TENT   = { x: -17, z: -19 };   // ⛺ 텐트 (2층)
 
 // 🔨 작업대에서 나오는 말
 const BENCH_TALK = [
@@ -105,14 +106,15 @@ export function buildDadCastle(ctx) {
   //  1층 🔧 공작소
   // ===========================================================
   room.place(makeWorkbench(9), BENCH.x, BENCH.z, 0, { hw: 4.6, hd: 1.6, ...DF1 });
-  room.hang(makeToolWall(11, 5.4), BENCH.x, 5.2, -DAD_D / 2 + 0.4, 0);
+  //  ★ 2층 바닥(8칸) 밑이라 공구벽을 조금 낮게 건다
+  room.hang(makeToolWall(11, 5.4), BENCH.x, 4.6, -DAD_D / 2 + 0.4, 0);
   room.place(makeCarLift(), LIFT.x, LIFT.z, 0, { hw: 4.2, hd: 2.6, ...DF1 });
   const robot = room.place(makeRobot(), ROBOT.x, ROBOT.z, 0, { r: 1.8, ...DF1 });
-  for (const [cx, cz, s] of [[-21, 2, 2.4], [-21, 5, 2.0], [-19.6, 3.4, 1.8], [21, 3, 2.4]]) {
+  for (const [cx, cz, s] of [[-27, 6, 2.4], [-27, 9, 2.0], [-25.6, 7.4, 1.8], [27, 16, 2.4]]) {
     room.place(makeCrate(s), cx, cz, Math.random(), { r: s * 0.7, ...DF1 });
   }
-  room.place(makeLantern(), -21, -6, 0, { r: 0.8, ...DF1 });
-  room.place(makeLantern(0xffb166), 21, -6, 0, { r: 0.8, ...DF1 });
+  room.place(makeLantern(), -27, -8, 0, { r: 0.8, ...DF1 });
+  room.place(makeLantern(0xffb166), 27, -8, 0, { r: 0.8, ...DF1 });
 
   // 🔨 작업대에서 '뚝딱' — 누르면 나무 두드리는 소리가 난다
   let bench = 0;
@@ -175,8 +177,8 @@ export function buildDadCastle(ctx) {
   // ===========================================================
   room.place(makeTent(D.green), TENT.x, TENT.z, 0, { r: 3.6, ...DF2 }, DAD_F2);
   const fire = room.place(makeCampfire(), FIRE.x, FIRE.z, 0, { r: 2.4, ...DF2 }, DAD_F2);
-  for (const [cx, cz, ry, color] of [[-5.5, -6.5, 0.5, D.red], [5.5, -6.5, -0.5, D.sky],
-                                     [6.5, -14, -2.4, D.yellow]]) {
+  for (const [cx, cz, ry, color] of [[-6.5, -10, 0.5, D.red], [6.5, -10, -0.5, D.sky],
+                                     [7.5, -19, -2.4, D.yellow]]) {
     const chair = room.place(makeCampChair(color), cx, cz, ry, { r: 1.4, ...DF2 }, DAD_F2);
     // 의자에 앉기
     const front = 2.6;
@@ -197,14 +199,14 @@ export function buildDadCastle(ctx) {
     });
     void chair;
   }
-  room.place(makeTelescope(), 15, -17, 0.4, { r: 1.6, ...DF2 }, DAD_F2);
-  room.place(makeLantern(), -20, -6, 0, { r: 0.8, ...DF2 }, DAD_F2);
-  room.place(makeLantern(0xffd48a), 20, -8, 0, { r: 0.8, ...DF2 }, DAD_F2);
-  room.place(makeCrate(2.0), -20, -17, 0.4, { r: 1.4, ...DF2 }, DAD_F2);
+  room.place(makeTelescope(), 20, -23, 0.4, { r: 1.6, ...DF2 }, DAD_F2);
+  room.place(makeLantern(), -25, -10, 0, { r: 0.8, ...DF2 }, DAD_F2);
+  room.place(makeLantern(0xffd48a), 25, -12, 0, { r: 0.8, ...DF2 }, DAD_F2);
+  room.place(makeCrate(2.0), -25, -23, 0.4, { r: 1.4, ...DF2 }, DAD_F2);
 
   let vtalk = 0;
   room.addSpot({
-    x: 15, z: -13.4, r: 3.2, y: DAD_F2, verb: '망원경',
+    x: 20, z: -19.4, r: 3.2, y: DAD_F2, verb: '망원경',
     use(toast) { toast(VIEW_TALK[vtalk++ % VIEW_TALK.length]); },
   });
   void fire; void robot;
@@ -238,7 +240,7 @@ export function buildDadCastle(ctx) {
 
   return room.finish({
     npcCount: 3,
-    wanderZones: [{ x: -16, z: 14, r: 4 }, { x: 16, z: 14, r: 4 }, { x: 0, z: -4, r: 5 }],
+    wanderZones: [{ x: -24, z: 18, r: 5 }, { x: 24, z: 18, r: 5 }, { x: 0, z: 20, r: 5 }],
     residents: [{ id: OWNER, x: BENCH.x + 4.5, z: BENCH.z + 1.5, yaw: Math.PI * 0.8, stay: true }],
     //  ★ 2층이 있으니 groundY를 넘겨준다 (player.js가 매 프레임 물어본다)
     groundY: dadGroundY,

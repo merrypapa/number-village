@@ -10,9 +10,9 @@ import { createCollider } from './collide.js';
 import { makeMartBuilding, makeMartCarts, makeArtHouseBuilding,
          makeRuhaCastle, makeMomCastle, makeDadCastle,
          makeSkyBridgeHint } from './village-buildings.js';
-import { RUHA_SITE, buildRuhaCastle } from './ruha-castle.js';
-import { MOM_SITE, buildMomCastle } from './mom-castle.js';
-import { DAD_SITE, buildDadCastle } from './dad-castle.js';
+import { buildRuhaCastle } from './ruha-castle.js';
+import { buildMomCastle } from './mom-castle.js';
+import { buildDadCastle } from './dad-castle.js';
 import { buildMart } from './mart.js';
 import { HOUSES, buildHouse } from './houses.js';
 import { buildArtHouse } from './art-house.js';
@@ -20,32 +20,15 @@ import { makeSign } from './mart-props.js';
 //  🏡 집·성·나무·분수 모양은 src/village-props.js로 옮겼다 (world.js가 너무 길어져서)
 import { M, makeHouse, makeCastle, makeTree, makeFountain,
          makeCastleEntrance } from './village-props.js';
+//  🗺 무엇이 어디에 서 있는지는 src/village-sites.js 한 곳에 모아뒀다
+//    (마을 배치를 바꾸려면 그 파일의 숫자만 고치면 된다)
+import {
+  WORLD_RADIUS, WORLD_BOUNDS, CASTLE, RUHA_SITE, MOM_SITE, DAD_SITE,
+  MART, ART, HOME, PLAYGROUND, STABLE, PLAZA_HORSE,
+  FRIEND_ANGLES, FRIEND_DIST, HOUSE_DOOR,
+} from './village-sites.js';
 
-export const WORLD_RADIUS = 90;   // 마을 반지름 (밖으로 못 나감)
-
-// 놀이터가 놓일 자리 ← 아이가 옮기고 싶으면 여기 숫자만 바꾸면 된다
-const PLAYGROUND_POS = { x: 42, z: 40 };
-
-// 🐴 마구간이 놓일 자리 (성으로 가는 길 옆). 말을 타고 마을을 달릴 수 있다
-const STABLE_POS = { x: 34, z: -34 };
-
-// 🏰 인하성 정문 앞 — 여기에 서면 성 안으로 들어간다 (castle-interior.js가 안쪽을 만든다)
-const CASTLE_DOOR = { z: -35.5 };
-const CASTLE_POS = { x: 0, z: -48 };
-
-// 🛒 마트가 놓일 자리 (광장 북서쪽). 문은 +z 쪽(광장 쪽)을 바라본다
-//   half = 건물 절반 크기 (부딪히는 네모),  door = 문 앞에 서는 자리
-const MART = { x: -19, z: -17, hw: 7.7, hd: 5.7, doorZ: -9.6 };
-
-// 🎨 그림의 집이 놓일 자리 (광장 북동쪽). 여기서 그림을 그린다
-const ART = { x: 16, z: -19, hw: 6.2, hd: 5.2, doorZ: -11.6 };
-
-// 친구들 집이 서는 방향(라디안)과 거리
-//  ★ 북쪽(성 입구, 약 4.7)과 남쪽(우리 집, 약 1.6)은 비워둔다
-//  ★ 집 개수는 src/houses.js의 HOUSES가 정한다. 이 각도 목록도 같은 개수여야 한다
-const FRIEND_HOUSES = [0.4, 1.0, 2.5, 3.2, 3.9, 5.9];
-const FRIEND_DIST = 38;
-const HOUSE_DOOR = 7.6;     // 집 한가운데에서 문 앞 자리까지의 거리
+export { WORLD_RADIUS };
 
 // -----------------------------------------------------------
 //  부딪히기(충돌)는 src/collide.js로 옮겼다.
@@ -74,11 +57,32 @@ export function buildWorld(scene) {
   scene.add(ground);
 
   // 중앙 광장(길)
-  const plaza = new THREE.Mesh(new THREE.CircleGeometry(22, 40), M.path);
+  const PLAZA_R = 26;
+  const plaza = new THREE.Mesh(new THREE.CircleGeometry(PLAZA_R, 40), M.path);
   plaza.rotation.x = -Math.PI / 2;
   plaza.position.y = 0.02;
   plaza.receiveShadow = true;
   scene.add(plaza);
+
+  // 🛣 광장에서 큰 건물까지 이어지는 길 — 마을이 넓어져서 길이 있어야 안 헤맨다
+  //   길 위에는 나무를 심지 않는다 (reserved에 같이 넣는다)
+  function road(toX, toZ, width = 9) {
+    const len = Math.hypot(toX, toZ) - PLAZA_R + 6;
+    if (len <= 0) return;
+    const yaw = Math.atan2(toX, toZ);
+    const mid = (Math.hypot(toX, toZ) + PLAZA_R - 6) / 2;
+    const r = new THREE.Mesh(new THREE.PlaneGeometry(width, len), M.path);
+    r.rotation.x = -Math.PI / 2;
+    r.rotation.z = -yaw;               // 바닥판이라 z축으로 돌린다
+    r.position.set(Math.sin(yaw) * mid, 0.015, Math.cos(yaw) * mid);
+    r.receiveShadow = true;
+    scene.add(r);
+    //  길을 따라 나무를 비운다 (몇 군데만 찍어서 넣으면 충분하다)
+    for (let u = 0.15; u < 1; u += 0.2) {
+      const d = PLAZA_R - 6 + len * u;
+      reserved.push({ x: Math.sin(yaw) * d, z: Math.cos(yaw) * d, r: width * 0.8 });
+    }
+  }
 
   // 분수
   scene.add(makeFountain());
@@ -87,17 +91,19 @@ export function buildWorld(scene) {
 
   // 🏰 인하성 (북쪽) — 탑까지 덮는 네모로 막는다
   const castle = makeCastle();
-  castle.position.set(CASTLE_POS.x, 0, CASTLE_POS.z);
+  castle.position.set(CASTLE.x, 0, CASTLE.z);
   scene.add(castle);
-  obstacles.push({ x: CASTLE_POS.x, z: CASTLE_POS.z, hw: 13.5, hd: 10.5 });
-  reserved.push({ x: CASTLE_POS.x, z: CASTLE_POS.z, r: 22 });
+  obstacles.push({ x: CASTLE.x, z: CASTLE.z, hw: 13.5, hd: 10.5 });
+  reserved.push({ x: CASTLE.x, z: CASTLE.z, r: 22 });
 
   // 🌙 루하성 (북동쪽) — 마을 정문으로도 가고, 인하성 2층 징검다리로도 간다
   const ruha = makeRuhaCastle();
   ruha.position.set(RUHA_SITE.x, 0, RUHA_SITE.z);
   scene.add(ruha);
   obstacles.push({ x: RUHA_SITE.x, z: RUHA_SITE.z, hw: RUHA_SITE.hw, hd: RUHA_SITE.hd });
-  reserved.push({ x: RUHA_SITE.x, z: RUHA_SITE.z, r: 22 });
+  reserved.push({ x: RUHA_SITE.x, z: RUHA_SITE.z, r: 24 });
+  reserved.push({ x: RUHA_SITE.x, z: RUHA_SITE.doorZ + 8, r: 13 });
+  reserved.push({ x: RUHA_SITE.x, z: RUHA_SITE.doorZ + 18, r: 12 });
   if (ruha.userData.tick) ruhaTick = ruha.userData.tick;
 
   // 💗 엄마성 (북서쪽) — 10층짜리 키즈카페 성
@@ -107,7 +113,9 @@ export function buildWorld(scene) {
   obstacles.push({ x: MOM_SITE.x, z: MOM_SITE.z, hw: MOM_SITE.hw, hd: MOM_SITE.hd });
   reserved.push({ x: MOM_SITE.x, z: MOM_SITE.z, r: 26 });
   //  ★ 문 앞 길에는 나무를 심지 않는다 (나무가 문과 카메라를 가린다)
-  reserved.push({ x: MOM_SITE.x, z: MOM_SITE.doorZ + 8, r: 12 });
+  //  ★ 문에서 나오면 카메라가 뒤(문 앞 길)에 선다. 그 길을 넉넉히 비워둔다
+  reserved.push({ x: MOM_SITE.x, z: MOM_SITE.doorZ + 8, r: 13 });
+  reserved.push({ x: MOM_SITE.x, z: MOM_SITE.doorZ + 18, r: 12 });
   if (mom.userData.tick) momTick = mom.userData.tick;
 
   // 🛠 아빠성 (서쪽) — 2층짜리 뚝딱 공작소
@@ -116,16 +124,17 @@ export function buildWorld(scene) {
   scene.add(dad);
   obstacles.push({ x: DAD_SITE.x, z: DAD_SITE.z, hw: DAD_SITE.hw, hd: DAD_SITE.hd });
   reserved.push({ x: DAD_SITE.x, z: DAD_SITE.z, r: 24 });
-  reserved.push({ x: DAD_SITE.x, z: DAD_SITE.doorZ + 8, r: 12 });   // 문 앞 길
+  reserved.push({ x: DAD_SITE.x, z: DAD_SITE.doorZ + 8, r: 13 });   // 문 앞 길
+  reserved.push({ x: DAD_SITE.x, z: DAD_SITE.doorZ + 18, r: 12 });
   if (dad.userData.tick) dadTick = dad.userData.tick;
 
   // ☁️ 두 성 사이에 걸린 구름 징검다리 (마을에서 올려다보면 보이는 장식)
-  scene.add(makeSkyBridgeHint(CASTLE_POS.x + 12, CASTLE_POS.z + 2,
+  scene.add(makeSkyBridgeHint(CASTLE.x + 12, CASTLE.z + 2,
                               RUHA_SITE.x - 12, RUHA_SITE.z + 2));
 
   // 두 성 이름표
   const inhaSign = makeSign('인하성', 12, 2.2, '#ff7ab0');
-  inhaSign.position.set(CASTLE_POS.x, 14.5, CASTLE_POS.z + 7.4);
+  inhaSign.position.set(CASTLE.x, 14.5, CASTLE.z + 7.4);
   scene.add(inhaSign);
   const ruhaSign = makeSign('루하성', 12, 2.2, '#4a44a8');
   ruhaSign.position.set(RUHA_SITE.x, 14.5, RUHA_SITE.z + 6.9);
@@ -138,9 +147,9 @@ export function buildWorld(scene) {
   scene.add(dadSign);
 
   // 성 입구 (융단 + 등불) — 여기 서면 성 안으로 들어간다
-  scene.add(makeCastleEntrance(CASTLE_DOOR.z));
+  scene.add(makeCastleEntrance(CASTLE.doorZ));
   for (const sx of [-1, 1]) for (let i = 0; i < 2; i++) {
-    obstacles.push({ x: sx * 5, z: CASTLE_DOOR.z + 1 + i * 6, r: 0.7 });   // 등불 기둥
+    obstacles.push({ x: sx * 5, z: CASTLE.doorZ + 1 + i * 6, r: 0.7 });   // 등불 기둥
   }
 
   // 🛒 마트 (편의점) — 문 앞에 서면 마트 안으로 들어간다
@@ -162,11 +171,11 @@ export function buildWorld(scene) {
 
   // 우리 집 (남쪽) — 아이가 색을 고를 수 있게 roofC
   const home = makeHouse(M.roofC, 7, 4.5, 7);
-  home.position.set(0, 0, 34);
+  home.position.set(HOME.x, 0, HOME.z);
   home.userData.isHome = true;
   scene.add(home);
-  obstacles.push({ x: 0, z: 34, r: 4.7 });
-  reserved.push({ x: 0, z: 34, r: 10 });
+  obstacles.push({ x: HOME.x, z: HOME.z, r: 4.7 });
+  reserved.push({ x: HOME.x, z: HOME.z, r: 10 });
 
   // 친구들 집 (광장 둘레) — 문 앞에 서면 그 집 안으로 들어간다
   //  ★ 집은 전부 광장(가운데) 쪽을 바라본다. 그래야 아이가 문을 찾기 쉽다
@@ -174,7 +183,7 @@ export function buildWorld(scene) {
   const houseDoors = [];
   for (let i = 0; i < HOUSES.length; i++) {
     const house = HOUSES[i];
-    const a = FRIEND_HOUSES[i % FRIEND_HOUSES.length];
+    const a = FRIEND_ANGLES[i % FRIEND_ANGLES.length];
     const hx = Math.cos(a) * FRIEND_DIST, hz = Math.sin(a) * FRIEND_DIST;
     // 집 앞(광장 쪽) 방향
     const fx = -Math.cos(a), fz = -Math.sin(a);
@@ -203,30 +212,38 @@ export function buildWorld(scene) {
   }
 
   // 놀이터
-  const playground = buildPlayground(PLAYGROUND_POS.x, PLAYGROUND_POS.z);
+  const playground = buildPlayground(PLAYGROUND.x, PLAYGROUND.z);
   scene.add(playground.group);
   obstacles.push(...playground.obstacles);
-  reserved.push({ x: PLAYGROUND_POS.x, z: PLAYGROUND_POS.z, r: 15 });
+  reserved.push({ x: PLAYGROUND.x, z: PLAYGROUND.z, r: 15 });
 
   // 🐴 마구간과 말들 (말은 마을 좌표를 그대로 쓰므로 화면에 따로 넣는다)
-  const stable = buildStable(STABLE_POS.x, STABLE_POS.z);
+  const stable = buildStable(STABLE.x, STABLE.z);
   scene.add(stable.group);
   for (const h of stable.horses) scene.add(h);
   obstacles.push(...stable.obstacles);
-  reserved.push({ x: STABLE_POS.x, z: STABLE_POS.z, r: 18 });
+  reserved.push({ x: STABLE.x, z: STABLE.z, r: 18 });
 
   // 광장 옆에도 말 한 마리 — 바로 눈에 띄어서 타보게 된다
-  const plazaHorse = makeHorseRide(16, 6, 2, -2.2);
+  const plazaHorse = makeHorseRide(PLAZA_HORSE.x, PLAZA_HORSE.z, 2, -2.2);
   scene.add(plazaHorse.group);
   obstacles.push(plazaHorse.obstacle);
-  reserved.push({ x: 16, z: 6, r: 8 });
+  reserved.push({ x: PLAZA_HORSE.x, z: PLAZA_HORSE.z, r: 8 });
 
-  // 나무 40그루 — 건물이나 놀이터 위에는 심지 않는다
-  for (let i = 0; i < 40; i++) {
+  // 🛣 광장 ↔ 큰 건물들을 잇는 길
+  road(CASTLE.x, CASTLE.doorZ + 6, 11);        // 🏰 인하성
+  road(RUHA_SITE.x, RUHA_SITE.doorZ + 6);      // 🌙 루하성
+  road(MOM_SITE.x, MOM_SITE.doorZ + 6);        // 💗 엄마성
+  road(DAD_SITE.x, DAD_SITE.doorZ - 6);        // 🛠 아빠성
+  road(PLAYGROUND.x, PLAYGROUND.z);            // 🛝 놀이터
+  road(HOME.x, HOME.z);                        // 🏡 우리 집
+
+  // 나무 — 건물이나 놀이터 위에는 심지 않는다 (마을이 넓어져서 그루 수도 늘렸다)
+  for (let i = 0; i < 80; i++) {
     let x = 0, z = 0, ok = false;
     for (let tryCount = 0; tryCount < 20 && !ok; tryCount++) {
       const a = Math.random() * Math.PI * 2;
-      const r = 26 + Math.random() * (WORLD_RADIUS - 30);
+      const r = 26 + Math.random() * (WORLD_RADIUS - 32);
       x = Math.cos(a) * r;
       z = Math.sin(a) * r;
       ok = reserved.every(s => Math.hypot(x - s.x, z - s.z) > s.r);
@@ -264,7 +281,7 @@ export function buildWorld(scene) {
     scene,
     spawn: new THREE.Vector3(0, 0, 14),
     yaw: 0,
-    bounds: 88,                // 마을 밖으로 못 나가는 원의 반지름
+    bounds: WORLD_BOUNDS,      // 마을 밖으로 못 나가는 원의 반지름
     home, collide, isBlocked, update,
     // 📷 마을에서는 카메라가 건물·나무 속에 파묻히면 캐릭터 쪽으로 당긴다.
     //   (집에서 막 나왔을 때 건물에 가려서 캐릭터가 안 보이던 문제)
@@ -276,7 +293,7 @@ export function buildWorld(scene) {
     //   build(ctx) = 안쪽 공간을 만드는 함수. ctx.exit = 나올 때 설 자리
     doors: [
       {
-        x: 0, z: CASTLE_DOOR.z, r: 4.5, to: 'castle',
+        x: 0, z: CASTLE.doorZ, r: 4.5, to: 'castle',
         label: '인하성! 👑 안쪽 끝에 왕좌가 있어요',
       },
       {

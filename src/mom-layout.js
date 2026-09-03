@@ -40,10 +40,9 @@ export const SHAFT = { x: 0, z: -MOM_D / 2 + 3.4, hw: 3.6, hd: 3.4 };
 /** 엘리베이터 문 앞에 서는 자리 (여기서 '엘리베이터' 버튼이 뜬다) */
 export const LIFT_STAND = { x: SHAFT.x, z: SHAFT.z + SHAFT.hd + 2.6 };
 
-// 엘리베이터가 움직이는 속도
-const LIFT_STOP = 2.6;          // 층마다 멈춰 있는 시간(초)
-const LIFT_UP   = 1.6;          // 한 층 오가는 데 걸리는 시간(초)
-const LIFT_CYCLE = LIFT_STOP + LIFT_UP;
+// 🛗 엘리베이터가 한 층 오가는 데 걸리는 시간(초). 작게 하면 빨라진다
+const LIFT_UP = 1.6;
+const LIFT_SPEED = FLOOR_H / LIFT_UP;   // 1초에 몇 칸 움직이나
 
 // 층 색깔 — 층마다 벽 띠와 바닥 융단 색이 다르다
 export const FLOOR_COLORS = [
@@ -148,9 +147,18 @@ export function buildMomStructure(scene, floorNames) {
   // --- 🛗 엘리베이터 통로 (바닥부터 꼭대기까지 뻥 뚫린 기둥 모양) ---
   const sx0 = SHAFT.x - SHAFT.hw, sx1 = SHAFT.x + SHAFT.hw;
   const front = SHAFT.z + SHAFT.hd;
-  // 통로 양옆 벽 (위에서 아래까지 통째로)
-  for (const x of [sx0 - 0.3, sx1 + 0.3]) {
-    g.add(part('box', 0xe8d6ff, x, MOM_H / 2, SHAFT.z, 0.6, MOM_H, SHAFT.hd * 2));
+  // 통로 양옆 벽 — **한쪽만 보이는 판**이다 (바깥쪽에서만 보인다)
+  //  ★ 왜? 엘리베이터를 타면 카메라가 칸 뒤(통로 안)에 선다.
+  //    벽이 네모 상자면 카메라가 상자 속에 갇혀서 깜깜해진다.
+  //    판으로 만들고 바깥을 향하게 하면, 방에서는 벽으로 보이고
+  //    칸 안에서는 **그 층 방 안이 훤히 보인다** (성 벽과 같은 방식)
+  for (const [x, ry] of [[sx0 - 0.3, -Math.PI / 2], [sx1 + 0.3, Math.PI / 2]]) {
+    const wall = new THREE.Mesh(new THREE.PlaneGeometry(SHAFT.hd * 2, MOM_H),
+                                new THREE.MeshToonMaterial({ color: 0xe8d6ff }));
+    wall.position.set(x, MOM_H / 2, SHAFT.z);
+    wall.rotation.y = ry;
+    wall.receiveShadow = true;
+    g.add(wall);
     obstacles.push({ x, z: SHAFT.z, hw: 0.5, hd: SHAFT.hd });
   }
   // 통로 앞면 — 층마다 문 그림이 붙는다. 여기로는 걸어 들어갈 수 없다
@@ -193,13 +201,23 @@ export function buildMomStructure(scene, floorNames) {
 // -----------------------------------------------------------
 export function makeLift(scene, floorNames) {
   // --- 칸 모양 ---
+  //  ★ 벽 세 장은 **안쪽에서만 보이는 판**이다.
+  //    네모 상자로 만들면 칸 뒤에 선 카메라가 상자에 막혀 앞이 안 보인다
   const cab = new THREE.Group();
+  const panel = (color, w, h, x, y, z, ry) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h),
+                             new THREE.MeshToonMaterial({ color }));
+    m.position.set(x, y, z);
+    m.rotation.y = ry;
+    m.receiveShadow = true;
+    return m;
+  };
   cab.add(part('box', 0xfff6e8, 0, -0.15, 0, SHAFT.hw * 2 - 0.5, 0.3, SHAFT.hd * 2 - 0.5));
   cab.add(part('box', 0xffd9ec, 0, 6.0, 0, SHAFT.hw * 2 - 0.5, 0.3, SHAFT.hd * 2 - 0.5));
-  cab.add(part('box', 0xffe6f4, 0, 3, -SHAFT.hd + 0.4, SHAFT.hw * 2 - 0.5, 6, 0.3));
-  for (const sx of [-1, 1]) {
-    cab.add(part('box', 0xffe6f4, sx * (SHAFT.hw - 0.4), 3, 0, 0.3, 6, SHAFT.hd * 2 - 0.5));
-  }
+  //  뒷벽 (문 쪽 +z를 바라본다) + 양옆 벽 (칸 안쪽을 바라본다)
+  cab.add(panel(0xffe6f4, SHAFT.hw * 2 - 0.5, 6, 0, 3, -SHAFT.hd + 0.4, 0));
+  cab.add(panel(0xffdff0, SHAFT.hd * 2 - 0.5, 6, -(SHAFT.hw - 0.4), 3, 0, Math.PI / 2));
+  cab.add(panel(0xffdff0, SHAFT.hd * 2 - 0.5, 6, SHAFT.hw - 0.4, 3, 0, -Math.PI / 2));
   // 칸 안 전등과 버튼판
   const bulb = part('ball', 0xfff0a8, 0, 5.5, 0, 1.0, 0.6, 1.0, glow(0xfff0a8));
   bulb.userData.noShadow = true;
@@ -212,37 +230,49 @@ export function makeLift(scene, floorNames) {
   scene.add(cab);
 
   // --- 지금 상태 (열 개의 타는 자리가 같이 본다) ---
-  const lift = { y: 0, floor: 0 };
+  //   y      : 칸이 지금 있는 높이
+  //   target : 가려는 층 (▲▼ 버튼이 이 숫자를 바꾼다)
+  //   floor  : 지금 보이는 층 (버튼 글씨와 안내에 쓴다)
+  const lift = { y: 0, target: 0, floor: 0, moving: false };
+  let said = -1;                       // 이 층이라고 이미 알려줬나
 
-  /** 출발 층이 start일 때, k번째로 서는 층 (꼭대기에 닿으면 다시 내려온다) */
-  function stopFloor(start, k) {
-    const period = (FLOORS - 1) * 2;
-    const p = ((start + k) % period + period) % period;
-    return p < FLOORS ? p : period - p;
+  /**
+   * 매 프레임 칸을 목표 층 쪽으로 조금씩 움직인다.
+   *  ★ 아이가 ▲▼를 눌러야만 움직인다. (예전에는 저절로 오르내렸다)
+   */
+  function step(dt) {
+    const want = floorY(lift.target);
+    const d = want - lift.y;
+    if (Math.abs(d) <= LIFT_SPEED * dt) { lift.y = want; lift.moving = false; }
+    else { lift.y += Math.sign(d) * LIFT_SPEED * dt; lift.moving = true; }
+    cab.position.set(SHAFT.x, lift.y, SHAFT.z);
+    //  내릴 층 = 칸 바로 아래 층 (움직이는 중에 내려도 안전하게)
+    lift.floor = Math.max(0, Math.min(FLOORS - 1, Math.floor(lift.y / FLOOR_H + 0.001)));
   }
 
-  /** 부드럽게 출발하고 부드럽게 선다 (0~1을 S자로 바꾼다) */
-  const ease = (u) => u * u * (3 - 2 * u);
-
-  /** 탄 지 t초 됐을 때 칸의 높이 */
-  function liftY(start, t) {
-    const k = Math.floor(t / LIFT_CYCLE);
-    const ph = t - k * LIFT_CYCLE;
-    const a = floorY(stopFloor(start, k));
-    if (ph <= LIFT_STOP) return a;
-    const b = floorY(stopFloor(start, k + 1));
-    return a + (b - a) * ease((ph - LIFT_STOP) / LIFT_UP);
+  /** ▲▼ 버튼 — 한 번 누르면 한 층 */
+  function go(step1) {
+    const next = Math.max(0, Math.min(FLOORS - 1, lift.target + step1));
+    if (next === lift.target) return;
+    lift.target = next;
+    said = -1;                          // 새 층에 서면 다시 알려준다
   }
 
   /** 층마다 하나씩 만드는 "타는 자리" */
   function liftRide(i) {
-    let said = -1;                       // 이 층이라고 이미 알려줬나
     return {
       kind: 'lift',
-      label: '엘리베이터를 탔어요! 🛗 층마다 멈춰요',
+      label: '엘리베이터를 탔어요! 🛗 ▲▼로 층을 골라요',
       verb: '엘리베이터',
       //  ★ 버튼 글씨가 지금 층에 따라 바뀐다 ("3층 내리기")
       get offVerb() { return `${lift.floor + 1}층 내리기`; },
+      //  ★ 화면 왼쪽에 뜨는 버튼 두 개 (main.js가 보여준다)
+      buttons: [
+        { get label() { return lift.target >= FLOORS - 1 ? '▲\n꼭대기' : '▲\n위로'; },
+          press() { go(1); } },
+        { get label() { return lift.target <= 0 ? '▼\n1층' : '▼\n아래로'; },
+          press() { go(-1); } },
+      ],
       enter: { x: LIFT_STAND.x, z: LIFT_STAND.z },
       exit:  { x: LIFT_STAND.x, z: LIFT_STAND.z },
       enterY: floorY(i),
@@ -250,20 +280,26 @@ export function makeLift(scene, floorNames) {
       //  ★ 마을 친구는 안 탄다 (친구가 타면 아이가 못 탄다)
       noNpc: true, duration: 600, autoEnd: false, rider: null,
       //  칸이 올라가면 카메라도 같이 올라간다
-      camBase: true, camDist: 12, camHeight: 5.6, lookHeight: 2.6,
+      //  ★ 카메라를 너무 멀리 두면 성 밖까지 나가서 위층 물건이 비쳐 보인다
+      camBase: true, camDist: 9.5, camHeight: 5.0, lookHeight: 2.4,
+      //  ★ 탈 때 카메라를 **칸 뒤쪽**에 둔다 → 문 밖(그 층 방 안)이 훤히 보인다
+      //    (통로 벽과 칸 벽이 한쪽만 보이는 판이라 뒤에서 통과해 보인다)
+      camYaw: 0,
       say: null,                         // 화면에 띄우고 싶은 말 (main.js가 읽어간다)
+      onRide(on) {
+        if (!on) return;
+        lift.target = i;                 // 탄 층에서 출발한다
+        lift.y = floorY(i);
+        said = i;
+      },
       pose(t, o) {
-        const y = liftY(i, t);
-        lift.y = y;
-        //  내릴 층 = 칸 바로 아래 층 (올라가는 중에 내려도 안전하게)
-        lift.floor = Math.max(0, Math.min(FLOORS - 1, Math.floor(y / FLOOR_H + 0.001)));
-        cab.position.set(SHAFT.x, y, SHAFT.z);
-        if (Math.abs(y - floorY(lift.floor)) < 0.01 && said !== lift.floor) {
+        if (!lift.moving && said !== lift.floor) {
           said = lift.floor;
           this.say = `${lift.floor + 1}층 ${floorNames[lift.floor]}`;
         }
-        o.x = SHAFT.x; o.z = SHAFT.z + 0.3;
-        o.y = y + 0.1;
+        o.x = SHAFT.x;
+        o.z = SHAFT.z + 1.4;             // 문 쪽에 서서 밖을 본다
+        o.y = lift.y + 0.1;
         o.yaw = 0;                        // 문(남쪽)을 바라보고 선다
         o.tilt = 0;
         return o;
@@ -273,5 +309,6 @@ export function makeLift(scene, floorNames) {
 
   const rides = [];
   for (let i = 0; i < FLOORS; i++) rides.push(liftRide(i));
-  return { rides, cab, lift };
+  //  step은 mom-castle.js가 매 프레임 불러준다 (칸은 아무도 안 타도 제자리를 지킨다)
+  return { rides, cab, lift, step };
 }
