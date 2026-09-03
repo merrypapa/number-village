@@ -11,6 +11,9 @@
 import * as THREE from 'three';
 import { C, part, makeHeart } from './castle-props.js';
 import { makeBridge, makePlatform, makeCloudLump, makeRainbow } from './bridge.js';
+import { areaBuilder } from './area-link.js';
+import { HALF_X, FLOOR2 } from './castle-layout.js';
+import { RUHA_D, RUHA_F2 } from './ruha-layout.js';
 
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
@@ -48,6 +51,12 @@ export const SKY_FROM_CASTLE = { pos: new THREE.Vector3(0, 0, 1.5), yaw: Math.PI
 /** 루하성에서 징검다리로 나왔을 때 서는 자리 */
 export const SKY_FROM_RUHA   = { pos: new THREE.Vector3(0, 0, -75.5), yaw: 0 };
 
+// 징검다리에서 성으로 **들어갈 때** 서는 자리
+//  ★ 문에서 넉넉히 안쪽에 세운다. 문 바로 앞이면 카메라가 성벽 밖에 서서 앞을 가린다
+//  ★ y가 "몇 층에 내려서는지"를 뜻한다 (player.js의 moveTo)
+const CASTLE_IN = { pos: new THREE.Vector3(HALF_X - 12, FLOOR2, -13), yaw: -Math.PI / 2 };
+const RUHA_IN   = { pos: new THREE.Vector3(0, RUHA_F2, -RUHA_D / 2 + 6.5), yaw: 0 };
+
 const STONE_COLORS = [0xa8ead8, 0xffd9e8, 0xc9b4ff, 0xa8e6ff, 0xfff3c8];
 
 // -----------------------------------------------------------
@@ -74,7 +83,7 @@ function makeStone(color, r) {
 //          ← 인하성·루하성이 넘겨준다
 //  ★ 걷는 규칙은 src/bridge.js가 맡는다. 여기서는 **꾸미기**만 한다.
 // -----------------------------------------------------------
-export function buildSkyway(ctx) {
+export function buildSkywayArea(ctx) {
   return makeBridge({
     name: 'skyway',
     envMap: ctx.envMap,
@@ -87,14 +96,16 @@ export function buildSkyway(ctx) {
       {
         at: 'A', to: 'castle',
         label: '인하성 2층으로 돌아왔어요 🏰',
-        arrive: ctx.castleArrive, arriveYaw: ctx.castleYaw,
+        //  ★ 성을 만드는 함수는 **이름표**로 찾는다 (area-link.js).
+        //    성 파일을 직접 부르면 파일끼리 뱅뱅 도는 모양이 된다
+        build: areaBuilder('castle'),
+        arrive: CASTLE_IN.pos.clone(), arriveYaw: CASTLE_IN.yaw,
       },
       {
         at: 'B', to: 'ruha',
         label: '루하성에 도착! 🌙 별과 달의 성',
-        //  ★ 루하성을 만드는 함수는 밖에서 받는다 (파일끼리 서로 부르지 않게)
-        build: (c) => ctx.buildRuha(c),
-        arrive: ctx.ruhaArrive, arriveYaw: ctx.ruhaYaw,
+        build: areaBuilder('ruha'),
+        arrive: RUHA_IN.pos.clone(), arriveYaw: RUHA_IN.yaw,
       },
     ],
     decorate(scene, api) {

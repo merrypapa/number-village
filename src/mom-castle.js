@@ -19,8 +19,9 @@ import { P } from './mom-props.js';
 import { fillFloors } from './mom-floors.js';
 import { makeSign } from './mart-props.js';
 import { part, glow } from './castle-props.js';
-import { buildRainbowBridge, RB_FROM_MOM } from './rainbow-bridge.js';
-import { HALF_X, FLOOR2 } from './castle-layout.js';
+import { buildRainbowArea, RB_FROM_MOM, MOM_RB_DOOR } from './rainbow-bridge.js';
+import { registerArea } from './area-link.js';
+import { buildFlowerArea, FP_FROM_MOM, MOM_FP_DOOR } from './flower-path.js';
 
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
@@ -35,9 +36,6 @@ export const FLOOR_NAMES = [
   '볼풀장 🎈', '트램폴린 🤸', '미끄럼틀 🛝', '블록 놀이 🧱', '씽씽카 🚗',
   '인형의 집 🧸', '음악방 🥁', '간식 카페 🍰', '이야기 텐트 ⛺', '하늘 전망대 🌈',
 ];
-
-// 🌈 10층 서쪽 벽에 난 무지개 다리 문 자리
-const RAINBOW_DOOR = { z: 4 };
 
 export function buildMomCastle(ctx) {
   const room = makeInterior({
@@ -94,6 +92,28 @@ export function buildMomCastle(ctx) {
   // ===========================================================
   fillFloors(room, ctx, { put, putSign, floorRide, rides, spots });
 
+  // -----------------------------------------------------------
+  //  🌸 1층 동쪽 벽의 바깥 문 — 여기로 나가면 꽃길이다 (루하성으로)
+  // -----------------------------------------------------------
+  {
+    const fpGlow = new THREE.Mesh(new THREE.PlaneGeometry(5.4, 6.6),
+                                  new THREE.MeshBasicMaterial({ color: 0xd8f5c8 }));
+    fpGlow.position.set(MOM_W / 2 - 0.12, 3.3, MOM_FP_DOOR.z);
+    fpGlow.rotation.y = -Math.PI / 2;
+    room.scene.add(fpGlow);
+    for (const dz of [-3.2, 3.2]) {
+      room.hang(part('box', P.lime, 0, 0, 0, 0.6, 7.0, 0.6),
+                MOM_W / 2 - 0.4, 3.3, MOM_FP_DOOR.z + dz, 0);
+    }
+    room.hang(part('box', P.lime, 0, 0, 0, 0.6, 0.6, 7.0),
+              MOM_W / 2 - 0.4, 6.9, MOM_FP_DOOR.z, 0);
+    room.hang(makeSign('꽃길 🌸 루하성 가는 길', 6.6, 1.1, '#b6e58a', '#2b2340'),
+              MOM_W / 2 - 0.45, 8.0, MOM_FP_DOOR.z, -Math.PI / 2);
+    const fpMat = part('box', P.lime, 0, 0, 0, 2.6, 0.12, 4.2, glow(P.lime));
+    fpMat.castShadow = false;
+    room.hang(fpMat, MOM_W / 2 - 1.4, 0.08, MOM_FP_DOOR.z, 0);
+  }
+
   {
     const i = FLOORS - 1, base = floorY(i);
     // 🌈 서쪽 벽에 난 바깥 문 — 여기로 나가면 무지개 다리다 (인하성으로)
@@ -101,20 +121,20 @@ export function buildMomCastle(ctx) {
     //     들어올 때 카메라가 문 뒤에 서서 앞을 다 가린다
     const rbGlow = new THREE.Mesh(new THREE.PlaneGeometry(5.4, 6.6),
                                   new THREE.MeshBasicMaterial({ color: 0xdff3ff }));
-    rbGlow.position.set(-MOM_W / 2 + 0.12, base + 3.3, RAINBOW_DOOR.z);
+    rbGlow.position.set(-MOM_W / 2 + 0.12, base + 3.3, MOM_RB_DOOR.z);
     rbGlow.rotation.y = Math.PI / 2;
     room.scene.add(rbGlow);
     for (const dz of [-3.2, 3.2]) {
       room.hang(part('box', P.hot, 0, 0, 0, 0.6, 7.0, 0.6),
-                -MOM_W / 2 + 0.4, base + 3.3, RAINBOW_DOOR.z + dz, 0);
+                -MOM_W / 2 + 0.4, base + 3.3, MOM_RB_DOOR.z + dz, 0);
     }
     room.hang(part('box', P.hot, 0, 0, 0, 0.6, 0.6, 7.0),
-              -MOM_W / 2 + 0.4, base + 6.9, RAINBOW_DOOR.z, 0);
+              -MOM_W / 2 + 0.4, base + 6.9, MOM_RB_DOOR.z, 0);
     room.hang(makeSign('무지개 다리 🌈 인하성 가는 길', 6.6, 1.1, '#ff9ec4', '#5b3d8f'),
-              -MOM_W / 2 + 0.45, base + 8.0, RAINBOW_DOOR.z, Math.PI / 2);
+              -MOM_W / 2 + 0.45, base + 8.0, MOM_RB_DOOR.z, Math.PI / 2);
     const rbMat = part('box', P.hot, 0, 0, 0, 2.6, 0.12, 4.2, glow(P.hot));
     rbMat.castShadow = false;
-    room.hang(rbMat, -MOM_W / 2 + 1.4, base + 0.08, RAINBOW_DOOR.z, 0);
+    room.hang(rbMat, -MOM_W / 2 + 1.4, base + 0.08, MOM_RB_DOOR.z, 0);
   }
 
   // -----------------------------------------------------------
@@ -133,36 +153,24 @@ export function buildMomCastle(ctx) {
     // 🌈 10층 서쪽 문 — 무지개 다리로 나간다 (인하성 2층으로 이어진다)
     //   y: floorY(9) 를 적어야 아래층에서 이 자리를 지나가도 안 나가진다
     doors: [{
-      x: -MOM_W / 2 + 1.4, z: RAINBOW_DOOR.z, r: 1.7, y: floorY(FLOORS - 1),
+      x: -MOM_W / 2 + 1.4, z: MOM_RB_DOOR.z, r: 1.7, y: floorY(FLOORS - 1),
       to: 'rainbowway',
       label: '무지개 다리! 🌈 인하성으로 가요',
       build: buildRainbowArea,
       arrive: RB_FROM_MOM.pos.clone(), arriveYaw: RB_FROM_MOM.yaw,
+    }, {
+      // 🌸 1층 동쪽 문 — 꽃길로 나간다 (루하성으로 이어진다)
+      x: MOM_W / 2 - 1.4, z: MOM_FP_DOOR.z, r: 1.7, y: 0, to: 'flowerway',
+      label: '꽃길! 🌸 루하성으로 가요',
+      build: buildFlowerArea,
+      arrive: FP_FROM_MOM.pos.clone(), arriveYaw: FP_FROM_MOM.yaw,
     }],
   });
 }
 
 // -----------------------------------------------------------
-//  🌈 무지개 다리 만들기 — 인하성과 엄마성이 **똑같은 함수**를 쓴다.
-//    어느 쪽에서 먼저 건너가든 같은 다리가 나오게 하려고
-//    "오갈 때 서는 자리"를 여기 한 곳에만 적어둔다.
+//  🔗 이름표 붙이기 — 다리들이 "mom"이라는 이름으로 이 성을 찾는다
 // -----------------------------------------------------------
-export function buildRainbowArea(ctx) {
-  return buildRainbowBridge({
-    ...ctx,
-    buildMom: buildMomCastle,
-    // 무지개 다리 → 엄마성 10층 서쪽 문으로 들어올 때 서는 자리
-    //  ★ 도착 자리의 y가 "몇 층"을 뜻한다. 10층 바닥 높이를 적어야 10층에 내려선다
-    momArrive: new THREE.Vector3(-MOM_W / 2 + 7.5, floorY(FLOORS - 1), RAINBOW_DOOR.z),
-    momYaw: Math.PI / 2,
-    // 무지개 다리 → 인하성 2층 서쪽 발코니로 돌아갈 때 서는 자리
-    //  ★ 문에서 넉넉히 안쪽에 세운다. 문 바로 앞이면 카메라가 성벽 밖에 선다
-    castleArrive: new THREE.Vector3(-HALF_X + 12, FLOOR2, 8),
-    castleYaw: Math.PI / 2,
-  });
-}
+registerArea('mom', buildMomCastle);
 
-export { RB_FROM_CASTLE } from './rainbow-bridge.js';
-
-// 다른 파일이 층 정보를 물어볼 때 쓴다 (무지개 다리·꽃길이 몇 층으로 이어지나)
 export { FLOORS, FLOOR_H, floorY, LIFT_STAND, SHAFT, MOM_W, MOM_D, MOM_H, FLOOR_COLORS };

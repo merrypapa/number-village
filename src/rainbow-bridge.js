@@ -9,6 +9,9 @@
 import * as THREE from 'three';
 import { part, glow, makeHeart } from './castle-props.js';
 import { makeBridge, makePlatform, makeCloudLump, makeRainbow } from './bridge.js';
+import { areaBuilder } from './area-link.js';
+import { HALF_X, FLOOR2 } from './castle-layout.js';
+import { MOM_W, FLOORS, floorY } from './mom-layout.js';
 
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
@@ -41,6 +44,17 @@ export const RB_FROM_CASTLE = { pos: new THREE.Vector3(0, 0, 1.5), yaw: Math.PI 
 /** 엄마성 10층에서 무지개 다리로 나왔을 때 서는 자리 */
 export const RB_FROM_MOM    = { pos: new THREE.Vector3(0, 0, -66.5), yaw: 0 };
 
+/** 🌈 엄마성 10층 서쪽 벽에 난 문 자리 (엄마성도 이 값을 쓴다) */
+export const MOM_RB_DOOR = { z: 4 };
+/** 🌈 인하성 2층 서쪽 발코니에 난 문 자리 (인하성도 이 값을 쓴다) */
+export const CASTLE_RB_DOOR = { z: 8 };
+
+// 다리에서 성으로 **들어갈 때** 서는 자리 (문에서 넉넉히 안쪽)
+const CASTLE_IN = { pos: new THREE.Vector3(-HALF_X + 12, FLOOR2, CASTLE_RB_DOOR.z),
+                    yaw: Math.PI / 2 };
+const MOM_IN = { pos: new THREE.Vector3(-MOM_W / 2 + 7.5, floorY(FLOORS - 1), MOM_RB_DOOR.z),
+                 yaw: Math.PI / 2 };
+
 // -----------------------------------------------------------
 //  🐦 하늘을 나는 새 — 날개를 팔랑팔랑
 // -----------------------------------------------------------
@@ -64,7 +78,7 @@ function makeBird(color = 0xfff6e8) {
 //  무지개 다리 공간 만들기
 //    ctx = { envMap, buildMom, castleArrive/Yaw, momArrive/Yaw }
 // -----------------------------------------------------------
-export function buildRainbowBridge(ctx) {
+export function buildRainbowArea(ctx) {
   return makeBridge({
     name: 'rainbowway',
     envMap: ctx.envMap,
@@ -78,14 +92,15 @@ export function buildRainbowBridge(ctx) {
       {
         at: 'A', to: 'castle',
         label: '인하성 2층으로 돌아왔어요 🏰',
-        arrive: ctx.castleArrive, arriveYaw: ctx.castleYaw,
+        //  ★ 성을 만드는 함수는 **이름표**로 찾는다 (area-link.js)
+        build: areaBuilder('castle'),
+        arrive: CASTLE_IN.pos.clone(), arriveYaw: CASTLE_IN.yaw,
       },
       {
         at: 'B', to: 'mom',
         label: '엄마성 10층 하늘 전망대! 💗',
-        //  ★ 엄마성을 만드는 함수는 밖에서 받는다 (파일끼리 서로 부르지 않게)
-        build: (c) => ctx.buildMom(c),
-        arrive: ctx.momArrive, arriveYaw: ctx.momYaw,
+        build: areaBuilder('mom'),
+        arrive: MOM_IN.pos.clone(), arriveYaw: MOM_IN.yaw,
       },
     ],
 

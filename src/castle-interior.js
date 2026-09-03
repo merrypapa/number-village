@@ -29,9 +29,9 @@ import {
 } from './castle-layout.js';
 import { buildShell, buildSparkles } from './castle-shell.js';
 import { buildGallery } from './castle-gallery.js';
-import { buildSkywayArea } from './ruha-castle.js';
-import { SKY_FROM_CASTLE } from './skyway.js';
-import { buildRainbowArea, RB_FROM_CASTLE } from './mom-castle.js';
+import { buildSkywayArea, SKY_FROM_CASTLE } from './skyway.js';
+import { buildRainbowArea, RB_FROM_CASTLE, CASTLE_RB_DOOR } from './rainbow-bridge.js';
+import { registerArea } from './area-link.js';
 import { makeSign } from './mart-props.js';
 import {
   SLIDE, makeThroneRide, makeRockingHorseRide, makeSlideRide,
@@ -51,8 +51,8 @@ const SHELF2 = { x: -32.8, z: 24 };  // 📚 2층 책장
 // ☁️ 2층 동쪽 발코니에 난 바깥 문 — 구름 징검다리를 건너 루하성으로 간다
 const SKY_DOOR = { z: -13 };
 // 🌈 2층 **서쪽** 발코니에 난 바깥 문 — 무지개 다리를 건너 엄마성으로 간다
-//   ★ 보물방(z -17 ~ -5)을 피해서 남쪽에 낸다
-const RAINBOW_DOOR = { z: 8 };
+//   ★ 보물방(z -17 ~ -5)을 피해서 남쪽에 냈다. 자리는 rainbow-bridge.js가 정한다
+const RAINBOW_DOOR = CASTLE_RB_DOOR;
 
 // -----------------------------------------------------------
 //  성 안 공간 만들기
@@ -377,3 +377,9 @@ export function buildCastleInterior(envMap, playerCharId) {
     }],
   };
 }
+
+// -----------------------------------------------------------
+//  🔗 이름표 붙이기 — 다리들이 "castle"이라는 이름으로 인하성을 찾는다
+//    (src/area-link.js — 파일끼리 서로 부르지 않게 하는 방법)
+// -----------------------------------------------------------
+registerArea('castle', (ctx) => buildCastleInterior(ctx.envMap, ctx.charId));
