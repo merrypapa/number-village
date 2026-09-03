@@ -42,6 +42,6 @@ export const PLAZA_HORSE = { x: 22, z: 9 };
 // 🏠 친구들 집 — 광장을 둘러싼 방향(라디안)과 거리
 //  ★ 북쪽(성 가는 길, 약 4.7)과 남쪽(우리 집, 약 1.6)은 비워둔다
 //  ★ 집 개수는 src/houses.js의 HOUSES가 정한다. 이 각도 목록도 같은 개수여야 한다
-export const FRIEND_ANGLES = [0.4, 1.0, 2.5, 3.2, 3.9, 5.9];
+export const FRIEND_ANGLES = [0.4, 1.0, 2.5, 3.2, 3.9, 5.9, 5.25];   // 마지막이 🎂 파티 집
 export const FRIEND_DIST = 54;        // 광장 한가운데에서 집까지
 export const HOUSE_DOOR = 7.6;        // 집 한가운데에서 문 앞 자리까지
