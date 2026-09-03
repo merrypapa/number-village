@@ -221,3 +221,140 @@ export function makeSkyBridgeHint(fromX, fromZ, toX, toZ) {
   }
   return g;
 }
+
+// -----------------------------------------------------------
+//  💗 엄마성 — 10층짜리 분홍 탑 (키즈카페 성)
+//     층마다 창문 띠가 하나씩. 아이가 세어볼 수 있다
+// -----------------------------------------------------------
+export function makeMomCastle() {
+  const g = new THREE.Group();
+  const PINK = 0xff9ec4, HOT = 0xff6fa5, CREAM = 0xffe6f4;
+  const FLOORS = 10, FH = 3.6;              // 겉에서 보이는 한 층 높이
+  const H = FLOORS * FH;                    // 탑 높이 (36)
+
+  // 본체 — 층마다 색 띠와 창문
+  g.add(part('box', CREAM, 0, H / 2, 0, 17, H, 12));
+  for (let i = 0; i < FLOORS; i++) {
+    const y = i * FH;
+    g.add(part('box', i % 2 ? PINK : HOT, 0, y + 0.35, 0, 17.4, 0.6, 12.4));   // 층 띠
+    for (const x of [-5.5, 0, 5.5]) {                                          // 창문
+      g.add(part('box', 0xdff3ff, x, y + 2.0, 6.15, 2.4, 1.8, 0.3, glow(0xdff3ff)));
+    }
+    for (const sx of [-1, 1]) {
+      g.add(part('box', 0xdff3ff, sx * 8.65, y + 2.0, 0, 0.3, 1.8, 5.0, glow(0xdff3ff)));
+    }
+  }
+
+  // 꼭대기 — 하늘 전망대(10층)라서 지붕이 뾰족하지 않고 난간이 있다
+  g.add(part('box', PINK, 0, H + 0.5, 0, 19, 1.0, 14));
+  for (let i = 0; i < 10; i++) {
+    const x = -8.4 + i * 1.87;
+    g.add(part('box', CREAM, x, H + 1.8, 6.6, 0.5, 1.6, 0.5));
+    g.add(part('box', CREAM, x, H + 1.8, -6.6, 0.5, 1.6, 0.5));
+  }
+  const cap = part('cone', HOT, 0, H + 5.0, 0, 9, 5.4, 9);
+  cap.rotation.y = Math.PI / 4;
+  g.add(cap);
+  const top = makeHeart(HOT, 2.0);
+  top.position.set(0, H + 9.0, 0);
+  g.add(top);
+  g.userData.tick = (t) => { top.rotation.y = t * 0.5; };
+
+  // 양옆 작은 탑
+  for (const sx of [-1, 1]) {
+    g.add(part('cyl', CREAM, sx * 9.6, H * 0.42, 4.0, 4.0, H * 0.84, 4.0));
+    g.add(part('cone', PINK, sx * 9.6, H * 0.9, 4.0, 5.0, 5.0, 5.0));
+    for (let i = 0; i < 4; i++) {
+      g.add(part('box', 0xdff3ff, sx * 9.6, 3 + i * 6, 6.0, 1.4, 1.6, 0.3, glow(0xdff3ff)));
+    }
+  }
+
+  // 정문 — 안이 환하게 빛난다
+  //  ★ 문틀을 **빛나는 판보다 앞에** 두면 판을 다 가려서 그냥 분홍 네모로 보인다.
+  //    그래서 문틀은 기둥 두 개 + 위 가로대로만 만든다
+  const doorLight = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 6.4), glow(0xfff0d8));
+  doorLight.position.set(0, 3.2, 6.15);
+  doorLight.userData.noShadow = true;
+  g.add(doorLight);
+  for (const sx of [-1, 1]) g.add(part('box', HOT, sx * 2.9, 3.2, 6.2, 0.8, 7.0, 0.5));
+  g.add(part('box', HOT, 0, 6.6, 6.2, 6.6, 0.8, 0.5));
+  g.add(part('box', PINK, 0, 7.4, 6.5, 7.6, 0.7, 1.6));        // 현관 차양
+  g.add(part('box', HOT, 0, 0.08, 8.5, 6.0, 0.16, 5.0));       // 현관 앞 융단
+  // 문 위의 하트 세 개
+  for (let i = 0; i < 3; i++) {
+    const h = makeHeart(i % 2 ? PINK : HOT, 0.9);
+    h.position.set((i - 1) * 2.4, 9.0, 6.4);
+    g.add(h);
+  }
+  return g;
+}
+
+// -----------------------------------------------------------
+//  🛠 아빠성 — 뚝딱 공작소 (2층짜리 나무·벽돌 성)
+//     큰 차고 문과 굴뚝, 지붕 위에는 바람개비가 돈다
+// -----------------------------------------------------------
+export function makeDadCastle() {
+  const g = new THREE.Group();
+  const WOOD = 0xc98a56, DARK = 0x8b5a3c, IRON = 0x8d93a8, CREAM = 0xf2e4cd;
+  const YELLOW = 0xffc93d, RED = 0xe05a4a;
+
+  // 본체 (2층) — 아래는 벽돌, 위는 나무
+  g.add(part('box', CREAM, 0, 3.5, 0, 20, 7, 14));
+  g.add(part('box', DARK, 0, 7.4, 0, 20.6, 1.0, 14.6));      // 층 사이 띠
+  g.add(part('box', WOOD, 0, 11, 0, 19, 6, 13));
+  // 나무 골조 무늬 (2층)
+  for (const x of [-7, 0, 7]) g.add(part('box', DARK, x, 11, 6.6, 0.7, 6, 0.3));
+  g.add(part('box', DARK, 0, 11, 6.6, 19, 0.7, 0.3));
+  // 지붕 — 네모뿔 하나로 덮는다
+  //  ★ 처음에는 널빤지 두 장을 기울여 맞댔는데 꼭대기에 틈이 생겼다.
+  //    다른 건물처럼 뿔(cone) 하나로 덮으니 깔끔하다
+  const roof = part('cone', RED, 0, 17.6, 0, 23, 7.0, 16);
+  roof.rotation.y = Math.PI / 4;
+  g.add(roof);
+  g.add(part('box', DARK, 0, 14.2, 0, 20.4, 0.8, 14.6));      // 처마
+  // 굴뚝 + 연기
+  g.add(part('box', 0xb06a5a, -6.5, 17.0, -3, 2.6, 6.0, 2.6));
+  for (let i = 0; i < 3; i++) {
+    const puff = part('ball', 0xf0f0f0, -6.5, 21.0 + i * 1.8, -3 + i * 0.6, 1.4 + i * 0.4);
+    puff.castShadow = false;
+    g.add(puff);
+  }
+  // 바람개비 (지붕 꼭대기에서 돈다)
+  const vane = new THREE.Group();
+  for (let i = 0; i < 4; i++) {
+    const b = part('box', YELLOW, 1.4, 0, 0, 2.8, 1.6, 0.2);
+    b.rotation.z = (i / 4) * Math.PI * 2;
+    b.position.set(Math.cos((i / 4) * Math.PI * 2) * 1.6,
+                   Math.sin((i / 4) * Math.PI * 2) * 1.6, 0);
+    vane.add(b);
+  }
+  vane.position.set(0, 24.0, 0);
+  g.add(vane);
+  g.add(part('cyl', IRON, 0, 22.0, 0, 0.4, 4.0, 0.4));
+  g.userData.tick = (t) => { vane.rotation.z = t * 1.4; };
+
+  // 창문
+  for (const sx of [-1, 1]) {
+    g.add(part('box', 0xdff3ff, sx * 6.5, 4.4, 7.05, 3.0, 2.4, 0.3, glow(0xdff3ff)));
+    g.add(part('box', DARK, sx * 6.5, 4.4, 7.15, 3.4, 0.3, 0.3));
+    g.add(part('box', 0xdff3ff, sx * 6.0, 11.0, 6.6, 2.6, 2.4, 0.3, glow(0xdff3ff)));
+  }
+
+  // 정문 — 차고처럼 큰 문. 안이 환하게 빛난다
+  const doorLight = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 6.0), glow(0xfff0d8));
+  doorLight.position.set(0, 3.0, 7.05);
+  doorLight.userData.noShadow = true;
+  g.add(doorLight);
+  for (const sx of [-1, 1]) g.add(part('box', IRON, sx * 3.6, 3.0, 7.1, 0.8, 6.4, 0.5));
+  g.add(part('box', IRON, 0, 6.4, 7.1, 8.0, 0.8, 0.5));
+  g.add(part('box', YELLOW, 0, 7.4, 7.4, 9.0, 0.7, 1.6));     // 차양
+  g.add(part('box', DARK, 0, 0.08, 10.0, 7.0, 0.16, 6.0));    // 문 앞 나무 발판
+
+  // 문 옆에 세워둔 공구 (여기가 공작소라고 알려준다)
+  g.add(part('box', DARK, -8.5, 1.2, 8.0, 1.2, 2.4, 1.2));    // 나무 상자
+  g.add(part('cyl', WOOD, -8.5, 3.4, 8.0, 0.3, 2.4, 0.3));    // 삽 자루
+  g.add(part('box', IRON, -8.5, 4.7, 8.0, 1.0, 1.2, 0.3));
+  g.add(part('cyl', RED, 8.5, 1.0, 8.0, 2.0, 2.0, 2.0));      // 기름통
+  g.add(part('cyl', IRON, 8.5, 2.2, 8.0, 0.5, 0.6, 0.5));
+  return g;
+}

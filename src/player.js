@@ -326,9 +326,14 @@ export function createPlayer(model, camera, world) {
       //  (회전목마는 카메라를 늘 **바깥쪽**에 둔다. 안 그러면 기둥이 앞을 가린다)
       if (ride.camYawAt) camYaw = ride.camYawAt(t);
       rideTime += dt;
-      const done = applyRide(ride, model, rideTime, t);
+      const cur = ride;                       // ★ getOff()가 ride를 null로 만든다
+      const done = applyRide(cur, model, rideTime, t);
       rideY = model.position.y;
-      if (done && ride.autoEnd) getOff();     // 미끄럼틀은 다 내려오면 저절로 내린다
+      if (done && cur.autoEnd) getOff();      // 미끄럼틀은 다 내려오면 저절로 내린다
+      if (!ride) {                            // 방금 내렸다 → 이제 걸어다니는 카메라
+        followCamera(dt, floorRef, 0);
+        return false;
+      }
       // camBase를 켠 놀이기구(2층 미끄럼틀)는 카메라가 높이를 그대로 따라간다
       if (ride.camBase) followCamera(dt, rideY, 0);
       else              followCamera(dt, 0, rideY);

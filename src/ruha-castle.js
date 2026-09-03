@@ -23,16 +23,24 @@ import {
 import { makeSeatRide } from './house-props.js';
 import { makeCushion } from './castle-props2.js';
 import { makeSign } from './mart-props.js';
-import { buildSkyway, SKY_FROM_RUHA } from './skyway.js';
-import { RUHA_F2, RF1, RF2, ruhaGroundY, buildRuhaStructure } from './ruha-layout.js';
+import { buildSkywayArea, SKY_FROM_RUHA } from './skyway.js';
+import { registerArea } from './area-link.js';
+import { buildFlowerArea, FP_FROM_RUHA, RUHA_FP_DOOR } from './flower-path.js';
+import { buildStoneWay, SW_FROM_RUHA, RUHA_SW_DOOR } from './dad-bridges.js';
+import { RUHA_W, RUHA_D, RUHA_H, RUHA_F2, RF1, RF2,
+         ruhaGroundY, buildRuhaStructure } from './ruha-layout.js';
 import { makeTelescope } from './castle-props2.js';
 import { glow, part } from './castle-props.js';
+import { makeWallDoor } from './castle-door.js';
 import { HALF_X, FLOOR2 } from './castle-layout.js';
 
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
 // -----------------------------------------------------------
-const W = 56, D = 48, H = 26;      // 성 안 가로 · 세로 · 천장 (아주 넓고 높다)
+//  성 크기는 뼈대 파일(ruha-layout.js)에 적어두었다.
+//  다리 파일들이 "루하성 어디로 들어가나"를 알아야 하는데,
+//  성 파일을 직접 import 하면 서로 부르는 모양이 되기 때문이다
+const W = RUHA_W, D = RUHA_D, H = RUHA_H;
 const OWNER = 'aurora';            // 루하성 주인 (characters.js의 id) — 오로라핑
 
 // 마을에서 루하성이 서 있는 자리 (world.js가 이 값을 보고 건물을 놓는다)
@@ -110,16 +118,11 @@ export function buildRuhaCastle(ctx) {
   //   ★ 문 그림은 **한쪽만 보이는 판**이다. 문틀을 두껍게 두면
   //     들어올 때 카메라가 문 뒤에 서서 앞을 다 가린다
   // -----------------------------------------------------------
-  const DOOR_Y = RUHA_F2 + 3.4;
-  const doorGlow = new THREE.Mesh(new THREE.PlaneGeometry(6.0, 6.8), glow(0xdfe8ff));
-  doorGlow.userData.noShadow = true;
-  room.hang(doorGlow, SKY_DOOR.x, DOOR_Y, -D / 2 + 0.12, 0);
-  room.hang(makeSign('구름 징검다리 ☁️ 인하성 가는 길', 9, 1.3, '#8fa8ff', '#1b1b45'),
-            SKY_DOOR.x, DOOR_Y + 4.6, -D / 2 + 0.3, 0);
-  //  문간 발판 — 여기 서면 나간다고 눈으로 알려준다
-  const skyMat = part('box', R.ice, 0, 0, 0, 5.0, 0.12, 3.0, glow(R.ice));
-  skyMat.castShadow = false;
-  room.hang(skyMat, SKY_DOOR.x, RUHA_F2 + 0.08, -D / 2 + 2.0, 0);
+  makeWallDoor(room.scene, {
+    side: 'n', wall: -D / 2, at: SKY_DOOR.x, base: RUHA_F2,
+    frame: R.silver, light: 0xdfe8ff, mat: R.ice,
+    text: '구름 징검다리 ☁️ 인하성 가는 길', bg: '#8fa8ff', fg: '#1b1b45',
+  });
 
   // -----------------------------------------------------------
   //  🌙 2층 꾸미기 — 발코니 등불 · 방석 · 수정 전시 · 별 망원경
@@ -303,6 +306,27 @@ export function buildRuhaCastle(ctx) {
   });
 
   // -----------------------------------------------------------
+  //  🌸 1층 서쪽 벽의 바깥 문 — 여기로 나가면 꽃길이다 (엄마성으로)
+  //   ★ 문 그림은 한쪽만 보이는 판. 두꺼운 문틀을 앞에 두면 카메라가 가린다
+  // -----------------------------------------------------------
+  makeWallDoor(room.scene, {
+    side: 'w', wall: -W / 2, at: RUHA_FP_DOOR.z, base: 0,
+    frame: R.silver, light: 0xd8f5c8, mat: 0x9fe08a,
+    text: '꽃길 🌸 엄마성 가는 길', bg: '#9fe08a', fg: '#1b1b45',
+  });
+
+  // -----------------------------------------------------------
+  //  🪨 1층 북쪽 벽의 바깥 문 — 여기로 나가면 돌다리다 (아빠성으로)
+  //   ★ 2층 발코니 밑이라 천장이 9칸뿐이다. 간판을 낮게 단다
+  // -----------------------------------------------------------
+  //  ★ 2층 발코니 밑이라 천장이 9칸뿐이다 → 문을 조금 낮게(h 6.0) 만든다
+  makeWallDoor(room.scene, {
+    side: 'n', wall: -D / 2, at: RUHA_SW_DOOR.x, base: 0, h: 6.0,
+    frame: R.silver, light: 0xdfe4ea, mat: 0x8d93a8,
+    text: '돌다리 🪨 아빠성 가는 길', bg: '#8d93a8', fg: '#ffffff',
+  });
+
+  // -----------------------------------------------------------
   //  ⭐ 바닥에 흩뿌린 작은 별과 떠다니는 달
   // -----------------------------------------------------------
   for (let i = 0; i < 14; i++) {
@@ -342,30 +366,25 @@ export function buildRuhaCastle(ctx) {
       label: '구름 징검다리! ☁️ 인하성으로 가요',
       build: buildSkywayArea,
       arrive: SKY_FROM_RUHA.pos.clone(), arriveYaw: SKY_FROM_RUHA.yaw,
+    }, {
+      // 🌸 1층 서쪽 문 — 꽃길로 나간다 (엄마성으로 이어진다)
+      x: -W / 2 + 1.4, z: RUHA_FP_DOOR.z, r: 1.7, y: 0, to: 'flowerway',
+      label: '꽃길! 🌸 엄마성으로 가요',
+      build: buildFlowerArea,
+      arrive: FP_FROM_RUHA.pos.clone(), arriveYaw: FP_FROM_RUHA.yaw,
+    }, {
+      // 🪨 1층 북쪽 문 — 돌다리로 나간다 (아빠성으로 이어진다)
+      //   ★ y: 0 을 적어야 2층 발코니를 걸을 때 이 자리 위에서 안 나가진다
+      x: RUHA_SW_DOOR.x, z: -D / 2 + 1.7, r: 1.7, y: 0, to: 'stoneway',
+      label: '돌다리! 🪨 아빠성으로 가요',
+      build: buildStoneWay,
+      arrive: SW_FROM_RUHA.pos.clone(), arriveYaw: SW_FROM_RUHA.yaw,
     }],
   });
 }
 
 // -----------------------------------------------------------
-//  ☁️ 구름 징검다리 만들기 — 두 성이 **똑같은 함수**를 쓴다.
-//    어느 쪽에서 먼저 건너가든 같은 징검다리가 나오게 하려고
-//    "오갈 때 서는 자리"를 여기 한 곳에만 적어둔다.
-//    (인하성 쪽은 castle-interior.js가 이 함수를 그대로 쓴다)
+//  🔗 이름표 붙이기 — 다리들이 "ruha"라는 이름으로 이 성을 찾는다
+//    (src/area-link.js — 파일끼리 서로 부르지 않게 하는 방법)
 // -----------------------------------------------------------
-export function buildSkywayArea(ctx) {
-  return buildSkyway({
-    ...ctx,
-    buildRuha: buildRuhaCastle,
-    // 징검다리 → 루하성 북쪽 문으로 들어올 때 서는 자리
-    //  ★ 도착 자리의 y가 "몇 층"을 뜻한다. RUHA_F2를 적어야 2층 발코니에 내려선다
-    //    (문에서 조금 안쪽에 세운다 — 문틀이 화면을 가리지 않게)
-    ruhaArrive: new THREE.Vector3(SKY_DOOR.x, RUHA_F2, -D / 2 + 6.5),
-    ruhaYaw: 0,
-    // 징검다리 → 인하성 2층 동쪽 발코니로 돌아갈 때 서는 자리
-    //  ★ y에 FLOOR2를 적어야 1층이 아니라 2층에 내려선다 (player.js의 moveTo)
-    //  ★ 문에서 넉넉히 안쪽에 세운다. 문 바로 앞에 세우면
-    //    카메라가 성벽 바깥에 서서 문틀이 화면을 가린다
-    castleArrive: new THREE.Vector3(HALF_X - 12, FLOOR2, -13),
-    castleYaw: -Math.PI / 2,
-  });
-}
+registerArea('ruha', buildRuhaCastle);

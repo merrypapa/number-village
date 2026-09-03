@@ -29,8 +29,11 @@ import {
 } from './castle-layout.js';
 import { buildShell, buildSparkles } from './castle-shell.js';
 import { buildGallery } from './castle-gallery.js';
-import { buildSkywayArea } from './ruha-castle.js';
-import { SKY_FROM_CASTLE } from './skyway.js';
+import { buildSkywayArea, SKY_FROM_CASTLE } from './skyway.js';
+import { buildRainbowArea, RB_FROM_CASTLE, CASTLE_RB_DOOR } from './rainbow-bridge.js';
+import { registerArea } from './area-link.js';
+import { makeWallDoor } from './castle-door.js';
+import { buildTrainWay, TW_FROM_CASTLE, CASTLE_TW_DOOR } from './dad-bridges.js';
 import { makeSign } from './mart-props.js';
 import {
   SLIDE, makeThroneRide, makeRockingHorseRide, makeSlideRide,
@@ -49,6 +52,11 @@ const SHELF2 = { x: -32.8, z: 24 };  // 📚 2층 책장
 
 // ☁️ 2층 동쪽 발코니에 난 바깥 문 — 구름 징검다리를 건너 루하성으로 간다
 const SKY_DOOR = { z: -13 };
+// 🌈 2층 **서쪽** 발코니에 난 바깥 문 — 무지개 다리를 건너 엄마성으로 간다
+//   ★ 보물방(z -17 ~ -5)을 피해서 남쪽에 냈다. 자리는 rainbow-bridge.js가 정한다
+const RAINBOW_DOOR = CASTLE_RB_DOOR;
+// 🚂 2층 **남쪽** 벽(별 전망대 옆)에 난 바깥 문 — 기차길을 타고 아빠성으로 간다
+const TRAIN_DOOR = { x: CASTLE_TW_DOOR.x };
 
 // -----------------------------------------------------------
 //  성 안 공간 만들기
@@ -207,28 +215,27 @@ export function buildCastleInterior(envMap, playerCharId) {
 
   // ☁️ 2층 동쪽 발코니의 바깥 문 — 여기로 나가면 구름 징검다리다
   //   (벽이 안쪽만 보이는 판이라, 밝은 판을 붙여서 "뚫린 문"처럼 보이게 한다)
-  const skyGlow = new THREE.Mesh(
-    new THREE.PlaneGeometry(5.4, 6.6),
-    new THREE.MeshBasicMaterial({ color: 0xdff3ff })
-  );
-  skyGlow.position.set(HALF_X - 0.12, FLOOR2 + 3.3, SKY_DOOR.z);
-  skyGlow.rotation.y = -Math.PI / 2;
-  scene.add(skyGlow);
-  for (const dz of [-3.2, 3.2]) {
-    hang(part('box', C.gold, 0, 0, 0, 0.6, 7.0, 0.6), HALF_X - 0.4, FLOOR2 + 3.3,
-         SKY_DOOR.z + dz, 0);
-  }
-  hang(part('box', C.gold, 0, 0, 0, 0.6, 0.6, 7.0), HALF_X - 0.4, FLOOR2 + 6.9, SKY_DOOR.z, 0);
-  hang(makeSign('구름 징검다리 ☁️ 루하성 가는 길', 6.6, 1.1, '#a8e6ff', '#2c2a6b'),
-       HALF_X - 0.45, FLOOR2 + 8.0, SKY_DOOR.z, -Math.PI / 2);
-  //  문간 발판 — "여기 서면 징검다리로 나간다"고 눈으로 알려준다
-  const skyMat = part('box', 0xa8e6ff, 0, 0, 0, 2.6, 0.12, 4.2, glow(0xa8e6ff));
-  skyMat.castShadow = false;
-  hang(skyMat, HALF_X - 1.4, FLOOR2 + 0.08, SKY_DOOR.z, 0);
+  makeWallDoor(scene, {
+    side: 'e', wall: HALF_X, at: SKY_DOOR.z, base: FLOOR2,
+    frame: C.gold, light: 0xdff3ff, mat: 0xa8e6ff,
+    text: '구름 징검다리 ☁️ 루하성 가는 길', bg: '#a8e6ff', fg: '#2c2a6b',
+  });
 
   //  발코니 양옆에 등불 (여기가 나가는 곳이라고 알려준다)
   for (const dz of [-4.6, 4.6]) {
     place(makeCandleStand(), HALF_X - 2.2, SKY_DOOR.z + dz, 0, { r: 1.0, ...F2 }, FLOOR2);
+  }
+
+  // 🌈 2층 서쪽 발코니의 바깥 문 — 여기로 나가면 무지개 다리다 (엄마성으로)
+  //   동쪽 징검다리 문과 똑같은 방식. 방향만 반대다(-x 쪽 벽)
+  makeWallDoor(scene, {
+    side: 'w', wall: -HALF_X, at: RAINBOW_DOOR.z, base: FLOOR2,
+    frame: C.gold, light: 0xffe6f4, mat: 0xff9ec4,
+    text: '무지개 다리 🌈 엄마성 가는 길', bg: '#ff9ec4', fg: '#5b3d8f',
+  });
+
+  for (const dz of [-4.6, 4.6]) {
+    place(makeCandleStand(), -HALF_X + 2.2, RAINBOW_DOOR.z + dz, 0, { r: 1.0, ...F2 }, FLOOR2);
   }
 
   // 🛏 공주 침실 (2층 남동) — 침대 옆에서 '잠자기'를 누르면 누워서 잔다
@@ -257,6 +264,13 @@ export function buildCastleInterior(envMap, playerCharId) {
   // 2층 가운데 복도 — 깃발
   hang(makeBanner(C.mint), -8.4, FLOOR2 + 6.4, 34, -Math.PI / 2);
   hang(makeBanner(C.pink),  8.4, FLOOR2 + 6.4, 34, Math.PI / 2);
+
+  // 🚂 2층 남쪽 벽의 바깥 문 — 여기로 나가면 기차길이다 (아빠성으로)
+  makeWallDoor(scene, {
+    side: 's', wall: HALF_Z, at: TRAIN_DOOR.x, base: FLOOR2,
+    frame: C.gold, light: 0xffe8c8, mat: 0xffc93d,
+    text: '기차길 🚂 아빠성 가는 길', bg: '#ffc93d', fg: '#5b3d24',
+  });
 
   // 🛝 미끄럼틀 — 2층 난간 틈에서 1층 홀로
   const slide = makeCastleSlide(SLIDE.len, FLOOR2 + 0.6, SLIDE.bottom);
@@ -339,6 +353,24 @@ export function buildCastleInterior(envMap, playerCharId) {
       label: '구름 징검다리! ☁️ 루하성으로 가요',
       build: buildSkywayArea,
       arrive: SKY_FROM_CASTLE.pos.clone(), arriveYaw: SKY_FROM_CASTLE.yaw,
+    }, {
+      // 🌈 2층 서쪽 발코니 → 무지개 다리 → 엄마성 10층
+      x: -HALF_X + 1.4, z: RAINBOW_DOOR.z, r: 1.7, y: FLOOR2, to: 'rainbowway',
+      label: '무지개 다리! 🌈 엄마성으로 가요',
+      build: buildRainbowArea,
+      arrive: RB_FROM_CASTLE.pos.clone(), arriveYaw: RB_FROM_CASTLE.yaw,
+    }, {
+      // 🚂 2층 남쪽 벽 → 기차길 → 아빠성 2층
+      x: TRAIN_DOOR.x, z: HALF_Z - 1.4, r: 1.7, y: FLOOR2, to: 'trainway',
+      label: '기차길! 🚂 아빠성으로 가요',
+      build: buildTrainWay,
+      arrive: TW_FROM_CASTLE.pos.clone(), arriveYaw: TW_FROM_CASTLE.yaw,
     }],
   };
 }
+
+// -----------------------------------------------------------
+//  🔗 이름표 붙이기 — 다리들이 "castle"이라는 이름으로 인하성을 찾는다
+//    (src/area-link.js — 파일끼리 서로 부르지 않게 하는 방법)
+// -----------------------------------------------------------
+registerArea('castle', (ctx) => buildCastleInterior(ctx.envMap, ctx.charId));

@@ -86,7 +86,9 @@ export function makeInterior(cfg) {
                                       1.35 * power));
   const lamp = new THREE.DirectionalLight(cfg.lampColor ?? 0xfff4e0, 0.85 * power);
   lamp.position.set(W * 0.4, H * 2.4, D * 0.5);
-  lamp.castShadow = true;
+  //  shadow: false 로 끌 수 있다. 엄마성처럼 아주 높은 곳(90칸)은
+  //  그림자 지도가 너무 넓게 퍼져서 얼룩만 생긴다
+  lamp.castShadow = cfg.shadow !== false;
   lamp.shadow.mapSize.set(1024, 1024);
   const R = Math.max(W, D) * 0.8;
   lamp.shadow.camera.left = -R; lamp.shadow.camera.right = R;
