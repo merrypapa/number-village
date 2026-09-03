@@ -31,6 +31,7 @@ import { buildShell, buildSparkles } from './castle-shell.js';
 import { buildGallery } from './castle-gallery.js';
 import { buildSkywayArea } from './ruha-castle.js';
 import { SKY_FROM_CASTLE } from './skyway.js';
+import { buildRainbowArea, RB_FROM_CASTLE } from './mom-castle.js';
 import { makeSign } from './mart-props.js';
 import {
   SLIDE, makeThroneRide, makeRockingHorseRide, makeSlideRide,
@@ -49,6 +50,9 @@ const SHELF2 = { x: -32.8, z: 24 };  // 📚 2층 책장
 
 // ☁️ 2층 동쪽 발코니에 난 바깥 문 — 구름 징검다리를 건너 루하성으로 간다
 const SKY_DOOR = { z: -13 };
+// 🌈 2층 **서쪽** 발코니에 난 바깥 문 — 무지개 다리를 건너 엄마성으로 간다
+//   ★ 보물방(z -17 ~ -5)을 피해서 남쪽에 낸다
+const RAINBOW_DOOR = { z: 8 };
 
 // -----------------------------------------------------------
 //  성 안 공간 만들기
@@ -231,6 +235,31 @@ export function buildCastleInterior(envMap, playerCharId) {
     place(makeCandleStand(), HALF_X - 2.2, SKY_DOOR.z + dz, 0, { r: 1.0, ...F2 }, FLOOR2);
   }
 
+  // 🌈 2층 서쪽 발코니의 바깥 문 — 여기로 나가면 무지개 다리다 (엄마성으로)
+  //   동쪽 징검다리 문과 똑같은 방식. 방향만 반대다(-x 쪽 벽)
+  const rbGlow = new THREE.Mesh(
+    new THREE.PlaneGeometry(5.4, 6.6),
+    new THREE.MeshBasicMaterial({ color: 0xffe6f4 })
+  );
+  rbGlow.position.set(-HALF_X + 0.12, FLOOR2 + 3.3, RAINBOW_DOOR.z);
+  rbGlow.rotation.y = Math.PI / 2;
+  scene.add(rbGlow);
+  for (const dz of [-3.2, 3.2]) {
+    hang(part('box', C.gold, 0, 0, 0, 0.6, 7.0, 0.6), -HALF_X + 0.4, FLOOR2 + 3.3,
+         RAINBOW_DOOR.z + dz, 0);
+  }
+  hang(part('box', C.gold, 0, 0, 0, 0.6, 0.6, 7.0), -HALF_X + 0.4, FLOOR2 + 6.9,
+       RAINBOW_DOOR.z, 0);
+  hang(makeSign('무지개 다리 🌈 엄마성 가는 길', 6.6, 1.1, '#ff9ec4', '#5b3d8f'),
+       -HALF_X + 0.45, FLOOR2 + 8.0, RAINBOW_DOOR.z, Math.PI / 2);
+  //  문간 발판
+  const rbMat = part('box', 0xff9ec4, 0, 0, 0, 2.6, 0.12, 4.2, glow(0xff9ec4));
+  rbMat.castShadow = false;
+  hang(rbMat, -HALF_X + 1.4, FLOOR2 + 0.08, RAINBOW_DOOR.z, 0);
+  for (const dz of [-4.6, 4.6]) {
+    place(makeCandleStand(), -HALF_X + 2.2, RAINBOW_DOOR.z + dz, 0, { r: 1.0, ...F2 }, FLOOR2);
+  }
+
   // 🛏 공주 침실 (2층 남동) — 침대 옆에서 '잠자기'를 누르면 누워서 잔다
   const bed = makeBed();
   place(bed, BED.x, BED.z, Math.PI, { hw: 3.4, hd: 4.4, ...F2 }, FLOOR2);
@@ -339,6 +368,12 @@ export function buildCastleInterior(envMap, playerCharId) {
       label: '구름 징검다리! ☁️ 루하성으로 가요',
       build: buildSkywayArea,
       arrive: SKY_FROM_CASTLE.pos.clone(), arriveYaw: SKY_FROM_CASTLE.yaw,
+    }, {
+      // 🌈 2층 서쪽 발코니 → 무지개 다리 → 엄마성 10층
+      x: -HALF_X + 1.4, z: RAINBOW_DOOR.z, r: 1.7, y: FLOOR2, to: 'rainbowway',
+      label: '무지개 다리! 🌈 엄마성으로 가요',
+      build: buildRainbowArea,
+      arrive: RB_FROM_CASTLE.pos.clone(), arriveYaw: RB_FROM_CASTLE.yaw,
     }],
   };
 }
