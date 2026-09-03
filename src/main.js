@@ -132,7 +132,8 @@ const areaNpcs = {};              // 공간마다 친구들을 따로 기억해 
  */
 function getArea(name, door) {
   if (!areas[name]) {
-    const ctx = { envMap, charId };
+    //  music도 같이 넘긴다 — 엄마성 실로폰처럼 **소리를 내는 물건**이 있다
+    const ctx = { envMap, charId, music };
     areas[name] = door?.build ? door.build(ctx) : buildCastleInterior(envMap, charId);
   }
   const a = areas[name];
@@ -312,6 +313,9 @@ function loop() {
     player.update(dt, t);
     npcs?.update(dt, t, player.model.position);
     updateActionButton();
+    //  놀이기구가 하고 싶은 말이 있으면 화면에 띄운다
+    //  (엘리베이터가 "3층 미끄럼틀!" 하고 층을 알려준다)
+    if (player.ride?.say) { toast(player.ride.say); player.ride.say = null; }
     checkDoors();
     renderer.render(area.scene, camera);
   } else {

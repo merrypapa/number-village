@@ -221,3 +221,70 @@ export function makeSkyBridgeHint(fromX, fromZ, toX, toZ) {
   }
   return g;
 }
+
+// -----------------------------------------------------------
+//  💗 엄마성 — 10층짜리 분홍 탑 (키즈카페 성)
+//     층마다 창문 띠가 하나씩. 아이가 세어볼 수 있다
+// -----------------------------------------------------------
+export function makeMomCastle() {
+  const g = new THREE.Group();
+  const PINK = 0xff9ec4, HOT = 0xff6fa5, CREAM = 0xffe6f4;
+  const FLOORS = 10, FH = 3.6;              // 겉에서 보이는 한 층 높이
+  const H = FLOORS * FH;                    // 탑 높이 (36)
+
+  // 본체 — 층마다 색 띠와 창문
+  g.add(part('box', CREAM, 0, H / 2, 0, 17, H, 12));
+  for (let i = 0; i < FLOORS; i++) {
+    const y = i * FH;
+    g.add(part('box', i % 2 ? PINK : HOT, 0, y + 0.35, 0, 17.4, 0.6, 12.4));   // 층 띠
+    for (const x of [-5.5, 0, 5.5]) {                                          // 창문
+      g.add(part('box', 0xdff3ff, x, y + 2.0, 6.15, 2.4, 1.8, 0.3, glow(0xdff3ff)));
+    }
+    for (const sx of [-1, 1]) {
+      g.add(part('box', 0xdff3ff, sx * 8.65, y + 2.0, 0, 0.3, 1.8, 5.0, glow(0xdff3ff)));
+    }
+  }
+
+  // 꼭대기 — 하늘 전망대(10층)라서 지붕이 뾰족하지 않고 난간이 있다
+  g.add(part('box', PINK, 0, H + 0.5, 0, 19, 1.0, 14));
+  for (let i = 0; i < 10; i++) {
+    const x = -8.4 + i * 1.87;
+    g.add(part('box', CREAM, x, H + 1.8, 6.6, 0.5, 1.6, 0.5));
+    g.add(part('box', CREAM, x, H + 1.8, -6.6, 0.5, 1.6, 0.5));
+  }
+  const cap = part('cone', HOT, 0, H + 5.0, 0, 9, 5.4, 9);
+  cap.rotation.y = Math.PI / 4;
+  g.add(cap);
+  const top = makeHeart(HOT, 2.0);
+  top.position.set(0, H + 9.0, 0);
+  g.add(top);
+  g.userData.tick = (t) => { top.rotation.y = t * 0.5; };
+
+  // 양옆 작은 탑
+  for (const sx of [-1, 1]) {
+    g.add(part('cyl', CREAM, sx * 9.6, H * 0.42, 4.0, 4.0, H * 0.84, 4.0));
+    g.add(part('cone', PINK, sx * 9.6, H * 0.9, 4.0, 5.0, 5.0, 5.0));
+    for (let i = 0; i < 4; i++) {
+      g.add(part('box', 0xdff3ff, sx * 9.6, 3 + i * 6, 6.0, 1.4, 1.6, 0.3, glow(0xdff3ff)));
+    }
+  }
+
+  // 정문 — 안이 환하게 빛난다
+  //  ★ 문틀을 **빛나는 판보다 앞에** 두면 판을 다 가려서 그냥 분홍 네모로 보인다.
+  //    그래서 문틀은 기둥 두 개 + 위 가로대로만 만든다
+  const doorLight = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 6.4), glow(0xfff0d8));
+  doorLight.position.set(0, 3.2, 6.15);
+  doorLight.userData.noShadow = true;
+  g.add(doorLight);
+  for (const sx of [-1, 1]) g.add(part('box', HOT, sx * 2.9, 3.2, 6.2, 0.8, 7.0, 0.5));
+  g.add(part('box', HOT, 0, 6.6, 6.2, 6.6, 0.8, 0.5));
+  g.add(part('box', PINK, 0, 7.4, 6.5, 7.6, 0.7, 1.6));        // 현관 차양
+  g.add(part('box', HOT, 0, 0.08, 8.5, 6.0, 0.16, 5.0));       // 현관 앞 융단
+  // 문 위의 하트 세 개
+  for (let i = 0; i < 3; i++) {
+    const h = makeHeart(i % 2 ? PINK : HOT, 0.9);
+    h.position.set((i - 1) * 2.4, 9.0, 6.4);
+    g.add(h);
+  }
+  return g;
+}

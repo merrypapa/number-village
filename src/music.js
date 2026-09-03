@@ -52,6 +52,15 @@ const TUNES = {
            [77,2],[81,2], [84,2],[81,2], [79,4], [0,2],[74,2]],
     bass: [[43,4],[48,4], [45,4],[50,4], [41,4],[48,4], [43,4],[43,4]],
   },
+  // 💗 엄마성 (키즈카페) — 폴짝폴짝 신나는 놀이
+  mom: {
+    bpm: 126, wave: 'triangle',
+    lead: [[72,1],[76,1],[79,1],[76,1], [81,1],[79,1],[76,2],
+           [74,1],[77,1],[81,1],[77,1], [79,2],[76,2],
+           [84,1],[81,1],[79,1],[76,1], [77,1],[79,1],[81,2],
+           [72,1],[76,1],[79,2], [76,4]],
+    bass: [[48,2],[55,2], [50,2],[57,2], [53,2],[60,2], [55,2],[48,2]],
+  },
   // 🏠 집 안 (마트 · 친구 집 · 그림의 집) — 아늑하고 따뜻하게
   home: {
     bpm: 96, wave: 'triangle',
@@ -68,6 +77,7 @@ function tuneFor(name) {
   if (TUNES[name]) return name;
   if (name && name.startsWith('house')) return 'home';
   if (name === 'mart' || name === 'art') return 'home';
+  if (name && name.endsWith('way')) return 'skyway';    // 무지개 다리·꽃길
   return 'village';
 }
 
@@ -155,5 +165,15 @@ export function createMusic() {
 
   function stop() { if (timer) clearInterval(timer); timer = null; }
 
-  return { start, setScene, toggle, stop, get on() { return on; } };
+  /**
+   * 🎵 한 음만 딩— 하고 울린다 (엄마성 7층 실로폰).
+   *   배경음악과 같은 스피커를 쓰므로 🔇로 꺼두면 이것도 조용하다.
+   */
+  function ping(midi, wave = 'triangle') {
+    start();                                  // 아직 안 켰으면 켠다
+    if (!ctx || !on || ctx.state !== 'running') return;
+    note(midi, ctx.currentTime + 0.02, 0.6, wave, 0.9);
+  }
+
+  return { start, setScene, toggle, stop, ping, get on() { return on; } };
 }

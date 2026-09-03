@@ -8,8 +8,9 @@ import { buildPlayground } from './playground.js';
 import { buildStable, makeHorseRide } from './horse.js';
 import { createCollider } from './collide.js';
 import { makeMartBuilding, makeMartCarts, makeArtHouseBuilding,
-         makeRuhaCastle, makeSkyBridgeHint } from './village-buildings.js';
+         makeRuhaCastle, makeMomCastle, makeSkyBridgeHint } from './village-buildings.js';
 import { RUHA_SITE, buildRuhaCastle } from './ruha-castle.js';
+import { MOM_SITE, buildMomCastle } from './mom-castle.js';
 import { buildMart } from './mart.js';
 import { HOUSES, buildHouse } from './houses.js';
 import { buildArtHouse } from './art-house.js';
@@ -192,6 +193,7 @@ export function buildWorld(scene) {
   const obstacles = [];        // 부딪히는 물건 목록
   const reserved = [];         // 나무를 심으면 안 되는 자리
   let ruhaTick = null;         // 루하성 문 위의 별을 돌리는 함수
+  let momTick = null;          // 엄마성 꼭대기 하트를 돌리는 함수
 
   // 바닥
   const ground = new THREE.Mesh(
@@ -228,6 +230,16 @@ export function buildWorld(scene) {
   reserved.push({ x: RUHA_SITE.x, z: RUHA_SITE.z, r: 22 });
   if (ruha.userData.tick) ruhaTick = ruha.userData.tick;
 
+  // 💗 엄마성 (북서쪽) — 10층짜리 키즈카페 성
+  const mom = makeMomCastle();
+  mom.position.set(MOM_SITE.x, 0, MOM_SITE.z);
+  scene.add(mom);
+  obstacles.push({ x: MOM_SITE.x, z: MOM_SITE.z, hw: MOM_SITE.hw, hd: MOM_SITE.hd });
+  reserved.push({ x: MOM_SITE.x, z: MOM_SITE.z, r: 26 });
+  //  ★ 문 앞 길에는 나무를 심지 않는다 (나무가 문과 카메라를 가린다)
+  reserved.push({ x: MOM_SITE.x, z: MOM_SITE.doorZ + 8, r: 12 });
+  if (mom.userData.tick) momTick = mom.userData.tick;
+
   // ☁️ 두 성 사이에 걸린 구름 징검다리 (마을에서 올려다보면 보이는 장식)
   scene.add(makeSkyBridgeHint(CASTLE_POS.x + 12, CASTLE_POS.z + 2,
                               RUHA_SITE.x - 12, RUHA_SITE.z + 2));
@@ -239,6 +251,9 @@ export function buildWorld(scene) {
   const ruhaSign = makeSign('루하성', 12, 2.2, '#4a44a8');
   ruhaSign.position.set(RUHA_SITE.x, 14.5, RUHA_SITE.z + 6.9);
   scene.add(ruhaSign);
+  const momSign = makeSign('엄마성', 12, 2.2, '#ff6fa5');
+  momSign.position.set(MOM_SITE.x, 42.0, MOM_SITE.z + 6.4);   // 10층 탑이라 높이 단다
+  scene.add(momSign);
 
   // 성 입구 (융단 + 등불) — 여기 서면 성 안으로 들어간다
   scene.add(makeCastleEntrance(CASTLE_DOOR.z));
@@ -354,6 +369,7 @@ export function buildWorld(scene) {
   function update(dt, t) {
     sky.update(dt, t);
     ruhaTick?.(t, dt);
+    momTick?.(t, dt);
     playground.update(dt, t);
     stable.update(dt, t);
     plazaHorse.update(dt, t);
@@ -396,6 +412,11 @@ export function buildWorld(scene) {
         x: RUHA_SITE.x, z: RUHA_SITE.doorZ, r: 2.8, to: 'ruha',
         label: '루하성! 🌙 별과 달의 성',
         build: buildRuhaCastle,
+      },
+      {
+        x: MOM_SITE.x, z: MOM_SITE.doorZ, r: 2.8, to: 'mom',
+        label: '엄마성! 💗 10층 놀이터. 엘리베이터를 타요',
+        build: buildMomCastle,
       },
       ...houseDoors,        // 🏠 친구 집 (src/houses.js의 HOUSES 개수만큼)
     ],
