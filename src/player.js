@@ -101,6 +101,7 @@ export function createPlayer(model, camera, world) {
   let rideY = 0;             // 놀이기구 때문에 떠 있는 높이 (카메라가 따라간다)
   let nearRide = null;       // 바로 옆에 있는 빈 놀이기구 (🎠 버튼을 띄울지 정한다)
   let nearSpot = null;       // 바로 앞에 있는 말 거는 자리 (요정 친구 진열대 등)
+  let transferCool = 0;      // 갈아탄 직후 잠깐은 다시 갈아타지 않는다 (오리배에서 내리자마자 또 타지 않게)
 
   /** 점프! (땅에 있을 때만 된다 — 공중에서 두 번은 안 뛴다. 타는 중에는 안 된다) */
   function jump() {
@@ -123,6 +124,8 @@ export function createPlayer(model, camera, world) {
   /** 🎠 버튼 / E 키 — 옆에 있는 놀이기구를 타거나, 타고 있으면 내린다 */
   function toggleRide() {
     if (ride) {
+      //  🏊 헤엄치다 🦆 오리배 옆에 가면 바로 갈아탄다 (ride.transfers)
+      if (nearRide && !nearRide.rider) { transferTo(nearRide); return; }
       if (!ride.autoEnd) getOff();   // 미끄럼틀은 다 내려올 때까지 못 내린다
       return;
     }
@@ -147,8 +150,29 @@ export function createPlayer(model, camera, world) {
     if (nearSpot) api.onSpot?.(nearSpot);   // 무엇을 할지는 main.js가 정한다
   }
 
-  /** 놀이기구에서 내린다 */
-  function getOff() {
+  /**
+   * 탄 채로 다른 놀이기구로 옮겨 탄다 (헤엄 → 오리배, 오리배 → 헤엄, 워터슬라이드 → 헤엄).
+   *  내렸다 다시 타는 게 아니라서 exit 자리로 순간이동하지 않는다.
+   */
+  function transferTo(next) {
+    const prev = ride;
+    prev.rider = null;
+    prev.onRide?.(false, model);
+    ride = mountRide(next, model);
+    rideTime = 0;
+    transferCool = 1.5;
+    if (ride.camYaw !== undefined) camYaw = ride.camYaw;
+    nearRide = null;
+    api.onMount?.(ride);
+  }
+
+  /**
+   * 놀이기구에서 내린다.
+   *  ride.offTo가 있으면(오리배 → 헤엄) 내리는 대신 그리로 갈아탄다.
+   *  force = true면(다른 공간으로 옮길 때) 무조건 내린다.
+   */
+  function getOff(force = false) {
+    if (!force && ride.offTo && !ride.offTo.rider) { transferTo(ride.offTo); return; }
     dismountRide(ride, model);
     ride = null;
     rideTime = 0;
@@ -296,7 +320,7 @@ export function createPlayer(model, camera, world) {
 
     if (moving) {
       horse.position.addScaledVector(_dir, ride.speed * analog * dt);
-      area.collide(horse.position, HORSE_R, 0);       // 나무·집은 뚫고 못 간다
+      area.collide(horse.position, ride.bodyR ?? HORSE_R, 0);   // 나무·집은 뚫고 못 간다
       keepInside(horse.position);
       const diff = turnToward(horse, ride.turn ?? 6, dt);
       if (dragId === null) camYaw += diff * Math.min(1, 1.5 * dt);
@@ -312,10 +336,18 @@ export function createPlayer(model, camera, world) {
     model.rotation.x = moving ? Math.sin(t * 9) * 0.05 : 0;
 
     // 말이 움직였으니 "여기서 탄다 / 여기에 내린다" 자리도 같이 옮긴다
-    const side = horse.rotation.y + Math.PI / 2;
-    ride.enter.x = horse.position.x; ride.enter.z = horse.position.z;
-    ride.exit.x = horse.position.x + Math.sin(side) * 2.6;
-    ride.exit.z = horse.position.z + Math.cos(side) * 2.6;
+    //  (🏊 헤엄은 ride.track이 직접 정한다 — 타는 자리는 사다리, 내리는 자리는 가장 가까운 테두리)
+    if (ride.track) ride.track(horse.position, horse.rotation.y);
+    else {
+      const side = horse.rotation.y + Math.PI / 2;
+      ride.enter.x = horse.position.x; ride.enter.z = horse.position.z;
+      ride.exit.x = horse.position.x + Math.sin(side) * 2.6;
+      ride.exit.z = horse.position.z + Math.cos(side) * 2.6;
+    }
+    //  🦆 헤엄치다 갈아탈 수 있는 것(오리배)이 옆에 있으면 버튼이 바뀐다
+    transferCool -= dt;
+    nearRide = (ride.transfers && transferCool <= 0)
+      ? findFreeRide(ride.transfers, model.position, RIDE_REACH, false, ride.enterY ?? 0) : null;
 
     followCamera(dt, rideY, 0);
     return moving;
@@ -404,7 +436,7 @@ export function createPlayer(model, camera, world) {
    * 카메라는 스르륵 따라오지 않고 그 자리에 바로 놓는다 (화면이 휙 날아가지 않게).
    */
   function moveTo(next, pos, yaw) {
-    if (ride) getOff();
+    if (ride) getOff(true);
     area = next;
     const target = pos || next.spawn;
     //  ★ 도착 자리의 y는 "몇 층에 내려서는지"를 알려준다 (성 2층이면 7.5).

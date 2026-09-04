@@ -213,7 +213,8 @@ let actionLabel = '';
 function updateActionButton() {
   let want = '';                                   // 빈 글씨면 버튼을 숨긴다
   //  놀이기구가 verb / offVerb를 적어두면 그 말을 쓴다 (잠자기·공부하기 등)
-  if (player.ride) want = player.ride.autoEnd ? '' : (player.ride.offVerb || '내리기');
+  if (player.ride && player.nearRide) want = player.nearRide.verb || '타기';   // 🏊 헤엄치다 🦆 오리배 옆
+  else if (player.ride) want = player.ride.autoEnd ? '' : (player.ride.offVerb || '내리기');
   else if (player.nearRide) want = player.nearRide.verb || '타기';
   else if (player.nearSpot) {
     //  자리마다 버튼에 뜰 말이 다르다 (담기 · 계산 · 그리기…).
