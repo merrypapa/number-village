@@ -143,7 +143,8 @@ export function buildDadCastle(ctx) {
   const train = makeTrain();
   const A0 = Math.PI / 2;                       // 세워둔 자리 (남쪽)
   train.position.set(RAIL.x + Math.cos(A0) * RAIL.r, 0, RAIL.z + Math.sin(A0) * RAIL.r);
-  train.rotation.y = Math.atan2(-Math.sin(A0), Math.cos(A0));
+  //  ★ 기관차가 앞(-z)에 있어서, 달리는 방향의 반대로 돌려 세워야 기관차가 앞장선다
+  train.rotation.y = Math.atan2(-Math.sin(A0), Math.cos(A0)) + Math.PI;
   room.scene.add(train);
 
   rides.push({
@@ -162,11 +163,14 @@ export function buildDadCastle(ctx) {
       const z = RAIL.z + Math.sin(a) * RAIL.r;
       const yaw = Math.atan2(-Math.sin(a), Math.cos(a));
       train.position.set(x, 0, z);
-      train.rotation.y = yaw;
-      //  객차(기관차 뒤 2.6칸)에 앉는다
+      //  ★ 기차 모형은 기관차가 -z 쪽, 객차가 +z 쪽이다.
+      //    yaw는 "달리는 방향"이라 여기에 180°를 더해야 기관차가 앞장선다.
+      //    (예전엔 안 더해서 객차가 앞장서고, 아이는 기관차 보일러 속에 파묻혔다)
+      train.rotation.y = yaw + Math.PI;
+      //  객차(달리는 방향 기준 뒤쪽 2.6칸) **지붕 위**에 선다 — 객차 상자 꼭대기가 1.9
       o.x = x - Math.sin(yaw) * 2.6;
       o.z = z - Math.cos(yaw) * 2.6;
-      o.y = 2.0;
+      o.y = 1.95;
       o.yaw = yaw;
       o.tilt = 0;
       return o;

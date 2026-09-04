@@ -142,7 +142,7 @@ export function buildFlowerArea(ctx) {
       },
       {
         at: 'B', to: 'mom',
-        label: '엄마성에 도착! 💗 10층 놀이터',
+        label: '엄마성 1층에 도착! 💗 볼풀장',
         build: areaBuilder('mom'),
         arrive: MOM_IN.pos.clone(), arriveYaw: MOM_IN.yaw,
       },
