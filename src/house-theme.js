@@ -10,6 +10,7 @@
 import * as THREE from 'three';
 import { C, part, makeBookshelf, makeCakeTable, makePlant } from './castle-props.js';
 import { makeCushion } from './castle-props2.js';
+import { makePartyCorner } from './party-corner.js';   // 🎂 생일 파티 (파일이 길어서 따로)
 
 const WOOD = 0xc98a56, WOOD_D = 0x9a6238, STEEL = 0xdfe3ea;
 
@@ -284,4 +285,5 @@ export const CORNERS = {
   snack: makeSnackCorner,
   book:  makeBookCorner,
   cook:  makeCookCorner,
+  party: makePartyCorner,    // 🎂 커핑·머핑 생일 파티
 };

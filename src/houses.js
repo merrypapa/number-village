@@ -32,6 +32,9 @@ const W = 30, D = 25, H = 7.5;      // 집 안 가로 · 세로 · 천장 (넓�
 //    verb   : 코너 앞에서 노란 버튼에 뜨는 말
 //    say    : 버튼을 눌렀을 때 화면에 뜨는 말
 //    wall / floor / sofa : 집 색깔
+//    guests : (없어도 된다) 놀러 온 친구들 [{ id, x, z, yaw }]
+//    ownerAt: (없어도 된다) 집주인이 서 있는 자리 { x, z, yaw }
+//    song   : (없어도 된다) 버튼을 누르면 흘러나오는 노래 (music.js의 melody)
 // -----------------------------------------------------------
 export const HOUSES = [
   { id:'silk', name:'실크핑네 다리미 집', owner:'silk', corner:'iron',
@@ -57,6 +60,14 @@ export const HOUSES = [
   { id:'aja', name:'아자핑네 장난감 집', owner:'aja', corner:'toy',
     verb:'놀기', say:'블록으로 높이높이 쌓았어요! 🧸',
     wall:['#f2fff2', '#c4eec4', '#7ad48f'], floor:['#eef7ee', '#dceadc'], sofa:0xffd45e },
+
+  // 🎂 커핑·머핑 생일 파티 집 — 둘이 케이크 옆에 서 있다. 촛불을 후~ 불면 색종이 팡!
+  { id:'party', name:'커핑·머핑 생일 파티 집', owner:'keo', corner:'party',
+    verb:'후~ 불기', say:'후~! 생일 축하합니다 🎂🎉 커핑 · 머핑!',
+    ownerAt:{ x: 4.2, z: -5.6, yaw: Math.PI * 0.75 },
+    guests:[{ id:'meo', x: -4.2, z: -5.6, yaw: -Math.PI * 0.75 }],
+    song:'birthday', balloons:true,
+    wall:['#fff4fb', '#ffd6ea', '#ff7ab0'], floor:['#fff1f6', '#ffe0ec'], sofa:0xffd45e },
 ];
 
 // -----------------------------------------------------------
@@ -136,8 +147,12 @@ export function buildHouse(house, ctx) {
     room.addSpot({
       x: CORNER.x, z: CORNER.z + 3.4, r: 3.0, y: 0, verb: house.verb,
       use(toast) {
-        corner.userData.press?.();      // 다리미처럼 반응하는 물건이면 신나게 움직인다
+        //  다리미처럼 반응하는 물건이면 신나게 움직인다.
+        //  생일 케이크는 "불었으면 true, 다시 켰으면 false"를 돌려준다
+        const did = corner.userData.press?.();
+        if (did === false) { toast('촛불을 다시 켰어요 🕯'); return; }
         toast(house.say);
+        if (house.song) ctx.music?.melody?.(house.song);   // 🎵 생일 축하 노래
       },
     });
   }
@@ -155,7 +170,12 @@ export function buildHouse(house, ctx) {
   // -----------------------------------------------------------
   //  마무리 — 집주인이 거실에 서서 반겨준다
   // -----------------------------------------------------------
+  const owner = house.ownerAt ?? { x: 2.4, z: 2.0, yaw: Math.PI * 0.15 };
   return room.finish({
-    residents: [{ id: house.owner, x: 2.4, z: 2.0, yaw: Math.PI * 0.15, stay: true }],
+    residents: [
+      { id: house.owner, ...owner, stay: true },
+      //  🎉 놀러 온 친구들 (생일 파티 집의 머핑)
+      ...(house.guests ?? []).map(gst => ({ ...gst, stay: true })),
+    ],
   });
 }

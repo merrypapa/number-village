@@ -72,6 +72,20 @@ const TUNES = {
   },
 };
 
+// -----------------------------------------------------------
+//  ★ 한 번만 연주하는 짧은 노래들 (music.melody('birthday'))
+//    생일 축하 노래는 누구나 부를 수 있는 노래다
+// -----------------------------------------------------------
+const SONGS = {
+  birthday: {
+    bpm: 132, wave: 'triangle',
+    notes: [[67,0.75],[67,0.25],[69,1],[67,1],[72,1],[71,2],
+            [67,0.75],[67,0.25],[69,1],[67,1],[74,1],[72,2],
+            [67,0.75],[67,0.25],[79,1],[76,1],[72,1],[71,1],[69,2],
+            [77,0.75],[77,0.25],[76,1],[72,1],[74,1],[72,2]],
+  },
+};
+
 /** 공간 이름 → 어떤 곡을 틀까 (친구 집은 이름이 house-xxx 라서 앞글자로 본다) */
 function tuneFor(name) {
   if (TUNES[name]) return name;
@@ -175,5 +189,22 @@ export function createMusic() {
     note(midi, ctx.currentTime + 0.02, 0.6, wave, 0.9);
   }
 
-  return { start, setScene, toggle, stop, ping, get on() { return on; } };
+  /**
+   * 🎂 짧은 노래 한 곡을 한 번 연주한다 (배경음악 위에 얹힌다).
+   *   name = 아래 SONGS의 이름. 생일 파티 집에서 '후~ 불기'를 누르면 흘러나온다
+   */
+  function melody(name) {
+    const song = SONGS[name];
+    if (!song) return;
+    start();
+    if (!ctx || !on || ctx.state !== 'running') return;
+    const beat = 60 / song.bpm;
+    let at = ctx.currentTime + 0.05;
+    for (const [m, len] of song.notes) {
+      note(m, at, len * beat, song.wave, 0.8);
+      at += len * beat;
+    }
+  }
+
+  return { start, setScene, toggle, stop, ping, melody, get on() { return on; } };
 }

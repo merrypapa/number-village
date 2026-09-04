@@ -20,6 +20,7 @@ import { makeSign } from './mart-props.js';
 //  🏡 집·성·나무·분수 모양은 src/village-props.js로 옮겼다 (world.js가 너무 길어져서)
 import { M, makeHouse, makeCastle, makeTree, makeFountain,
          makeCastleEntrance } from './village-props.js';
+import { makeBalloons } from './castle-props.js';
 //  🗺 무엇이 어디에 서 있는지는 src/village-sites.js 한 곳에 모아뒀다
 //    (마을 배치를 바꾸려면 그 파일의 숫자만 고치면 된다)
 import {
@@ -181,6 +182,7 @@ export function buildWorld(scene) {
   //  ★ 집은 전부 광장(가운데) 쪽을 바라본다. 그래야 아이가 문을 찾기 쉽다
   const roofs = [M.roofA, M.roofB, M.roofC];
   const houseDoors = [];
+  const houseTicks = [];        // 집 밖에서 움직이는 것 (파티 집 풍선)
   for (let i = 0; i < HOUSES.length; i++) {
     const house = HOUSES[i];
     const a = FRIEND_ANGLES[i % FRIEND_ANGLES.length];
@@ -188,6 +190,14 @@ export function buildWorld(scene) {
     // 집 앞(광장 쪽) 방향
     const fx = -Math.cos(a), fz = -Math.sin(a);
     const h = makeHouse(roofs[i % 3], 8, 5, 8, house.name);
+    if (house.balloons) {                     // 🎂 파티 집은 문 앞에 풍선이 묶여 있다
+      for (const sx of [-1, 1]) {
+        const b = makeBalloons(sx > 0 ? [0xff7a9c, 0xffd93d, 0x63c8ff] : [0x7ad48f, 0xc9b4ff, 0xffa733]);
+        b.position.set(sx * 3.2, -1.0, 4.6);
+        h.add(b);
+        houseTicks.push(b.userData.tick);
+      }
+    }
     h.position.set(hx, 0, hz);
     h.rotation.y = Math.atan2(fx, fz);        // 앞면(+z)이 광장을 보게 돌린다
     scene.add(h);
@@ -270,6 +280,7 @@ export function buildWorld(scene) {
     ruhaTick?.(t, dt);
     momTick?.(t, dt);
     dadTick?.(t, dt);
+    for (const fn of houseTicks) fn(t, dt);
     playground.update(dt, t);
     stable.update(dt, t);
     plazaHorse.update(dt, t);
