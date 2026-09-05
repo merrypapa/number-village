@@ -231,8 +231,9 @@ export function buildWorld(scene) {
   // 🏊 야외 수영장 (남서쪽 맨 끝) — 수영·워터슬라이드·오리 튜브·선탠 의자
   const pool = buildPool(POOL.x, POOL.z);
   scene.add(pool.group);
+  for (const m of pool.loose) scene.add(m);        // 헤엄 표시 (마을 좌표로 움직인다)
   obstacles.push(...pool.obstacles);
-  reserved.push({ x: POOL.x, z: POOL.z, r: 24 });
+  reserved.push({ x: POOL.x, z: POOL.z, r: 34 });
 
   // 🐴 마구간과 말들 (말은 마을 좌표를 그대로 쓰므로 화면에 따로 넣는다)
   const stable = buildStable(STABLE.x, STABLE.z);
@@ -309,6 +310,8 @@ export function buildWorld(scene) {
     camCollide: true,
     // 탈 수 있는 것 — 그네·미끄럼틀·시소 + 🐴 말 세 마리 + 🏊 수영장
     rides: [...playground.rides, ...pool.rides, ...stable.rides, plazaHorse.ride],
+    // 🍹 말 거는 자리 — 수영장 바에서 음료 주문하기 (main.js의 useSpot이 spot.use를 부른다)
+    spots: [...pool.spots],
     // 🚪 문 — 건물 앞에 서면 그 건물 안으로 들어간다 (main.js가 확인한다)
     //   build(ctx) = 안쪽 공간을 만드는 함수. ctx.exit = 나올 때 설 자리
     doors: [

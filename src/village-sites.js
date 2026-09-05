@@ -41,7 +41,7 @@ export const STABLE      = { x: 52, z: -46 };
 export const PLAZA_HORSE = { x: 22, z: 9 };
 
 // 🏊 야외 수영장 — 마을 남서쪽 외곽 (광장에서 길이 하나 이어진다)
-export const POOL = { x: -60, z: 80 };
+export const POOL = { x: -57, z: 76 };   // 데크 반지름 28 → 마을 끝(128) 안에 들어온다
 
 // 🏠 친구들 집 — 광장을 둘러싼 방향(라디안)과 거리
 //  ★ 북쪽(성 가는 길, 약 4.7)과 남쪽(우리 집, 약 1.6)은 비워둔다
