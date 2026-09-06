@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { buildSky } from './sky.js';
 import { buildPlayground } from './playground.js';
 import { buildPool } from './pool.js';
+import { buildCatPark } from './cat-park.js';
 import { buildStable, makeHorseRide } from './horse.js';
 import { createCollider } from './collide.js';
 import { makeMartBuilding, makeMartCarts, makeArtHouseBuilding,
@@ -26,7 +27,7 @@ import { makeBalloons } from './castle-props.js';
 //    (마을 배치를 바꾸려면 그 파일의 숫자만 고치면 된다)
 import {
   WORLD_RADIUS, WORLD_BOUNDS, CASTLE, RUHA_SITE, MOM_SITE, DAD_SITE,
-  MART, ART, HOME, PLAYGROUND, STABLE, PLAZA_HORSE, POOL,
+  MART, ART, HOME, PLAYGROUND, STABLE, PLAZA_HORSE, POOL, CAT_PARK,
   FRIEND_ANGLES, FRIEND_DIST, HOUSE_DOOR,
 } from './village-sites.js';
 
@@ -235,6 +236,13 @@ export function buildWorld(scene) {
   obstacles.push(...pool.obstacles);
   reserved.push({ x: POOL.x, z: POOL.z, r: 34 });
 
+  // 🐱 고양이 놀이터 (동쪽 맨 끝) — 고양이 네 마리 · 캣타워 · 쓰다듬기 · 간식 · 낚싯대
+  const catPark = buildCatPark(CAT_PARK.x, CAT_PARK.z);
+  scene.add(catPark.group);
+  catPark.attach(scene);                            // 고양이는 마을 좌표로 걸어 다닌다
+  obstacles.push(...catPark.obstacles);
+  reserved.push({ x: CAT_PARK.x, z: CAT_PARK.z, r: 21 });
+
   // 🐴 마구간과 말들 (말은 마을 좌표를 그대로 쓰므로 화면에 따로 넣는다)
   const stable = buildStable(STABLE.x, STABLE.z);
   scene.add(stable.group);
@@ -256,6 +264,7 @@ export function buildWorld(scene) {
   road(PLAYGROUND.x, PLAYGROUND.z);            // 🛝 놀이터
   road(HOME.x, HOME.z);                        // 🏡 우리 집
   road(POOL.x, POOL.z);                        // 🏊 수영장
+  road(CAT_PARK.x, CAT_PARK.z);                // 🐱 고양이 놀이터
 
   // 나무 — 건물이나 놀이터 위에는 심지 않는다 (마을이 넓어져서 그루 수도 늘렸다)
   for (let i = 0; i < 80; i++) {
@@ -283,8 +292,9 @@ export function buildWorld(scene) {
 
   const { collide, isBlocked } = createCollider(obstacles);
 
-  /** 매 프레임 움직이는 것들 (구름, 고래, 그네, 시소, 말, 루하성 별, 수영장 물) */
-  function update(dt, t) {
+  /** 매 프레임 움직이는 것들 (구름, 고래, 그네, 시소, 말, 루하성 별, 수영장 물, 고양이)
+   *  playerPos = 아이가 서 있는 자리 (고양이가 따라오려고 본다. main.js가 넘겨준다) */
+  function update(dt, t, playerPos) {
     sky.update(dt, t);
     ruhaTick?.(t, dt);
     momTick?.(t, dt);
@@ -292,6 +302,7 @@ export function buildWorld(scene) {
     for (const fn of houseTicks) fn(t, dt);
     playground.update(dt, t);
     pool.update(dt, t);
+    catPark.update(dt, t, playerPos);
     stable.update(dt, t);
     plazaHorse.update(dt, t);
   }
@@ -309,9 +320,9 @@ export function buildWorld(scene) {
     //   실내는 벽이 안쪽만 보이는 판이라 밖에 있어도 잘 보이므로 켜지 않는다
     camCollide: true,
     // 탈 수 있는 것 — 그네·미끄럼틀·시소 + 🐴 말 세 마리 + 🏊 수영장
-    rides: [...playground.rides, ...pool.rides, ...stable.rides, plazaHorse.ride],
-    // 🍹 말 거는 자리 — 수영장 바에서 음료 주문하기 (main.js의 useSpot이 spot.use를 부른다)
-    spots: [...pool.spots],
+    rides: [...playground.rides, ...pool.rides, ...catPark.rides, ...stable.rides, plazaHorse.ride],
+    // 말 거는 자리 — 🍹 수영장 바 주문하기 · 🐱 고양이 쓰다듬기/간식/낚싯대 (main.js의 useSpot이 spot.use를 부른다)
+    spots: [...pool.spots, ...catPark.spots],
     // 🚪 문 — 건물 앞에 서면 그 건물 안으로 들어간다 (main.js가 확인한다)
     //   build(ctx) = 안쪽 공간을 만드는 함수. ctx.exit = 나올 때 설 자리
     doors: [
