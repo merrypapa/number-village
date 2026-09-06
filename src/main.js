@@ -340,7 +340,7 @@ function loop() {
   }
 
   // 지금 있는 공간만 움직인다 (마을: 구름·고래·그네 / 성 안: 불꽃·반짝이·풍선)
-  area.update(dt, t);
+  area.update(dt, t, player?.model.position);   // 아이 자리도 알려준다 (🐱 고양이가 따라온다)
 
   if (playing && player) {
     player.update(dt, t);
