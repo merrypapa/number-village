@@ -18,8 +18,8 @@ import { createCats } from './cats.js';
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
 // -----------------------------------------------------------
-const PEN_R = 15;            // 울타리 반지름
-const POSTS = 36;            // 울타리 기둥 수 (많을수록 촘촘하다)
+const PEN_R = 22;            // 울타리 반지름
+const POSTS = 52;            // 울타리 기둥 수 (많을수록 촘촘하다 — 사이로 못 빠져나가게 2.7칸 간격)
 const GATE_ANGLE = Math.PI;  // 문이 있는 쪽 (π = 서쪽 = 광장 쪽)
 const C = {
   grass: 0xcfe8b0, sand: 0xf7e3b0, wood: 0xd9a066, woodDark: 0xb27a4a, rope: 0xe8cfa0,
@@ -27,11 +27,11 @@ const C = {
   white: 0xffffff, cream: 0xfff4e0, purple: 0xc9b4ff,
 };
 // 놀이터 안 자리 (놀이터 한가운데 기준)
-const TOWER   = { x: 5, z: -5 };
-const HOUSE   = { x: -6, z: -6 };
-const TUNNEL  = { x: -4, z: 5 };
-const BOWL    = { x: 7, z: 5 };
-const WAND    = { x: 0, z: 9.5 };
+const TOWER   = { x: 8, z: -8 };
+const HOUSE   = { x: -9, z: -9 };
+const TUNNEL  = { x: -6, z: 8 };
+const BOWL    = { x: 11, z: 7 };
+const WAND    = { x: 0, z: 14 };
 const CUSHION = { x: 0, z: 0 };
 
 // -----------------------------------------------------------
@@ -149,7 +149,7 @@ export function buildCatPark(x, z) {
   const ground = new THREE.Mesh(new THREE.CircleGeometry(PEN_R, 40), new THREE.MeshToonMaterial({ color: C.grass }));
   ground.rotation.x = -Math.PI / 2; ground.position.y = 0.03; ground.receiveShadow = true;
   group.add(ground);
-  const path = new THREE.Mesh(new THREE.CircleGeometry(4.5, 24), new THREE.MeshToonMaterial({ color: C.sand }));
+  const path = new THREE.Mesh(new THREE.CircleGeometry(6.5, 28), new THREE.MeshToonMaterial({ color: C.sand }));
   path.rotation.x = -Math.PI / 2; path.position.y = 0.04;
   group.add(path);
 
@@ -193,11 +193,13 @@ export function buildCatPark(x, z) {
   put(part('cyl', C.pink, 0, 0.3, 0, 3.2, 0.6, 3.2), CUSHION.x, CUSHION.z);
   group.add(part('cyl', C.red, CUSHION.x, 0.62, CUSHION.z, 0.5, 0.1, 0.5));
   // 스크래처 · 털실 공 · 꽃
-  put(part('cyl', C.rope, 0, 1.2, 0, 0.9, 2.4, 0.9), -9, 1, 0, 0.6);
-  group.add(part('cyl', C.wood, -9, 0.1, 1, 2.0, 0.2, 2.0));
-  put(makeYarn(C.red), 8, -1, 0.8);
-  put(makeYarn(C.sky), -8, 8, 2.1);
-  for (const [fx, fz, col] of [[10, 9, C.yellow], [-10, -9, C.pink], [11, -8, C.purple], [-11, 6, C.white]]) {
+  put(part('cyl', C.rope, 0, 1.2, 0, 0.9, 2.4, 0.9), -14, 1, 0, 0.6);
+  group.add(part('cyl', C.wood, -14, 0.1, 1, 2.0, 0.2, 2.0));
+  put(makeYarn(C.red), 12, -2, 0.8);
+  put(makeYarn(C.sky), -12, 13, 2.1);
+  put(makeYarn(C.yellow), 4, -15, 1.4);
+  for (const [fx, fz, col] of [[15, 13, C.yellow], [-15, -13, C.pink], [16, -12, C.purple], [-16, 9, C.white],
+                                [6, 18, C.red], [-4, -17, C.yellow], [18, 3, C.pink]]) {
     group.add(part('cyl', 0x58c46a, fx, 0.4, fz, 0.1, 0.8, 0.1));
     group.add(part('ball', col, fx, 0.85, fz, 0.5, 0.3, 0.5));
   }

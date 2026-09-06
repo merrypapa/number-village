@@ -241,7 +241,7 @@ export function buildWorld(scene) {
   scene.add(catPark.group);
   catPark.attach(scene);                            // 고양이는 마을 좌표로 걸어 다닌다
   obstacles.push(...catPark.obstacles);
-  reserved.push({ x: CAT_PARK.x, z: CAT_PARK.z, r: 21 });
+  reserved.push({ x: CAT_PARK.x, z: CAT_PARK.z, r: 28 });
 
   // 🐴 마구간과 말들 (말은 마을 좌표를 그대로 쓰므로 화면에 따로 넣는다)
   const stable = buildStable(STABLE.x, STABLE.z);

@@ -21,11 +21,11 @@ export const CAT_KINDS = [
   { name: '턱시도', body: 0x33353f, belly: 0xffffff, face: 0xffffff },
   { name: '삼색이', body: 0xfff0d6, belly: 0xfff8ec, patches: [0xffa64d, 0x33353f] },
 ];
-const CAT_SCALE = 0.62;       // 고양이 크기 (1이면 아이보다 크다 — 아기 고양이만 하게 줄인다)
+const CAT_SCALE = 0.45;       // 고양이 크기 (1이면 아이보다 크다 — 아기 고양이만 하게 줄인다)
 const WALK_SPEED = 3.6;       // 슬슬 걷는 빠르기
 const RUN_SPEED  = 7.0;       // 간식 줄 때 달려오는 빠르기
 const FOLLOW_TIME = 20;       // 쓰다듬으면 이만큼(초) 따라온다
-const FOLLOW_GAP  = 1.9;      // 따라올 때 아이와 이만큼 떨어져 선다
+const FOLLOW_GAP  = 1.6;      // 따라올 때 아이와 이만큼 떨어져 선다
 
 const _d = new THREE.Vector3();
 
@@ -225,7 +225,7 @@ export function createCats(scene, { home, perches = [], bowl }) {
     /** 쓰다듬기 — 골골골 + 하트, 한동안 따라온다 */
     pet(c) {
       c.state = 'purr'; c.timer = 2.0;
-      popHearts(c.m.position.x, c.m.position.y + 1.6, c.m.position.z);
+      popHearts(c.m.position.x, c.m.position.y + 1.3, c.m.position.z);
       c.follow = FOLLOW_TIME;
     },
     /** 간식 주기 — 모두 밥그릇으로 달려온다 */
