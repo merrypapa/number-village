@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Inruha World — 넘버블럭스 월드</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#bfe8ff;
+    font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent;
+    touch-action:none; overscroll-behavior:none; position:fixed; inset:0; }
+  canvas { display:block; }
+
+  /* 위쪽 제목 */
+  #head { position:fixed; top:calc(14px + env(safe-area-inset-top)); left:0; right:0;
+    text-align:center; pointer-events:none; color:#fff; }
+  #head .big { font-family:'Trebuchet MS','Apple SD Gothic Neo',sans-serif;
+    font-size:clamp(26px,6vw,56px); font-weight:900;
+    text-shadow:0 3px 0 #7ad4ff, 0 6px 0 #3aa9e0, 0 12px 20px #0004; }
+  #head .sub { font-size:clamp(14px,3vw,22px); font-weight:800; margin-top:4px;
+    text-shadow:0 2px 0 #3a78b0, 0 3px 10px #0008; }
+
+  /* 월드 고르기로 돌아가는 버튼 */
+  #home { position:fixed; left:calc(14px + env(safe-area-inset-left));
+    bottom:calc(16px + env(safe-area-inset-bottom)); border:none; border-radius:999px;
+    padding:12px 22px; background:#fff; color:#3a78b0; font-size:19px; font-weight:800;
+    box-shadow:0 5px 0 #a8d8f0; cursor:pointer; text-decoration:none; }
+  #home:active { transform:translateY(3px); box-shadow:0 2px 0 #a8d8f0; }
+
+  /* 블록 탑을 눌렀을 때 숫자를 크게 보여준다 */
+  #say { position:fixed; left:50%; bottom:calc(90px + env(safe-area-inset-bottom));
+    transform:translateX(-50%); background:#fff; color:#3a78b0; font-size:28px;
+    font-weight:900; padding:12px 26px; border-radius:24px; box-shadow:0 6px 18px #0003;
+    opacity:0; transition:opacity .3s; pointer-events:none; white-space:nowrap; }
+  #say.on { opacity:1; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="head">
+  <div class="big">Inruha World</div>
+  <div class="sub">🔢 넘버블럭스 월드 — 만드는 중!</div>
+</div>
+<a id="home" href="../">◀ 월드 고르기</a>
+<div id="say"></div>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

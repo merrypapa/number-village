@@ -14,6 +14,7 @@ import { createTitleScreen } from './title.js';
 import { buildCastleInterior } from './castle-interior.js';
 import { SAME_FLOOR } from './rides.js';
 import { createMusic } from './music.js';
+import { createWorldPicker } from './worlds.js';
 
 // -----------------------------------------------------------
 //  렌더러 / 씬 / 카메라
@@ -91,15 +92,26 @@ function blockTaps(el, ms = 450) {
   setTimeout(onRelease, 2000);         // 혹시 떼는 신호가 안 와도 언젠가는 풀린다
 }
 
+//  월드 고르기 ("어떤 게임을 할까?") → src/worlds.js
+//  티니핑 월드를 고르면 친구 고르기로, 넘버블럭스 월드는 numberblocks/ 폴더로 간다.
+//  월드를 고르는 동안에도 뒤에는 오프닝 성이 계속 보인다 (titleBg).
+let titleBg = true;
+const worlds = createWorldPicker(() => {
+  titleBg = false;
+  const pick = document.getElementById('pick');
+  pick.classList.add('on');
+  blockTaps(pick);                     // 친구 카드가 곧바로 눌리지 않게
+  select.lock();                       // (기기에 따라 위 방법이 안 통할 때를 대비)
+});
+
 function leaveTitle() {
   if (!onTitle) return;
   onTitle = false;
   music.start();
   document.getElementById('title').classList.remove('on');
-  const pick = document.getElementById('pick');
-  pick.classList.add('on');
-  blockTaps(pick);                     // 친구 카드가 곧바로 눌리지 않게
-  select.lock();                       // (기기에 따라 위 방법이 안 통할 때를 대비)
+  const ws = document.getElementById('worlds');
+  worlds.show();
+  blockTaps(ws);                       // 월드 카드가 곧바로 눌리지 않게
 }
 //  ★ 손가락을 "뗄 때"(pointerup) 넘어간다. 누르는 순간 넘어가면
 //    그 다음에 오는 click을 새 화면의 카드가 받아버린다.
@@ -333,7 +345,7 @@ function loop() {
   const t = clock.elapsedTime;
 
   // 오프닝 화면 — 성 앞에서 친구들이 노는 장면만 그린다
-  if (onTitle) {
+  if (titleBg) {
     title.update(dt, t);
     renderer.render(title.scene, title.camera);
     return;

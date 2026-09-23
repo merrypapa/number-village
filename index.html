@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Inruha World — 숫자마을 대모험</title>
+<title>Inruha World</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   html, body { width:100%; height:100%; overflow:hidden; background:#bfe8ff;
@@ -58,6 +58,22 @@
     #logo .sub { margin-top:6px; letter-spacing:.2em; }
     #startBtn { padding:13px 38px; }
   }
+
+  /* ---- 월드 고르기 ("어떤 게임을 할까?") — 뒤에 오프닝 성이 보인다 ---- */
+  #worlds { background:#1b4a7033; gap:18px; text-align:center;
+    padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); }
+  #worlds h1 { font-size:clamp(26px,6vw,50px); color:#fff; font-weight:900;
+    text-shadow:0 3px 0 #7a4fb0, 0 4px 14px #000a; }
+  #worldList { display:flex; flex-wrap:wrap; gap:18px; justify-content:center; width:100%; }
+  .world { width:min(42vw,300px); min-width:150px; padding:18px 12px 20px; border:none;
+    border-radius:28px; background:var(--c); color:#fff; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    box-shadow:0 9px 0 var(--s), 0 14px 24px #0003; }
+  .world:active { transform:translateY(6px); box-shadow:0 3px 0 var(--s); }
+  .wEmoji { font-size:clamp(46px,11vw,84px); line-height:1; }
+  .wName  { font-size:clamp(19px,4.4vw,32px); font-weight:900; text-shadow:0 2px 0 #0003; }
+  .wDesc  { font-size:clamp(12px,2.8vw,17px); font-weight:700; opacity:.92; }
+  @media (max-height:420px) { .world { padding:10px 10px 12px; } #worlds { gap:10px; } }
 
   /* ---- 친구 고르기: 격자 ---- */
   #pick, #preview { background:linear-gradient(180deg,#cbeaff 0%,#ffe8f4 100%); }
@@ -356,6 +372,12 @@
     <button id="startBtn">▶ 시작하기</button>
     <div id="titleHint">아무 데나 눌러도 시작해요</div>
   </div>
+</div>
+
+<!-- 0-1) 월드 고르기 — 어떤 게임을 할까? (src/worlds.js) -->
+<div id="worlds" class="screen">
+  <h1>어떤 게임을 할까?</h1>
+  <div id="worldList"></div>
 </div>
 
 <!-- 1) 친구 고르기 — 한 번에 쭉 보여주는 격자 -->
