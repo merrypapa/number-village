@@ -70,10 +70,14 @@
     display:flex; flex-direction:column; align-items:center; gap:6px;
     box-shadow:0 9px 0 var(--s), 0 14px 24px #0003; }
   .world:active { transform:translateY(6px); box-shadow:0 3px 0 var(--s); }
-  .wEmoji { font-size:clamp(46px,11vw,84px); line-height:1; }
+  /* 대표 그림 — 동그란 액자 안에 넣는다 */
+  .wImg { width:clamp(84px,20vw,150px); height:clamp(84px,20vw,150px); border-radius:50%;
+    object-fit:cover; object-position:50% 30%; border:5px solid #fff; background:#fff;
+    box-shadow:0 4px 0 #0002; pointer-events:none; }
   .wName  { font-size:clamp(19px,4.4vw,32px); font-weight:900; text-shadow:0 2px 0 #0003; }
   .wDesc  { font-size:clamp(12px,2.8vw,17px); font-weight:700; opacity:.92; }
-  @media (max-height:420px) { .world { padding:10px 10px 12px; } #worlds { gap:10px; } }
+  @media (max-height:420px) { .world { padding:10px 10px 12px; } #worlds { gap:10px; }
+    .wImg { width:72px; height:72px; } }
 
   /* ---- 친구 고르기: 격자 ---- */
   #pick, #preview { background:linear-gradient(180deg,#cbeaff 0%,#ffe8f4 100%); }
