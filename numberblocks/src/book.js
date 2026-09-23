@@ -5,7 +5,7 @@
 //
 //  그림은 3D를 띄우지 않고 캔버스에 블록을 그린다 (100장이어도 가볍다).
 // ===========================================================
-import { BLOCKS, columnsOf, hex } from './block-data.js';
+import { BLOCKS, columnsOf, hex, RIM_FILL } from './block-data.js';
 
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
@@ -29,11 +29,17 @@ export function drawBlockIcon(cv, n) {
       g.fillStyle = '#2a2233'; g.fillRect(x, y, unit, unit);
       g.fillStyle = hex(col.colors[j]);
       g.fillRect(x + 1, y + 1, unit - 2, unit - 2);
+      if (col.rim[j]) {                          // 열 묶음 블록 — 흰 바탕에 색 테두리
+        const b = Math.max(2, unit * 0.2);
+        g.fillStyle = RIM_FILL; g.fillRect(x + b, y + b, unit - b * 2, unit - b * 2);
+      }
     }
   });
   // 얼굴 — 맨 오른쪽 기둥 꼭대기
   const fc = cols.length - 1;
-  const fx = x0 + fc * unit + unit / 2, fy = y0 - cols[fc].k * unit + unit / 2;
+  const square = cols.length > 1 && cols.every(c => c.k === cols[0].k);
+  const fx = square ? S / 2 : x0 + fc * unit + unit / 2;
+  const fy = y0 - cols[fc].k * unit + (square ? unit * cols.length * 0.35 : unit / 2);
   const r = Math.max(2, unit * 0.13);
   for (const sx of [-1, 1]) {
     g.fillStyle = '#fff'; g.beginPath(); g.arc(fx + sx * unit * 0.2, fy - unit * 0.1, r, 0, Math.PI * 2); g.fill();

@@ -3,8 +3,8 @@
 //  3D 모양은 blocks.js, 도감 그림은 book.js가 이 데이터를 쓴다.
 //
 //  ★ 색을 바꾸고 싶으면 UNIT_COLORS 만 고치면 된다.
-//    1~9는 자기 색, 10·20·30…의 '열 묶음'은 그 숫자 색을 하얗게 옅힌 색이다.
-//    (23 = 옅은 주황 기둥 두 개 + 노란 3)
+//    1~9는 자기 색, 10·20·30…의 '열 묶음' 블록은 원작처럼 흰 블록에 그 숫자 색 테두리다.
+//    (23 = 주황 테두리 흰 기둥 두 개 + 노란 3)
 // ===========================================================
 
 // -----------------------------------------------------------
@@ -24,8 +24,7 @@ export const UNIT_COLORS = [
   0x8fa3bf,   // 9 회색
 ];
 export const RAINBOW = [0xe8412c, 0xf7941d, 0xfbe323, 0x5bb646, 0x4fc3f7, 0x5e4b9c, 0xb04fd6];
-export const TEN_MIX = 0.38;      // 열 묶음 기둥을 얼마나 하얗게 옅힐까 (0=원래 색, 1=흰색)
-export const HUNDRED_COLOR = 0xf6f1ff;   // 100 (나)의 몸 색 — 하얀 은빛
+export const RIM_FILL = '#fbfbfb'; // 열 묶음 블록의 안쪽 색 (원작처럼 거의 흰색)
 
 // -----------------------------------------------------------
 //  색 도우미
@@ -39,27 +38,40 @@ export function paler(color, amount) {
 export const hex = (c) => '#' + c.toString(16).padStart(6, '0');
 
 /**
- * 숫자 n의 기둥 목록 — 왼쪽부터 [{ k: 블록 수, colors: [블록마다 색] }, …]
- *   34 → 옅은 노랑 10 · 옅은 노랑 10 · 옅은 노랑 10 · 초록 4
+ * 숫자 n의 기둥 목록 — 왼쪽부터 [{ k: 블록 수, colors: [블록마다 색], rim: [블록마다 테두리만 색인지] }, …]
+ *   블록 하나 = { 색, rim }.  rim이 true면 원작의 '열 묶음 블록'처럼 **하얀 블록에 색 테두리**다.
+ *   34 → 노란 테두리 흰 블록 10 · 10 · 10 + 초록 4
  *   7  → 무지개 7
- *   100 → 옅은 은빛 10 기둥 열 개
+ *   ★ 제곱수(4·9·16·25…100)는 원작처럼 **정사각형**으로 선다 (4 = 2×2, 9 = 3×3, 100 = 10×10)
  */
-export function columnsOf(n) {
-  if (n === 100) {
-    return Array.from({ length: 10 }, () =>
-      ({ k: 10, colors: Array(10).fill(HUNDRED_COLOR) }));
-  }
+export const SQUARES = [4, 9, 16, 25, 36, 49, 64, 81, 100];
+
+/** 블록 n개를 아래부터 차례로 칠할 색 목록 — 열 묶음은 rim, 나머지는 자기 색 */
+function blockList(n) {
   const tens = Math.floor(n / 10), units = n % 10;
-  const cols = [];
+  const list = [];
   for (let i = 0; i < tens; i++) {
-    const c = paler(tens === 7 ? RAINBOW[i % 7] : UNIT_COLORS[tens], TEN_MIX);
-    cols.push({ k: 10, colors: Array(10).fill(c) });
+    const c = n === 100 ? UNIT_COLORS[1] : tens === 7 ? RAINBOW[i % 7] : UNIT_COLORS[tens];
+    for (let j = 0; j < 10; j++) list.push({ c, rim: true });
   }
-  if (units > 0) {
-    const colors = units === 7
-      ? RAINBOW.slice(0, 7)
-      : Array(units).fill(UNIT_COLORS[units]);
-    cols.push({ k: units, colors });
+  for (let j = 0; j < units; j++) list.push({ c: units === 7 ? RAINBOW[j] : UNIT_COLORS[units], rim: false });
+  return list;
+}
+
+export function columnsOf(n) {
+  const blocks = blockList(n);
+  const cols = [];
+  if (SQUARES.includes(n)) {                      // 정사각형 — 한 변 k, 왼쪽 기둥부터 아래→위로 채운다
+    const k = Math.round(Math.sqrt(n));
+    for (let i = 0; i < k; i++) {
+      const part = blocks.slice(i * k, i * k + k);
+      cols.push({ k, colors: part.map(b => b.c), rim: part.map(b => b.rim) });
+    }
+    return cols;
+  }
+  for (let i = 0; i < blocks.length; i += 10) {   // 열 묶음 기둥들 + 나머지 기둥
+    const part = blocks.slice(i, i + 10);
+    cols.push({ k: part.length, colors: part.map(b => b.c), rim: part.map(b => b.rim) });
   }
   return cols;
 }
@@ -103,14 +115,13 @@ const SPECIAL = {
   99: '10이 아홉, 9가 하나! 100이 되려면 딱 하나만 더!',
   100: '10이 열 묶음, 10×10 정사각형! 바로 나예요.',
 };
-const SQUARES = [1, 4, 9, 16, 25, 36, 49, 64, 81, 100];
 
 export function factOf(n) {
   if (SPECIAL[n]) return SPECIAL[n];
   const tens = Math.floor(n / 10), units = n % 10;
   const parts = [`10이 ${tens}묶음, 1이 ${units}개예요.`];
   parts.push(n % 2 === 0 ? '둘씩 짝지으면 딱 맞는 짝수!' : '둘씩 짝지으면 하나 남는 홀수!');
-  if (SQUARES.includes(n)) parts.push('정사각형으로 설 수 있어요.');
+  if (SQUARES.includes(n)) parts.push('정사각형으로 서 있어요.');
   return parts.join(' ');
 }
 

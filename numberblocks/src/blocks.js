@@ -10,7 +10,7 @@
 import * as THREE from 'three';
 import { registerBuilder } from '../../src/characters.js';
 import { GEO, MAT_DARK } from '../../src/character-parts.js';
-import { columnsOf, hex, RAINBOW } from './block-data.js';
+import { columnsOf, hex, RAINBOW, RIM_FILL, UNIT_COLORS } from './block-data.js';
 
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
@@ -35,9 +35,9 @@ const _sideCache = new Map();   // '색들' → 옆면 재질 (블록 줄무늬)
 const _topCache  = new Map();   // 색 → 윗면 재질
 const _faceCache = new Map();   // 숫자 → 얼굴 재질
 
-/** 기둥 옆면 — 블록 k개가 쌓인 줄무늬 텍스처 */
-function sideMat(colors) {
-  const key = colors.join(',');
+/** 기둥 옆면 — 블록 k개가 쌓인 줄무늬 텍스처. rim 블록은 원작 열 묶음처럼 흰 바탕 + 색 테두리 */
+function sideMat(colors, rims) {
+  const key = colors.join(',') + '|' + rims.join(',');
   if (_sideCache.has(key)) return _sideCache.get(key);
   const k = colors.length;
   const cv = document.createElement('canvas');
@@ -49,6 +49,10 @@ function sideMat(colors) {
     const p = 64 * GAP;
     g.fillStyle = hex(colors[i]);
     g.fillRect(p, y + p, 64 - p * 2, 64 - p * 2);
+    if (rims[i]) {                              // 테두리만 색, 안은 흰색
+      g.fillStyle = RIM_FILL;
+      g.fillRect(p + 9, y + p + 9, 64 - p * 2 - 18, 64 - p * 2 - 18);
+    }
     g.fillStyle = 'rgba(255,255,255,0.22)';     // 윗쪽 살짝 밝게 (입체감)
     g.fillRect(p, y + p, 64 - p * 2, 8);
   }
@@ -72,6 +76,11 @@ function drawFace(g, n, blink) {
   g.clearRect(0, 0, S, S);
   const seed = (n * 7919) % 97;
   const eyeY = 96, gap = 52, eyeR = 34 + (seed % 5) * 2;
+  // 8 = 옥토블록! 눈 둘레에 슈퍼히어로 가면
+  if (n === 8) {
+    g.fillStyle = '#5e4b9c';
+    g.beginPath(); g.ellipse(S / 2, eyeY, 118, 58, 0, 0, Math.PI * 2); g.fill();
+  }
   // 눈 — 하얀 동그라미 + 까만 눈동자 + 반짝이
   for (const sx of [-1, 1]) {
     const x = S / 2 + sx * gap;
@@ -90,14 +99,14 @@ function drawFace(g, n, blink) {
     for (const sx of [-1, 1]) g.strokeRect(S / 2 + sx * gap - 42, eyeY - 40, 84, 80);
     g.beginPath(); g.moveTo(S / 2 - 10, eyeY); g.lineTo(S / 2 + 10, eyeY); g.stroke();
   }
-  // 눈썹 — 숫자마다 각도가 다르다
-  g.strokeStyle = '#1b1430'; g.lineWidth = 9; g.lineCap = 'round';
-  const tilt = ((seed % 7) - 3) * 3;
+  // 눈썹 — 숫자마다 각도가 다르다. 9는 굵고 처진 눈썹(재채기 직전)
+  g.strokeStyle = '#1b1430'; g.lineWidth = n === 9 ? 16 : 9; g.lineCap = 'round';
+  const tilt = n === 9 ? -8 : ((seed % 7) - 3) * 3;
   for (const sx of [-1, 1]) {
     const x = S / 2 + sx * gap;
     g.beginPath(); g.moveTo(x - 26, eyeY - 52 + sx * tilt); g.lineTo(x + 26, eyeY - 52 - sx * tilt); g.stroke();
   }
-  // 입 — 웃는 입 / 활짝 벌린 입 / 씩 웃는 입
+  // 입 — 웃는 입 / 활짝 벌린 입 / 씩 웃는 입 (7은 늘 활짝)
   const kind = n === 7 ? 1 : seed % 3;
   g.fillStyle = '#1b1430';
   if (kind === 0) {
@@ -142,12 +151,12 @@ export function makeNumberblock(def) {
   const cols = columnsOf(n);
   const totalW = cols.length * S;
   const x0 = -totalW / 2 + S / 2;
+  const square = cols.length > 1 && cols.every(c => c.k === cols[0].k);   // 4·9·16… 정사각형
 
-  let faceCol = cols.length - 1;               // 얼굴은 맨 오른쪽 기둥(나머지) 꼭대기
   cols.forEach((col, i) => {
-    const side = sideMat(col.colors);
-    const top = topMat(col.colors[col.k - 1]);
-    const bottom = topMat(col.colors[0]);
+    const side = sideMat(col.colors, col.rim);
+    const top = topMat(col.rim[col.k - 1] ? 0xfbfbfb : col.colors[col.k - 1]);
+    const bottom = topMat(col.rim[0] ? 0xfbfbfb : col.colors[0]);
     const mesh = new THREE.Mesh(GEO.cube, [side, side, top, bottom, side, side]);
     mesh.scale.set(S * 0.98, S * col.k, S * 0.98);
     mesh.position.set(x0 + i * S, S * col.k / 2, 0);
@@ -155,34 +164,53 @@ export function makeNumberblock(def) {
     mesh.userData.block = def;                   // 두드렸을 때 누구인지 알려고
     g.add(mesh);
   });
+
+  // 얼굴 — 정사각형은 한가운데 위쪽에 크게, 아니면 맨 오른쪽 기둥(나머지) 꼭대기
+  const faceCol = cols.length - 1;
   const faceH = cols[faceCol].k * S;
   const face = new THREE.Mesh(FACE_GEO, faceMat(n));
-  //  큰 숫자는 블록이 작아서 얼굴을 두 칸 너비로 크게 그린다 (오른쪽 두 기둥에 걸친다)
-  const wide = n >= 20 && cols.length >= 2;
-  face.scale.setScalar(S * (wide ? 1.9 : 0.96));
-  face.position.set(x0 + faceCol * S - (wide ? S / 2 : 0), faceH - S / 2 + (wide ? S * 0.45 : 0), S / 2 + 0.01);
+  const wide = square || (n >= 20 && cols.length >= 2);   // 큰 숫자는 블록이 작아서 얼굴을 두 칸 너비로
+  const faceS = square ? Math.min(S * cols.length * 0.8, S * 2.6) : S * (wide ? 1.9 : 0.96);
+  face.scale.setScalar(faceS);
+  if (square) face.position.set(0, faceH - faceS * 0.62, S / 2 + 0.01);
+  else face.position.set(x0 + faceCol * S - (wide ? S / 2 : 0), faceH - S / 2 + (wide ? S * 0.45 : 0), S / 2 + 0.01);
   face.userData.noShadow = true;
   g.add(face);
 
-  // 팔 — 8은 문어처럼 여덟 개, 나머지는 두 개
+  // 팔다리 — 원작처럼 가는 팔에 동그란 손, 까만 다리에 동그란 발. 8은 문어처럼 팔 8개, 2는 큰 신발
   const limbs = [];
-  const armMat = topMat(cols[faceCol].colors[0] === 0xffffff ? RAINBOW[0] : cols[faceCol].colors[0]);
+  const bodyC = n === 100 ? UNIT_COLORS[1] : (n % 10 === 7 || n === 7) ? RAINBOW[0] : UNIT_COLORS[n % 10 || Math.floor(n / 10)];
+  const armMat = topMat(bodyC);
   const armCount = n === 8 ? 4 : 1;
+  const armY = square ? faceH - S * 0.9 : faceH - S * 0.55;
   for (let a = 0; a < armCount; a++) for (const sx of [-1, 1]) {
-    const arm = new THREE.Mesh(GEO.limb, armMat);
-    arm.scale.set(S * 0.16, S * 0.32, S * 0.16);
-    arm.position.set(sx * (totalW / 2 + S * 0.12), faceH - S * (0.55 + a * 0.9), 0);
-    arm.rotation.z = sx * 0.5;
+    const arm = new THREE.Group();
+    const bone = new THREE.Mesh(GEO.limb, armMat);
+    bone.scale.set(S * 0.13, S * 0.34, S * 0.13);
+    bone.position.y = -S * 0.2;
+    const hand = new THREE.Mesh(GEO.blob, armMat);
+    hand.scale.setScalar(S * 0.3);
+    hand.position.y = -S * 0.42;
+    arm.add(bone, hand);
+    arm.position.set(sx * (totalW / 2 + S * 0.1), armY - a * S * 0.8, 0);
+    arm.rotation.z = sx * 0.55;
     g.add(arm); limbs.push(arm);
   }
   for (const sx of [-1, 1]) {
-    const leg = new THREE.Mesh(GEO.limb, MAT_DARK);
-    leg.scale.set(S * 0.16, S * 0.26, S * 0.16);
-    leg.position.set(x0 + faceCol * S + sx * S * 0.25, -S * 0.08, 0);
+    const leg = new THREE.Group();
+    const bone = new THREE.Mesh(GEO.limb, MAT_DARK);
+    bone.scale.set(S * 0.13, S * 0.26, S * 0.13);
+    const foot = new THREE.Mesh(GEO.blob, n === 2 ? topMat(0xfbe323) : MAT_DARK);
+    foot.scale.set(S * (n === 2 ? 0.55 : 0.34), S * 0.2, S * (n === 2 ? 0.7 : 0.42));
+    foot.position.set(0, -S * 0.14, S * 0.08);
+    leg.add(bone, foot);
+    const legX = square ? sx * S * 0.6 * (cols.length / 2) : x0 + faceCol * S + sx * S * 0.25;
+    leg.position.set(legX, S * 0.02, 0);
     g.add(leg); limbs.push(leg);
   }
 
   g.userData.height = Math.max(...cols.map(c => c.k)) * S;
+  g.userData.halfW = totalW / 2;               // 몸 너비 절반 (닿았는지 볼 때 쓴다)
   g.userData.faceMat = faceMat(n);
 
   // 걷기: 팔다리 흔들기 + 통통 / 서 있을 때: 살짝 숨쉬기 + 눈 깜빡임
