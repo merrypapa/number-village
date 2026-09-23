@@ -53,10 +53,12 @@
 .bcard { position:relative; border:none; border-radius:18px; background:#fff; cursor:pointer;
   box-shadow:0 4px 0 #0001; overflow:hidden; display:flex; flex-direction:column; align-items:center;
   gap:4px; padding:10px 8px 10px; }
-.bcard canvas { width:min(100%,150px); aspect-ratio:1; display:none; }
-.bcard.found canvas { display:block; }
-.bcard .bq { width:min(100%,150px); aspect-ratio:1; display:flex; align-items:center; justify-content:center;
-  font-size:clamp(46px,9vw,84px); font-weight:900; color:#c8d3e0; background:#f1f5fa; border-radius:14px; }
+.bcard .pic { position:relative; width:min(100%,150px); aspect-ratio:1; }
+.bcard canvas { width:100%; height:100%; display:block; border-radius:14px; }
+.bcard:not(.found) canvas { background:#f1f5fa; }
+/* 못 찾은 친구 — 실루엣 위에 물음표를 겹친다 */
+.bcard .bq { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:clamp(46px,9vw,84px); font-weight:900; color:#5b6b80; text-shadow:0 2px 0 #fff, 0 0 12px #fff; }
 .bcard.found .bq { display:none; }
 .bcard .bname { font-size:clamp(17px,3.6vw,26px); font-weight:900; color:#e0518f; }
 .bcard:not(.found) .bname { color:#8fa3bf; }
@@ -72,7 +74,7 @@
 .dpic { position:relative; width:220px; height:220px; }
 .dpic canvas { width:100%; height:100%; }
 .dpic .dq { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-  font-size:120px; font-weight:900; color:#c8d3e0; }
+  font-size:120px; font-weight:900; color:#5b6b80; text-shadow:0 2px 0 #fff, 0 0 14px #fff; }
 .dname { font-size:clamp(20px,4.4vw,30px); font-weight:900; color:#e0518f; }
 .ddesc { font-size:clamp(14px,3vw,19px); font-weight:700; color:#3a2a55; text-align:center; line-height:1.45; }
 #detailClose { border:none; border-radius:999px; padding:12px 26px; background:#7ad4ff; color:#fff;
