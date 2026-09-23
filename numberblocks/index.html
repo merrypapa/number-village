@@ -4,37 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Inruha World — 넘버블럭스 월드</title>
-<style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  html, body { width:100%; height:100%; overflow:hidden; background:#bfe8ff;
-    font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
-    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent;
-    touch-action:none; overscroll-behavior:none; position:fixed; inset:0; }
-  canvas { display:block; }
-
-  /* 위쪽 제목 */
-  #head { position:fixed; top:calc(14px + env(safe-area-inset-top)); left:0; right:0;
-    text-align:center; pointer-events:none; color:#fff; }
-  #head .big { font-family:'Trebuchet MS','Apple SD Gothic Neo',sans-serif;
-    font-size:clamp(26px,6vw,56px); font-weight:900;
-    text-shadow:0 3px 0 #7ad4ff, 0 6px 0 #3aa9e0, 0 12px 20px #0004; }
-  #head .sub { font-size:clamp(14px,3vw,22px); font-weight:800; margin-top:4px;
-    text-shadow:0 2px 0 #3a78b0, 0 3px 10px #0008; }
-
-  /* 월드 고르기로 돌아가는 버튼 */
-  #home { position:fixed; left:calc(14px + env(safe-area-inset-left));
-    bottom:calc(16px + env(safe-area-inset-bottom)); border:none; border-radius:999px;
-    padding:12px 22px; background:#fff; color:#3a78b0; font-size:19px; font-weight:800;
-    box-shadow:0 5px 0 #a8d8f0; cursor:pointer; text-decoration:none; }
-  #home:active { transform:translateY(3px); box-shadow:0 2px 0 #a8d8f0; }
-
-  /* 블록 탑을 눌렀을 때 숫자를 크게 보여준다 */
-  #say { position:fixed; left:50%; bottom:calc(90px + env(safe-area-inset-bottom));
-    transform:translateX(-50%); background:#fff; color:#3a78b0; font-size:28px;
-    font-weight:900; padding:12px 26px; border-radius:24px; box-shadow:0 6px 18px #0003;
-    opacity:0; transition:opacity .3s; pointer-events:none; white-space:nowrap; }
-  #say.on { opacity:1; }
-</style>
+<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./world.css">
 <script type="importmap">
 {
   "imports": {
@@ -45,12 +16,100 @@
 </script>
 </head>
 <body>
-<div id="head">
-  <div class="big">Inruha World</div>
-  <div class="sub">🔢 넘버블럭스 월드 — 만드는 중!</div>
+
+<!-- 0) 스토리 — 달님이 찾아와서 밤이 되고 친구들이 흩어졌어요 (src/main.js) -->
+<div id="story" class="screen on">
+  <div id="storyCard">
+    <div class="big">Inruha World</div>
+    <div class="sub">🔢 넘버블럭스 월드</div>
+    <p>숫자 친구들이 즐겁게 놀던 마을에<br><b>🌙 달님</b>이 찾아와서 깜깜한 밤이 되었어요.<br>
+       <b>1부터 99</b> 친구들이 길을 잃고 흩어졌어요!</p>
+    <p>나는 <b>숫자 100</b>. 불빛을 들고<br>친구들을 모두 찾아서 달님을 이겨요!</p>
+    <button id="storyBtn">🔦 친구 찾으러 가기</button>
+    <a id="storyHome" href="../">◀ 월드 고르기</a>
+  </div>
 </div>
-<a id="home" href="../">◀ 월드 고르기</a>
-<div id="say"></div>
+
+<!-- 게임 HUD -->
+<div id="hud">
+  <button id="bookBtn">📖</button>
+  <button id="musicBtn">🎵</button>
+
+  <!-- 왼쪽: 손가락으로 미는 조이스틱 -->
+  <div id="stick" class="no-drag"><div id="knob"></div></div>
+
+  <!-- 왼쪽: 🛗 엘리베이터 위·아래 버튼 (엘리베이터를 탔을 때만 보인다) -->
+  <button id="liftUp" class="no-drag">▲</button>
+  <button id="liftDn" class="no-drag">▼</button>
+
+  <!-- 오른쪽: 타기(놀이기구 옆에서만) · 점프 · 인사 -->
+  <button id="ride" class="no-drag">타기</button>
+  <button id="jump" class="no-drag">점프</button>
+  <button id="hi" class="no-drag">👋</button>
+
+  <div id="toast"></div>
+  <div id="hint">동그라미를 밀어서 걷고, 화살표 🧭 를 따라가요<br>친구가 보이면 <b>톡 두드리거나</b> 노란 <b>구하기</b>를 눌러요<br>📖 오른쪽 위 책에서 찾은 친구를 봐요<br>🔢 구한 친구는 광장 북동쪽 <b>숫자의 집</b>에 모여요<br>🌙 99명을 다 찾으면 광장 달님에게 <b>게임 신청</b>!</div>
+</div>
+
+<!-- 🧭 나침반 — 가장 가까운 못 찾은 친구 쪽을 가리킨다 (src/hud.js) -->
+<div id="compass"><div class="arrow">➤</div><div class="dist"></div></div>
+
+<!-- 📖 친구 도감 (src/book.js) -->
+<div id="book" class="no-drag">
+  <div id="bookTop">
+    <button id="bookClose">✕ 닫기</button>
+    <div id="bookTitle">📖 숫자 친구 도감 <span id="bookCount"></span></div>
+    <button id="bookReset">처음부터</button>
+  </div>
+  <div id="bookGrid"></div>
+  <div id="bookDetail">
+    <div class="dcard">
+      <div class="dpic"><canvas></canvas><div class="dq">?</div></div>
+      <div class="dname"></div>
+      <div class="ddesc"></div>
+      <button id="detailClose">알겠어요!</button>
+    </div>
+  </div>
+</div>
+
+<!-- 🌀 달님과 팽이치기 (src/top-game.js) -->
+<div id="top" class="no-drag">
+  <div id="topBar">
+    <button id="topClose">✕ 나가기</button>
+    <div id="topTitle">🌀 달님과 팽이치기</div>
+    <div></div>
+  </div>
+  <canvas id="topCanvas"></canvas>
+  <div id="topMsg"></div>
+  <button id="topStart">🌀 팽이 돌리기!</button>
+  <div id="topResult">
+    <div class="rcard">
+      <div class="rtitle"></div>
+      <div class="rsub"></div>
+      <button id="topAgain">🔁 한 번 더</button>
+      <button id="topDone">👍 좋아요</button>
+    </div>
+  </div>
+</div>
+
+<!-- 🧮 계산 놀이 — 마트 계산대에서 '계산'을 누르면 열린다 (src/pay-game.js) -->
+<div id="pay" class="no-drag">
+  <div id="payTop">
+    <button id="payClose">✕ 나중에</button>
+    <div id="payTitle">🧮 얼마일까요?</div>
+    <button id="payHint">💡 힌트</button>
+  </div>
+  <div id="payList"></div>
+  <div id="payRight">
+    <div id="payAnswer"><span id="payInput">?</span><span id="payUnit">코인</span></div>
+    <div id="payMsg"></div>
+    <div id="payKeys"></div>
+  </div>
+</div>
+
+<!-- 공간이 바뀔 때 화면을 덮는 막 -->
+<div id="fade"></div>
+
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>

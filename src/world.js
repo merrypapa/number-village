@@ -43,8 +43,12 @@ export { createCollider };
 // -----------------------------------------------------------
 //  마을 전체 만들기
 // -----------------------------------------------------------
-/** 마을을 만들어 scene에 추가한다. 스폰 위치와 부딪힘 함수를 돌려준다. */
-export function buildWorld(scene) {
+/**
+ * 마을을 만들어 scene에 추가한다. 스폰 위치와 부딪힘 함수를 돌려준다.
+ *  opts.artHouse = { variant, label, build }  ← 그림의 집 자리에 다른 집을 세운다
+ *                  (넘버블럭스 월드는 여기에 🔢 숫자의 집을 세운다)
+ */
+export function buildWorld(scene, opts = {}) {
   const obstacles = [];        // 부딪히는 물건 목록
   const reserved = [];         // 나무를 심으면 안 되는 자리
   let ruhaTick = null;         // 루하성 문 위의 별을 돌리는 함수
@@ -166,7 +170,8 @@ export function buildWorld(scene) {
   obstacles.push({ x: MART.x + 6.0, z: MART.z + 7.1, r: 1.8 });
 
   // 🎨 그림의 집 — 문 앞에 서면 안으로 들어간다
-  const artHouse = makeArtHouseBuilding();
+  const artOpt = opts.artHouse || {};
+  const artHouse = makeArtHouseBuilding(artOpt.variant);
   artHouse.position.set(ART.x, 0, ART.z);
   scene.add(artHouse);
   obstacles.push({ x: ART.x, z: ART.z, hw: ART.hw, hd: ART.hd });
@@ -338,8 +343,8 @@ export function buildWorld(scene) {
       },
       {
         x: ART.x, z: ART.doorZ, r: 2.8, to: 'art',
-        label: '그림의 집! 🎨 이젤 앞에서 그리기를 눌러요',
-        build: (ctx) => buildArtHouse({ ...ctx,
+        label: artOpt.label ?? '그림의 집! 🎨 이젤 앞에서 그리기를 눌러요',
+        build: (ctx) => (artOpt.build ?? buildArtHouse)({ ...ctx,
           exit: { x: ART.x, z: ART.doorZ + 6.0, yaw: 0 } }),
       },
       {

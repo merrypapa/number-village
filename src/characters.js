@@ -120,6 +120,14 @@ export function createCharacter(def, detail = 'full') {
   return g;
 }
 
+/**
+ * 캐릭터 종류를 하나 더 등록한다 (다른 월드가 자기 캐릭터를 끼워 넣을 때 쓴다).
+ *   registerBuilder('numberblock', makeNumberblock)  ← numberblocks/src/blocks.js
+ */
+export function registerBuilder(type, fn) {
+  BUILDERS[type] = fn;
+}
+
 export function getCharacter(id) {
   return CHARACTERS.find(c => c.id === id) || CHARACTERS[0];
 }

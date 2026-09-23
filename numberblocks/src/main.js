@@ -1,116 +1,164 @@
 // ===========================================================
-//  넘버블럭스 월드 — 메인 (Phase 0: 무대 준비)
-//  아직은 숫자 블록 탑 10개가 서 있는 들판뿐이다.
-//  탑을 누르면 몇 개짜리인지 말해준다. 다음 Phase는 docs/넘버블럭스-진행상황.md 참고.
+//  🔢 넘버블럭스 월드 — 메인
+//  티니핑 월드의 마을(../../src/world.js)을 그대로 쓰되,
+//    · 밤이다 (night.js) — 나(100) 주변만 환하다
+//    · 숫자 친구 1~99가 흩어져 있다 (rescue.js) — 두드리면 구한다
+//    · 구한 친구는 숫자의 집(number-house.js)에 산다, 도감(book.js)에 적힌다
+//    · 다 찾으면 광장 달님(moon.js)과 팽이치기(top-game.js) → 이기면 낮
+//  ★ 요정 친구는 이 월드에 나오지 않는다.
 // ===========================================================
 import * as THREE from 'three';
+import { createCharacter } from '../../src/characters.js';
+import { buildWorld } from '../../src/world.js';
+import { createPlayer } from '../../src/player.js';
+import { makeStudioEnv } from '../../src/environment.js';
+import { setupTouchControls } from '../../src/touch.js';
+import { createMusic } from '../../src/music.js';
+import './blocks.js';                                   // 'numberblock' 캐릭터 종류 등록
+import { ME } from './block-data.js';
+import { createNight } from './night.js';
+import { createRescue, clearSave } from './rescue.js';
+import { createBook } from './book.js';
+import { buildNumberHouse } from './number-house.js';
+import { createMoon } from './moon.js';
+import { createTopGame } from './top-game.js';
+import { createTravel } from './travel.js';
+import { toast, createActionButton, createRideButtons, setupMusicButton, createCompass } from './hud.js';
 
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
 // -----------------------------------------------------------
-const TOWER_COUNT = 10;          // 블록 탑 몇 개 (1부터 이 숫자까지)
-const BLOCK_SIZE  = 1;           // 블록 한 개 크기
-const SPIN_SPEED  = 0.12;        // 카메라가 도는 속도
-// 숫자마다 블록 색 (1번 탑 = 첫 번째 색)
-const COLORS = [0xff6b6b, 0xffa94d, 0xffd93d, 0x69db7c, 0x4dabf7,
-                0x9775fa, 0xf783ac, 0x38d9a9, 0xffc078, 0xffffff];
+const TAP_MOVE = 14;      // 손가락이 이보다 덜 움직였으면 '두드림'으로 본다 (px)
+const TAP_TIME = 450;     // 이보다 짧게 눌렀다 떼면 '두드림' (ms)
+const DAY_KEY  = 'nb-day';
 
 // -----------------------------------------------------------
-//  렌더러 / 씬 / 카메라
+//  렌더러 / 씬 / 카메라 / 조명 (티니핑 월드와 같다)
 // -----------------------------------------------------------
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xbfe8ff);
-scene.fog = new THREE.Fog(0xbfe8ff, 40, 90);
-const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 200);
-
-// 조명 — 밝고 부드럽게
-scene.add(new THREE.HemisphereLight(0xffffff, 0x9fe08a, 1.2));
-const sun = new THREE.DirectionalLight(0xfff6e0, 1.5);
-sun.position.set(15, 30, 10);
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 500);
+const hemi = new THREE.HemisphereLight(0xffffff, 0x9fe08a, 1.1);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff6e0, 1.6);
+sun.position.set(40, 70, 30);
 sun.castShadow = true;
-sun.shadow.mapSize.set(1024, 1024);
-Object.assign(sun.shadow.camera, { left: -20, right: 20, top: 20, bottom: -20 });
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -140; sun.shadow.camera.right = 140;
+sun.shadow.camera.top = 140;   sun.shadow.camera.bottom = -140;
+sun.shadow.camera.far = 280;
+sun.shadow.normalBias = 0.6;
 scene.add(sun);
+const envMap = makeStudioEnv(renderer);
+scene.environment = envMap;
 
-// 들판
-const ground = new THREE.Mesh(new THREE.CircleGeometry(60, 48),
-  new THREE.MeshLambertMaterial({ color: 0x9fe08a }));
-ground.rotation.x = -Math.PI / 2;
-ground.receiveShadow = true;
-scene.add(ground);
-
-// -----------------------------------------------------------
-//  숫자 블록 탑 — 숫자 N이면 블록 N개를 쌓는다
-//  ★ geometry 한 개, 색마다 material 한 개만 만들어서 재사용한다
-// -----------------------------------------------------------
-const blockGeo = new THREE.BoxGeometry(BLOCK_SIZE * 0.96, BLOCK_SIZE * 0.96, BLOCK_SIZE * 0.96);
-const blockMats = COLORS.map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.5 }));
-
-/** 캔버스에 숫자를 그려서 탑 위에 띄울 팻말을 만든다 */
-function makeNumberSign(n) {
-  const cv = document.createElement('canvas');
-  cv.width = cv.height = 128;
-  const g = cv.getContext('2d');
-  g.fillStyle = '#fff';
-  g.beginPath(); g.arc(64, 64, 58, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#3a78b0';
-  g.font = 'bold 76px sans-serif';
-  g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.fillText(String(n), 64, 70);
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv) }));
-  sp.scale.set(1.2, 1.2, 1);
-  return sp;
-}
-
-const towers = [];
-for (let n = 1; n <= TOWER_COUNT; n++) {
-  const tower = new THREE.Group();
-  const mat = blockMats[(n - 1) % blockMats.length];
-  for (let i = 0; i < n; i++) {
-    const b = new THREE.Mesh(blockGeo, mat);
-    b.position.y = BLOCK_SIZE * (i + 0.5);
-    b.castShadow = true;
-    tower.add(b);
-  }
-  const sign = makeNumberSign(n);
-  sign.position.y = BLOCK_SIZE * n + 0.9;
-  tower.add(sign);
-  // 둥글게 늘어놓는다
-  const a = (n - 1) / TOWER_COUNT * Math.PI * 2;
-  tower.position.set(Math.cos(a) * 9, 0, Math.sin(a) * 9);
-  tower.userData.n = n;
-  scene.add(tower);
-  towers.push(tower);
-}
-
-// -----------------------------------------------------------
-//  탑을 누르면 숫자를 말해준다
-// -----------------------------------------------------------
-const ray = new THREE.Raycaster();
-const pointer = new THREE.Vector2();
-const sayEl = document.getElementById('say');
-let sayTimer = 0;
-let bounce = null;                       // 방금 누른 탑 (통통 튄다)
-let bounceT = 0;
-
-renderer.domElement.addEventListener('pointerup', e => {
-  pointer.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
-  ray.setFromCamera(pointer, camera);
-  const hit = ray.intersectObjects(towers, true)[0];
-  if (!hit) return;
-  let o = hit.object;
-  while (o.parent && !o.userData.n) o = o.parent;
-  sayEl.textContent = `블록 ${o.userData.n}개! 숫자 ${o.userData.n}!`;
-  sayEl.classList.add('on');
-  sayTimer = 2;
-  bounce = o; bounceT = 0;
+// 🏘 마을 — 그림의 집 자리에 🔢 숫자의 집
+const world = buildWorld(scene, {
+  artHouse: { variant: 'numbers', label: '숫자의 집! 🔢 구한 친구들이 여기 살아요', build: buildNumberHouse },
 });
+const night = createNight(scene, hemi, sun);
+const music = createMusic();
+
+// -----------------------------------------------------------
+//  게임 시작 — 나는 숫자 100
+// -----------------------------------------------------------
+let player = null, rescue = null, moon = null, book = null, topGame = null, travel = null;
+let updateAction = null, updateRideBtns = null, updateCompass = null;
+let playing = false;
+
+function startGame() {
+  const model = createCharacter(ME);
+  model.traverse(o => { if (o.isMesh && !o.userData.noShadow) o.castShadow = true; });
+  scene.add(model);
+  player = createPlayer(model, camera, world);
+  player.onMount = (ride) => toast(ride.label);
+  player.onSpot = (spot) => spot.use?.(toast, player);
+  setupTouchControls(player, sayHi);
+  updateAction = createActionButton(player);
+  updateRideBtns = createRideButtons(player);
+  updateCompass = createCompass(camera, player);
+
+  rescue = createRescue(world, camera, onRescue);
+  travel = createTravel({ world, envMap, charId: ME.id, music, player: () => player, toast,
+                          rescued: rescue.rescued });
+  moon = createMoon(world, () => rescue.remaining, challenge);
+  book = createBook(n => rescue.rescued.has(n), () => { clearSave(); location.reload(); });
+  topGame = createTopGame(onTopEnd);
+  travel.initVillage();
+
+  // 이미 달님을 이긴 적이 있으면 낮에서 시작한다
+  let won = false;
+  try { won = localStorage.getItem(DAY_KEY) === '1'; } catch {}
+  if (won) { night.setDay(true); travel.releaseToVillage(); }
+
+  document.getElementById('story').classList.remove('on');
+  document.getElementById('hud').classList.add('on');
+  playing = true;
+  music.start();
+  music.setScene('village');
+  //  브라우저 콘솔에서 확인할 때 쓴다 (F12). 게임 동작에는 영향이 없다
+  window.__player = player;
+  window.__nb = { rescue, night, travel, topGame, book, moon, onTopEnd };
+  toast(won ? '☀️ 밝은 마을에서 친구들과 놀아요!' : `🔦 친구 ${rescue.remaining}명을 찾아요!`, 3000);
+}
+function onRescue(def, count) {
+  music.ping(72 + (def.number % 12));
+  if (count >= 99) toast('🎉 99명을 모두 찾았어요! 광장 달님에게 가요', 3500);
+  else toast(`숫자 ${def.name}을(를) 구했어요! (${count} / 99)`);
+}
+
+// 인사 버튼 — 가장 가까운 친구가 반응한다
+function sayHi() {
+  if (!playing || !travel.npcs) return;
+  travel.npcs.greetNearest(player.model.position, name => toast(`${name} 만났어요!`));
+}
+addEventListener('keydown', e => { if (e.code === 'Enter') sayHi(); });
+document.getElementById('bookBtn').onclick = () => book?.open();
+setupMusicButton(music);
+
+// 🌙 달님과 팽이치기
+function challenge() {
+  if (!rescue.allFound) return;
+  toast('달님: 좋아, 팽이치기로 겨루자! 🌀');
+  topGame.open();
+}
+function onTopEnd(won) {
+  if (!won) { toast('달님: 다음에 또 도전해~ 🌙'); return; }
+  try { localStorage.setItem(DAY_KEY, '1'); } catch {}
+  night.setDay();
+  travel.releaseToVillage();
+  music.melody('birthday');
+  toast('☀️ 이겼다! 마을이 환해지고 친구들이 나와요!', 4000);
+}
+
+// -----------------------------------------------------------
+//  두드리기 — 화면을 톡 치면 그 자리의 친구를 구한다
+//  (끌면 카메라가 도는 것이니, 조금만 움직이고 짧게 뗀 것만 두드림으로 본다)
+// -----------------------------------------------------------
+let tapStart = null;
+renderer.domElement.addEventListener('pointerdown', e => {
+  tapStart = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId };
+});
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!tapStart || e.pointerId !== tapStart.id) return;
+  const moved = Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y);
+  const held = performance.now() - tapStart.t;
+  tapStart = null;
+  if (!playing || !travel.inVillage || moved > TAP_MOVE || held > TAP_TIME) return;
+  rescue.tap(e.clientX, e.clientY, player.model.position);
+});
+
+// -----------------------------------------------------------
+//  스토리 화면 → 시작
+// -----------------------------------------------------------
+document.getElementById('storyBtn').onclick = startGame;
+addEventListener('keydown', e => { if (!playing && (e.code === 'Space' || e.code === 'Enter')) startGame(); });
 
 // -----------------------------------------------------------
 //  루프
@@ -121,24 +169,39 @@ function loop() {
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
 
-  // 카메라가 들판을 천천히 빙 돈다
-  const a = t * SPIN_SPEED;
-  camera.position.set(Math.cos(a) * 22, 11, Math.sin(a) * 22);
-  camera.lookAt(0, 3, 0);
-
-  if (bounce) {
-    bounceT += dt;
-    bounce.position.y = Math.max(0, Math.sin(bounceT * 10) * 0.6 * (1 - bounceT / 0.8));
-    if (bounceT > 0.8) { bounce.position.y = 0; bounce = null; }
+  if (!playing) {                          // 스토리 화면 뒤에서 마을이 천천히 돈다
+    world.update(dt, t, null);
+    night.update(dt, null);
+    camera.position.set(Math.sin(t * 0.08) * 30, 12, Math.cos(t * 0.08) * 30);
+    camera.lookAt(0, 3, 0);
+    renderer.render(scene, camera);
+    return;
   }
-  if (sayTimer > 0 && (sayTimer -= dt) <= 0) sayEl.classList.remove('on');
 
-  renderer.render(scene, camera);
+  const area = travel.area;
+  area.update(dt, t, player.model.position);
+  player.update(dt, t);
+  travel.npcs?.update(dt, t, player.model.position);
+  if (travel.inVillage) {
+    rescue.update(dt, t, player.model.position);
+    moon.update(dt, t);
+    night.update(dt, player.model.position);
+    updateCompass(night.isDay || book.isOpen ? null : rescue.nearest(player.model.position));
+  } else {
+    updateCompass(null);
+  }
+  updateAction();
+  updateRideBtns();
+  if (player.ride?.say) { toast(player.ride.say); player.ride.say = null; }
+  travel.checkDoors();
+  renderer.render(area.scene, camera);
 }
 loop();
 
-addEventListener('resize', () => {
+function resize() {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
-});
+}
+addEventListener('resize', resize);
+resize();

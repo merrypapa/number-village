@@ -6,7 +6,7 @@
 //  ★ 건물은 전부 +z 쪽(광장 쪽)을 바라본다. 그래야 문을 찾기 쉽다.
 // ===========================================================
 import * as THREE from 'three';
-import { part, toon, glow, makeHeart } from './castle-props.js';
+import { part, toon, glow, makeHeart, makeNumberBlocks } from './castle-props.js';
 import { makeStar, makeMoon, R } from './ruha-props.js';
 import { makeSign, makeCart } from './mart-props.js';
 
@@ -98,7 +98,11 @@ export function makeMartCarts(x, z) {
 //  🎨 그림의 집 — 지붕이 알록달록하고 앞에 큰 붓과 팔레트가 서 있다
 //     문은 +z 쪽 한가운데에 있다
 // -----------------------------------------------------------
-export function makeArtHouseBuilding() {
+/**
+ * variant = 'numbers' 면 🔢 숫자의 집 — 붓·팔레트 대신 숫자 블록이 서 있고 간판이 다르다
+ * (넘버블럭스 월드가 쓴다)
+ */
+export function makeArtHouseBuilding(variant = 'art') {
   const g = new THREE.Group();
   const W = 12, H = 5, D = 10;
 
@@ -120,6 +124,19 @@ export function makeArtHouseBuilding() {
   for (const sx of [-1, 1]) {
     g.add(part('box', 0xa8e6ff, sx * 3.8, 2.8, D / 2 + 0.06, 2.2, 2.2, 0.2));
     g.add(part('box', 0xfff6e8, sx * 3.8, 2.8, D / 2 + 0.1, 2.6, 0.25, 0.25));
+  }
+
+  if (variant === 'numbers') {
+    // 🔢 앞마당에 숫자 블록 더미 두 개 (여기가 숫자의 집이라고 알려준다)
+    for (const sx of [-1, 1]) {
+      const blocks = makeNumberBlocks();
+      blocks.position.set(sx * 6.4, 0, D / 2 + 2.0);
+      g.add(blocks);
+    }
+    const sign = makeSign('숫자의 집', 6.4, 1.5, '#7ad4ff', '#1b4a70');
+    sign.position.set(0, H + 3.9, D / 2 - 0.4);
+    g.add(sign);
+    return g;
   }
 
   // 앞마당에 세운 커다란 붓과 팔레트 (여기가 그림의 집이라고 알려준다)

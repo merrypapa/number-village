@@ -65,8 +65,9 @@ const TRAIN_DOOR = { x: CASTLE_TW_DOOR.x };
 /**
  * envMap       : 반짝이는 재질(.glb 친구들)에 쓸 반사광. main.js가 넘겨준다.
  * playerCharId : 내가 고른 캐릭터 (진열대에서는 빼둔다 — 내가 이미 그 친구니까)
+ * opts.gallery : false면 요정 친구 진열대를 만들지 않는다 (넘버블럭스 월드)
  */
-export function buildCastleInterior(envMap, playerCharId) {
+export function buildCastleInterior(envMap, playerCharId, opts = {}) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x3b2a5e);
   scene.environment = envMap || null;
@@ -151,10 +152,12 @@ export function buildCastleInterior(envMap, playerCharId) {
   // 🧚 요정 친구 진열대 (서쪽 회랑) — 부르면 깨어나서 돌아다닌다
   //  친구가 35명이라 한 줄이면 다닥다닥 붙는다 → 복도를 사이에 두고 두 줄이 마주 본다
   //  gap = 친구 사이 간격 (자리가 모자라면 자동으로 좁아진다)
-  const gallery = buildGallery(playerCharId, {
-    gap: 3.4, z0: -36, z1: 14,
-    rows: [{ x: -32.4, face: 1 }, { x: -19.5, face: -1 }],
-  });
+  const gallery = opts.gallery === false
+    ? { group: new THREE.Group(), obstacles: [], spots: [], update() {} }
+    : buildGallery(playerCharId, {
+        gap: 3.4, z0: -36, z1: 14,
+        rows: [{ x: -32.4, face: 1 }, { x: -19.5, face: -1 }],
+      });
   scene.add(gallery.group);
   obstacles.push(...gallery.obstacles);
 

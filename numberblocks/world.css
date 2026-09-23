@@ -1,0 +1,92 @@
+/* 넘버블럭스 월드에만 있는 화면 — 스토리 · 나침반 · 도감 · 팽이치기 */
+
+/* ---- 스토리 화면 ---- */
+#story { background:linear-gradient(#0b0f2a99, #0b0f2add); justify-content:center; text-align:center;
+  padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); }
+#storyCard { max-width:560px; width:100%; background:#ffffffee; border-radius:28px;
+  padding:22px 20px 20px; box-shadow:0 14px 40px #0006; display:flex; flex-direction:column;
+  align-items:center; gap:10px; }
+#storyCard .big { font-family:'Trebuchet MS','Apple SD Gothic Neo',sans-serif;
+  font-size:clamp(30px,7vw,54px); font-weight:900; color:#fff; line-height:1;
+  text-shadow:0 3px 0 #7ad4ff, 0 6px 0 #3aa9e0, 0 10px 18px #0004; }
+#storyCard .sub { font-size:clamp(15px,3vw,22px); font-weight:900; color:#3a78b0; }
+#storyCard p { font-size:clamp(15px,3.2vw,21px); line-height:1.5; color:#3a2a55; font-weight:700; }
+#storyBtn { margin-top:4px; padding:16px 40px; border:none; border-radius:999px;
+  background:linear-gradient(#ffd93d,#ffb300); color:#5b3d1a; font-size:clamp(20px,4.2vw,30px);
+  font-weight:900; box-shadow:0 8px 0 #c98a00, 0 12px 20px #0003; cursor:pointer;
+  animation:pop 1.6s ease-in-out infinite; }
+#storyBtn:active { transform:translateY(5px); box-shadow:0 3px 0 #c98a00; animation:none; }
+@keyframes pop { 0%,100% { transform:scale(1); } 50% { transform:scale(1.05); } }
+#storyHome { color:#3a78b0; font-weight:800; text-decoration:none; font-size:15px; }
+@media (max-height:520px) { #storyCard { padding:12px 16px; gap:4px; } #storyCard p { font-size:14px; } }
+
+/* ---- 🧭 나침반 ---- */
+#compass { position:absolute; left:50%; top:calc(16px + env(safe-area-inset-top)); transform:translateX(-50%);
+  display:none; flex-direction:column; align-items:center; gap:2px; pointer-events:none; }
+#compass .arrow { width:64px; height:64px; border-radius:50%; background:#ffd93dee; color:#5b3d1a;
+  font-size:36px; display:flex; align-items:center; justify-content:center;
+  box-shadow:0 4px 0 #c98a00; transform-origin:50% 50%; }
+#compass .arrow { rotate:-90deg; }   /* ➤ 글자가 오른쪽을 보므로 위를 보게 돌려둔다 */
+#compass .dist { color:#fff; font-weight:900; font-size:15px; text-shadow:0 1px 4px #000a; }
+
+/* ---- 📖 도감 ---- */
+#book, #top { position:fixed; inset:0; z-index:40; display:none; flex-direction:column;
+  background:linear-gradient(180deg,#e8f6ff,#fff3e0);
+  padding:calc(8px + env(safe-area-inset-top)) 8px calc(8px + env(safe-area-inset-bottom)); }
+#book.on, #top.on { display:flex; }
+#bookTop, #topBar { flex:none; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+#bookTitle, #topTitle { font-size:clamp(15px,3.4vw,24px); font-weight:900; color:#1b4a70; }
+#bookCount { color:#e0518f; margin-left:6px; }
+#bookTop button, #topBar button { border:none; border-radius:999px; padding:10px 16px;
+  font-size:clamp(13px,3vw,18px); font-weight:900; cursor:pointer; background:#fff; color:#3a78b0;
+  box-shadow:0 4px 0 #a8d8f0; }
+#bookReset { opacity:.6; }
+#bookTop button:active, #topBar button:active { transform:translateY(3px); box-shadow:none; }
+#bookGrid { flex:1; min-height:0; overflow-y:auto; align-content:start; overscroll-behavior:contain; touch-action:pan-y;
+  display:grid; grid-template-columns:repeat(10, 1fr); gap:6px; padding:8px 2px; }
+@media (max-width:640px) { #bookGrid { grid-template-columns:repeat(5, 1fr); } }
+.bcard { position:relative; border:none; border-radius:14px; background:#fff; cursor:pointer;
+  aspect-ratio:1; box-shadow:0 3px 0 #0001; overflow:hidden; display:flex; align-items:center;
+  justify-content:center; }
+.bcard canvas { width:100%; height:100%; display:none; }
+.bcard.found canvas { display:block; }
+.bcard .bq { font-size:clamp(22px,4vw,40px); font-weight:900; color:#c8d3e0; }
+.bcard.found .bq { display:none; }
+.bcard .bname { position:absolute; left:0; right:0; bottom:0; font-size:clamp(11px,2vw,15px);
+  font-weight:900; color:#fff; background:#0006; padding:1px 0; }
+.bcard:active { transform:translateY(2px); }
+#bookDetail { position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+  background:#0006; }
+#bookDetail.on { display:flex; }
+.dcard { background:#fff; border-radius:24px; padding:18px; width:min(88vw,380px);
+  display:flex; flex-direction:column; align-items:center; gap:8px; box-shadow:0 12px 30px #0005; }
+.dpic { position:relative; width:220px; height:220px; }
+.dpic canvas { width:100%; height:100%; }
+.dpic .dq { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:120px; font-weight:900; color:#c8d3e0; }
+.dname { font-size:clamp(20px,4.4vw,30px); font-weight:900; color:#e0518f; }
+.ddesc { font-size:clamp(14px,3vw,19px); font-weight:700; color:#3a2a55; text-align:center; line-height:1.45; }
+#detailClose { border:none; border-radius:999px; padding:12px 26px; background:#7ad4ff; color:#fff;
+  font-size:18px; font-weight:900; box-shadow:0 5px 0 #3aa9e0; cursor:pointer; }
+
+/* ---- 🪀 팽이치기 ---- */
+#top { background:radial-gradient(circle at 50% 40%, #2a3570, #0b0f2a 70%); }
+#topCanvas { flex:1; min-height:0; width:100%; border-radius:18px; touch-action:none; }
+#topMsg { flex:none; text-align:center; color:#fff; font-weight:800; font-size:clamp(14px,3.2vw,21px);
+  padding:6px 0; text-shadow:0 1px 4px #000a; }
+#topStart { flex:none; align-self:center; margin-bottom:6px; padding:16px 42px; border:none;
+  border-radius:999px; background:linear-gradient(#ffd93d,#ffb300); color:#5b3d1a;
+  font-size:clamp(20px,4.4vw,30px); font-weight:900; box-shadow:0 8px 0 #c98a00; cursor:pointer;
+  animation:pop 1.6s ease-in-out infinite; }
+#topStart:active { transform:translateY(5px); box-shadow:0 3px 0 #c98a00; animation:none; }
+#topResult { position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+  background:#0007; }
+#topResult.on { display:flex; }
+.rcard { background:#fff; border-radius:24px; padding:22px 20px; width:min(86vw,360px);
+  display:flex; flex-direction:column; align-items:center; gap:10px; box-shadow:0 12px 30px #0005; }
+.rtitle { font-size:clamp(22px,5vw,34px); font-weight:900; color:#e0518f; }
+.rsub { font-size:clamp(15px,3.2vw,20px); font-weight:700; color:#3a2a55; }
+.rcard button { border:none; border-radius:999px; padding:12px 26px; font-size:18px; font-weight:900;
+  cursor:pointer; color:#fff; }
+#topAgain { background:#ff8fc0; box-shadow:0 5px 0 #e0518f; }
+#topDone  { background:#7ad48f; box-shadow:0 5px 0 #2f9a55; }

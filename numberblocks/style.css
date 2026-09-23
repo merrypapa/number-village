@@ -1,0 +1,182 @@
+/* 넘버블럭스 월드 — 화면 꾸미기
+   HUD(조이스틱·버튼)와 🧮 계산 놀이는 티니핑 월드 index.html과 같은 모양이다. */
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; overflow:hidden; background:#0b0f2a;
+  font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent;
+  touch-action:none; overscroll-behavior:none; position:fixed; inset:0; }
+canvas { display:block; }
+.screen { position:fixed; inset:0; display:none; flex-direction:column;
+  align-items:center; justify-content:center; z-index:10; }
+.screen.on { display:flex; }
+
+  /* ---- 게임 중 HUD ---- */
+  #hud { position:fixed; inset:0; pointer-events:none; z-index:5; display:none; }
+  #hud.on { display:block; }
+  #bookBtn { position:absolute; top:16px; right:16px; width:64px; height:64px;
+    border:none; border-radius:20px; background:#fff9; font-size:32px;
+    pointer-events:auto; cursor:pointer; }
+  /* 🎵 배경음악 켜기/끄기 */
+  #musicBtn { position:absolute; top:88px; right:16px; width:64px; height:64px;
+    border:none; border-radius:20px; background:#fff9; font-size:30px;
+    pointer-events:auto; cursor:pointer; }
+  #musicBtn.off { opacity:.45; }
+  /* ---- 오른쪽 버튼 (인사 · 점프 · 타기) ---- */
+  #hi, #jump, #ride { position:absolute; border:none; border-radius:50%; color:#fff;
+    pointer-events:auto; cursor:pointer; touch-action:none;
+    display:flex; align-items:center; justify-content:center; }
+  #hi   { right:calc(24px + env(safe-area-inset-right));
+          bottom:calc(28px + env(safe-area-inset-bottom));
+          width:104px; height:104px; font-size:44px;
+          background:#ff8fc0; box-shadow:0 6px 0 #e0518f; }
+  #jump { right:calc(28px + env(safe-area-inset-right));
+          bottom:calc(150px + env(safe-area-inset-bottom));
+          width:96px; height:96px; font-size:34px; font-weight:800;
+          background:#7ad4ff; box-shadow:0 6px 0 #3aa9e0; }
+  /* 타기 버튼은 그네·미끄럼틀 옆에 갔을 때만 나타난다 (main.js가 보여준다) */
+  #ride { right:calc(30px + env(safe-area-inset-right));
+          bottom:calc(262px + env(safe-area-inset-bottom));
+          width:92px; height:92px; font-size:24px; font-weight:800;
+          background:#ffd93d; color:#7a4a00; box-shadow:0 6px 0 #d9a800;
+          display:none; }
+  /* 글자가 길면(공부하기·일어나기) 글씨를 줄여서 동그라미 안에 넣는다 */
+  #ride[data-len="4"] { font-size:19px; }
+  #ride[data-len="5"] { font-size:16px; }
+  /* 🛗 엘리베이터 ▲▼ 버튼 — 탈 때만 나타난다 (main.js가 보여준다).
+     조이스틱 위 왼쪽에 둔다. 오른손은 '내리기'를 누르니까 서로 안 겹친다 */
+  #liftUp, #liftDn { position:absolute; left:calc(34px + env(safe-area-inset-left));
+    border:none; border-radius:26px; width:92px; height:78px;
+    background:#b39ddb; color:#fff; font-size:17px; font-weight:800; line-height:1.15;
+    white-space:pre-line; box-shadow:0 6px 0 #7e57c2;
+    pointer-events:auto; cursor:pointer; touch-action:none;
+    display:none; align-items:center; justify-content:center; }
+  #liftUp { bottom:calc(300px + env(safe-area-inset-bottom)); }
+  #liftDn { bottom:calc(206px + env(safe-area-inset-bottom)); }
+  #liftUp:active, #liftDn:active { transform:translateY(4px); box-shadow:0 2px 0 #7e57c2; }
+  #hi:active   { transform:translateY(4px); box-shadow:0 2px 0 #e0518f; }
+  #jump:active { transform:translateY(4px); box-shadow:0 2px 0 #3aa9e0; }
+  #ride:active { transform:translateY(4px); box-shadow:0 2px 0 #d9a800; }
+
+  /* ---- 왼쪽 가상 조이스틱 ---- */
+  #stick { position:absolute; left:calc(26px + env(safe-area-inset-left));
+    bottom:calc(30px + env(safe-area-inset-bottom));
+    width:154px; height:154px; border-radius:50%;
+    background:#ffffff4d; border:4px solid #ffffff99;
+    pointer-events:auto; touch-action:none;
+    display:flex; align-items:center; justify-content:center; }
+  #knob { width:70px; height:70px; border-radius:50%; background:#ff8fc0;
+    box-shadow:0 4px 0 #e0518f; pointer-events:none;
+    transition:transform .06s linear; }
+
+  /* 화면이 작으면 조작부를 조금 줄인다 */
+  @media (max-height:430px), (max-width:400px) {
+    #stick { width:126px; height:126px; }
+    #knob  { width:58px; height:58px; }
+    #hi    { width:84px;  height:84px;  font-size:36px; }
+    #jump  { width:78px;  height:78px;  font-size:28px;
+             bottom:calc(124px + env(safe-area-inset-bottom)); }
+    #ride  { width:74px;  height:74px;  font-size:20px;
+             bottom:calc(212px + env(safe-area-inset-bottom)); }
+    #ride[data-len="4"] { font-size:15px; }
+    #ride[data-len="5"] { font-size:13px; }
+    #liftUp, #liftDn { width:78px; height:64px; font-size:14px; }
+    #liftUp { bottom:calc(238px + env(safe-area-inset-bottom)); }
+    #liftDn { bottom:calc(166px + env(safe-area-inset-bottom)); }
+  }
+  /* 공간이 바뀔 때 화면을 잠깐 덮는 막 (성에 들어가고 나올 때) */
+  #fade { position:fixed; inset:0; z-index:30; background:#fff;
+    opacity:0; pointer-events:none; transition:opacity .3s ease; }
+  #fade.on { opacity:1; }
+  #toast { position:absolute; left:50%; top:18%; transform:translateX(-50%);
+    background:#fff; color:#5b3d8f; font-size:28px; font-weight:800;
+    padding:14px 28px; border-radius:24px; box-shadow:0 6px 18px #0003;
+    opacity:0; transition:opacity .3s; }
+  #toast.on { opacity:1; }
+  /* 안내문 — 조작부 위에 두고, 8초 뒤 스르륵 사라진다 */
+  #hint { position:absolute; left:50%; bottom:calc(196px + env(safe-area-inset-bottom));
+    transform:translateX(-50%); width:max-content; max-width:86vw; text-align:center;
+    color:#fff; font-size:15px; line-height:1.4; text-shadow:0 1px 4px #0008;
+    pointer-events:none; opacity:1; transition:opacity 1.2s ease 8s; }
+  #hud.on #hint { opacity:0; }
+
+
+  /* ---- 🧮 계산 놀이 (마트 계산대) ----
+     담은 물건의 "값 × 개수"를 모두 더한 금액을 숫자 버튼으로 맞힌다.
+     ★ .no-drag 를 붙여야 버튼을 누르는 동안 카메라가 돌지 않는다 (player.js) */
+  #pay { position:fixed; inset:0; z-index:40; display:none;
+    flex-direction:column; align-items:center; justify-content:center; gap:8px;
+    background:linear-gradient(180deg,#fff3e0,#ffe8f4);
+    padding:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom)); }
+  #pay.on { display:flex; }
+  #payTop { flex:none; width:100%; max-width:620px;
+    display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  #payTitle { font-size:clamp(16px,3.6vw,26px); font-weight:900; color:#7a4a00; }
+  #payTop button { border:none; border-radius:999px; padding:10px 16px;
+    font-size:clamp(13px,3vw,19px); font-weight:900; cursor:pointer; }
+  #payClose { background:#fff; color:#7a4fb0; box-shadow:0 4px 0 #d8bfe8; }
+  #payHint  { background:#ffd93d; color:#7a4a00; box-shadow:0 4px 0 #d9a800; }
+  #payTop button:active { transform:translateY(3px); box-shadow:none; }
+
+  /* 계산서 — 영수증처럼 생긴 종이 */
+  #payList { flex:0 1 auto; min-height:0; max-height:34vh; width:100%; max-width:620px; overflow-y:auto;
+    background:#fff; border-radius:16px; box-shadow:0 5px 16px #0002;
+    padding:8px 12px; }
+  .prow { display:flex; align-items:center; gap:8px; padding:5px 2px;
+    border-bottom:2px dotted #f0dcc0; font-size:clamp(15px,3.4vw,22px);
+    font-weight:800; color:#5b3d8f; }
+  .prow:last-child { border-bottom:none; }
+  .pemoji { font-size:1.25em; }
+  .pname { flex:1; }
+  .pcalc { color:#e0518f; }
+  /* 한 줄 답(= 6코인)은 힌트를 켜야 보인다 */
+  .psum { color:#3aa9e0; visibility:hidden; min-width:4.5em; text-align:right; }
+  #payList.hint .psum { visibility:visible; }
+
+  /* 답 적는 곳과 숫자판을 한 덩어리로 (가로 화면에서 오른쪽으로 모인다) */
+  #payRight { flex:none; width:100%; display:flex; flex-direction:column;
+    align-items:center; gap:8px; }
+
+  /* 답 적는 곳 */
+  #payAnswer { flex:none; display:flex; align-items:center; gap:8px;
+    background:#fff; border:4px solid #ffd93d; border-radius:18px;
+    padding:4px 20px; box-shadow:0 5px 0 #d9a800; }
+  #payInput { font-size:clamp(30px,8vw,52px); font-weight:900; color:#e0518f;
+    min-width:2.2em; text-align:center; }
+  #payUnit { font-size:clamp(16px,4vw,26px); font-weight:900; color:#7a4a00; }
+  #payMsg { flex:none; font-size:clamp(14px,3.2vw,21px); font-weight:800; color:#7a4fb0;
+    text-align:center; min-height:1.4em; }
+  #payMsg.good { color:#1f9a52; }
+  #payMsg.bad  { color:#e0518f; }
+
+  /* 숫자판 */
+  #payKeys { flex:none; display:grid; gap:8px;
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    width:100%; max-width:330px; }
+  .pkey { border:none; border-radius:18px; background:#fff; color:#5b3d8f;
+    font-size:clamp(22px,5.5vw,32px); font-weight:900; cursor:pointer;
+    padding:clamp(6px,1.6vw,12px) 0; box-shadow:0 5px 0 #d8bfe8; }
+  .pkey.erase { background:#ffd0e6; box-shadow:0 5px 0 #e0518f;
+    font-size:clamp(15px,3.8vw,22px); }
+  .pkey.ok { background:#7ad48f; color:#fff; box-shadow:0 5px 0 #2f9a55; }
+  .pkey:active { transform:translateY(3px); box-shadow:none; }
+  /* 맞혔을 때 / 틀렸을 때 */
+  #pay.win #payAnswer { border-color:#7ad48f; box-shadow:0 5px 0 #2f9a55; }
+  #pay.shake #payAnswer { animation:shakeX .38s; }
+  @keyframes shakeX { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-9px)}
+                      75%{transform:translateX(9px)} }
+  /* 화면이 길면(폰 세로) 숫자 버튼을 큼직하게 — 손가락으로 누르기 좋게 */
+  @media (min-height:700px) {
+    #payKeys { max-width:360px; gap:10px; }
+    .pkey { padding:16px 0; }
+  }
+  /* 폰을 눕히면(가로 화면) 계산서는 왼쪽, 숫자판은 오른쪽 */
+  @media (max-height:560px) and (orientation:landscape) {
+    #pay { flex-flow:row wrap; align-items:stretch; gap:6px; }
+    #payTop { flex:0 0 100%; max-width:none; }
+    #payList { flex:1 1 0; max-width:none; margin-right:6px; }
+    #payRight { flex:0 0 46%; display:flex; flex-direction:column;
+      align-items:center; gap:4px; justify-content:center; }
+    .pkey { padding:5px 0; font-size:20px; border-radius:12px; }
+    #payInput { font-size:30px; }
+  }
+
