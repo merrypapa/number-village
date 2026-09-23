@@ -51,7 +51,7 @@ export function createRescue(world, camera, onRescue) {
   const rescued = loadRescued();
   const lost = [];                          // 아직 못 찾은 친구들 { def, model, exclaim, halfW }
   const EXCLAIM = exclaimMat();
-  let jumping = null, jumpT = 0;
+  const jumping = [];                       // 지금 폴짝 뛰며 사라지는 중인 친구들 { entry, t }
 
   // 흩어진 자리 정하기 — 번호를 씨앗으로 써서 껐다 켜도 같은 자리에 있다
   function seeded(n) { let x = Math.sin(n * 9301 + 49297) * 233280; return x - Math.floor(x); }
@@ -84,11 +84,11 @@ export function createRescue(world, camera, onRescue) {
   }
 
   function rescue(entry) {
-    if (!lost.includes(entry) || jumping) return;
+    if (!lost.includes(entry)) return;
     lost.splice(lost.indexOf(entry), 1);
     rescued.add(entry.def.number);
     try { localStorage.setItem(SAVE_KEY, JSON.stringify([...rescued])); } catch {}
-    jumping = entry; jumpT = 0;
+    jumping.push({ entry, t: 0 });
     entry.exclaim.visible = false;
     onRescue(entry.def, rescued.size);
   }
@@ -129,19 +129,21 @@ export function createRescue(world, camera, onRescue) {
       if (d < e.halfW + TOUCH_REACH) { rescue(e); break; }
     }
     // 구해진 친구는 폴짝 뛰고 나서 사라진다 (숫자의 집으로 간다)
-    if (jumping) {
-      jumpT += dt;
-      const k = jumpT / JUMP_TIME;
-      jumping.model.position.y = Math.sin(Math.min(1, k) * Math.PI) * 2.2;
-      jumping.model.rotation.y += dt * 12;
-      jumping.model.scale.setScalar(k < 0.7 ? 1 : Math.max(0.01, 1 - (k - 0.7) / 0.3));
-      if (k >= 1) { world.scene.remove(jumping.model); jumping = null; }
+    //  ★ 여러 명이 한꺼번에 뛰어도 된다 — 옆 친구를 바로 이어서 구할 수 있게
+    for (let i = jumping.length - 1; i >= 0; i--) {
+      const j = jumping[i];
+      j.t += dt;
+      const k = j.t / JUMP_TIME, m = j.entry.model;
+      m.position.y = Math.sin(Math.min(1, k) * Math.PI) * 2.2;
+      m.rotation.y += dt * 12;
+      m.scale.setScalar(k < 0.7 ? 1 : Math.max(0.01, 1 - (k - 0.7) / 0.3));
+      if (k >= 1) { world.scene.remove(m); jumping.splice(i, 1); }
     }
   }
 
   return {
     update, tap, nearest, rescued,
     get remaining() { return lost.length; },
-    get allFound() { return lost.length === 0 && !jumping; },
+    get allFound() { return lost.length === 0 && jumping.length === 0; },
   };
 }
