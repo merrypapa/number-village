@@ -179,7 +179,7 @@ export function makeNumberblock(def) {
   const faceH = cols[faceCol].k * S;
   const face = new THREE.Mesh(FACE_GEO, faceMat(n));
   const wide = square || (n >= 20 && cols.length >= 2);   // 큰 숫자는 블록이 작아서 얼굴을 두 칸 너비로
-  const faceS = square ? Math.min(S * cols.length * 0.8, S * 2.6) : S * (wide ? 1.9 : 0.96);
+  const faceS = square ? S * Math.min(cols.length, 5) * 0.8 : S * (wide ? 1.9 : 0.96);   // 100은 4칸 크기
   face.scale.setScalar(faceS);
   if (square) face.position.set(0, faceH - faceS * 0.62, S / 2 + 0.01);
   else face.position.set(x0 + faceCol * S - (wide ? S / 2 : 0), faceH - S / 2 + (wide ? S * 0.45 : 0), S / 2 + 0.01);

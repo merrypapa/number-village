@@ -46,7 +46,7 @@ export function drawBlockIcon(cv, n, ghost = false) {
   // 얼굴 — 정사각형은 가운데 위쪽, 아니면 맨 오른쪽 기둥 꼭대기. 눈 배치는 3D와 같다 (1은 하나, 3은 셋)
   const fc = cols.length - 1;
   const square = cols.length > 1 && cols.every(c => c.k === cols[0].k);
-  const face = square ? Math.min(unit * cols.length * 0.8, unit * 2.6) : unit;   // 얼굴 한 변
+  const face = square ? unit * Math.min(cols.length, 5) * 0.8 : unit;   // 얼굴 한 변 (100은 4칸 크기)
   const fx = square ? S / 2 : x0 + fc * unit + unit / 2;
   const fy = square ? y0 - cols[fc].k * unit + face * 0.62 : y0 - cols[fc].k * unit + unit / 2;
   const k = face / 256;                          // 256 얼굴 캔버스 → 그림 크기
