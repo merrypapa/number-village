@@ -38,40 +38,64 @@ export function paler(color, amount) {
 export const hex = (c) => '#' + c.toString(16).padStart(6, '0');
 
 /**
- * 숫자 n의 기둥 목록 — 왼쪽부터 [{ k: 블록 수, colors: [블록마다 색], rim: [블록마다 테두리만 색인지] }, …]
- *   블록 하나 = { 색, rim }.  rim이 true면 원작의 '열 묶음 블록'처럼 **하얀 블록에 색 테두리**다.
- *   34 → 노란 테두리 흰 블록 10 · 10 · 10 + 초록 4
- *   7  → 무지개 7
- *   ★ 제곱수(4·9·16·25…100)는 원작처럼 **정사각형**으로 선다 (4 = 2×2, 9 = 3×3, 100 = 10×10)
+ * 숫자 n이 서는 모양 — 기둥 높이 목록 (왼쪽부터). 원작 표(1~100)를 보고 정한 규칙:
+ *   · 제곱수(4·9·16·25·36·49·64·81·100) → 정사각형
+ *   · 계단 수(15·45·55·66·78·91 = 1+2+…+k) → 계단 모양
+ *   · 소수(11·13·23…) → 한 줄 기둥 (원작처럼 길쭉하다)
+ *   · 나머지 → 가로 w × 세로 h 직사각형. 세로가 10 이하인 것 중 가장 좁은 것
+ *     (12 = 2×6, 20 = 2×10, 30 = 3×10, 48 = 6×8, 72 = 8×9). 없으면 가장 정사각형에 가까운 것 (84 = 7×12)
+ *   · 그래도 너무 가늘면(세로 14 이상: 46 = 2×23 등) 소수처럼 열 묶음 기둥들 + 나머지
  */
 export const SQUARES = [4, 9, 16, 25, 36, 49, 64, 81, 100];
+export const STAIRS  = { 15: 5, 45: 9, 55: 10, 66: 11, 78: 12, 91: 13 };   // n: 계단 수
 
-/** 블록 n개를 아래부터 차례로 칠할 색 목록 — 열 묶음은 rim, 나머지는 자기 색 */
+export function shapeOf(n) {
+  if (STAIRS[n]) return Array.from({ length: STAIRS[n] }, (_, i) => i + 1);
+  if (SQUARES.includes(n)) { const k = Math.round(Math.sqrt(n)); return Array(k).fill(k); }
+  if (n === 6 || n === 8) return [n / 2, n / 2];      // 6 = 2×3, 8 = 2×4 (원작)
+  if (n <= 10) return [n];                            // 1~10은 한 줄 (10도 길쭉한 한 줄)
+  if (n % 10 === 0) return Array(n / 10).fill(10);    // 20·30·40… = 열 묶음 기둥이 나란히
+  const pairs = [];                                   // [w, h]  (w ≤ h, w ≥ 2)
+  for (let w = 2; w * w <= n; w++) if (n % w === 0) pairs.push([w, n / w]);
+  if (pairs.length === 0) {                           // 소수
+    if (n < 20) return [n];                           //   11·13·17·19 → 한 줄 (원작처럼 길쭉)
+    const cols = Array(Math.floor(n / 10)).fill(10);  //   23·29·31… → 열 묶음 기둥들 + 나머지 기둥
+    return [...cols, n % 10];
+  }
+  const low = pairs.filter(([, h]) => h <= 10);
+  const [w, h] = low.length ? low[0] : pairs[pairs.length - 1];
+  if (h > 13) {                                       // 2×23처럼 너무 가늘면 열 묶음 기둥들 + 나머지
+    return [...Array(Math.floor(n / 10)).fill(10), n % 10];
+  }
+  return Array(w).fill(h);
+}
+
+/** 블록 n개를 아래부터 차례로 칠할 색 목록 — 열 묶음은 rim(흰 블록 + 색 테두리), 나머지는 자기 색 */
 function blockList(n) {
   const tens = Math.floor(n / 10), units = n % 10;
   const list = [];
   for (let i = 0; i < tens; i++) {
     const c = n === 100 ? UNIT_COLORS[1] : tens === 7 ? RAINBOW[i % 7] : UNIT_COLORS[tens];
-    for (let j = 0; j < 10; j++) list.push({ c, rim: true });
+    for (let j = 0; j < 10; j++) list.push({ c, rim: true, dot: false });
   }
-  for (let j = 0; j < units; j++) list.push({ c: units === 7 ? RAINBOW[j] : UNIT_COLORS[units], rim: false });
+  for (let j = 0; j < units; j++) {
+    list.push({ c: units === 7 ? RAINBOW[j] : UNIT_COLORS[units], rim: false, dot: n === 6 });   // 6은 주사위 점
+  }
   return list;
 }
 
+/**
+ * 숫자 n의 기둥 목록 — 왼쪽부터 [{ k: 블록 수, colors: [블록마다 색], rim: [테두리만 색인지], dot: [주사위 점] }, …]
+ *   블록은 왼쪽 기둥부터 아래→위로 채운다. 열 묶음(rim)이 먼저, 나머지(자기 색)가 맨 끝(오른쪽 위)에 온다
+ *   22 → 주황 테두리 흰 블록 11 · 흰 블록 9 + 주황 2
+ */
 export function columnsOf(n) {
   const blocks = blockList(n);
   const cols = [];
-  if (SQUARES.includes(n)) {                      // 정사각형 — 한 변 k, 왼쪽 기둥부터 아래→위로 채운다
-    const k = Math.round(Math.sqrt(n));
-    for (let i = 0; i < k; i++) {
-      const part = blocks.slice(i * k, i * k + k);
-      cols.push({ k, colors: part.map(b => b.c), rim: part.map(b => b.rim) });
-    }
-    return cols;
-  }
-  for (let i = 0; i < blocks.length; i += 10) {   // 열 묶음 기둥들 + 나머지 기둥
-    const part = blocks.slice(i, i + 10);
-    cols.push({ k: part.length, colors: part.map(b => b.c), rim: part.map(b => b.rim) });
+  let at = 0;
+  for (const k of shapeOf(n)) {
+    const part = blocks.slice(at, at + k); at += k;
+    cols.push({ k, colors: part.map(b => b.c), rim: part.map(b => b.rim), dot: part.map(b => b.dot) });
   }
   return cols;
 }
@@ -84,8 +108,8 @@ const SPECIAL = {
   2: '블록 둘이 나란히! 춤추는 걸 좋아하고 신발이 두 짝이에요.',
   3: '블록 셋, 눈도 셋! 노래하고 저글링하는 걸 좋아하는 무대 스타예요.',
   4: '네모난 걸 제일 좋아해서 눈도 네모! 2×2 정사각형이에요.',
-  5: '손가락 다섯 개, 하이파이브! 별 모양을 좋아해요.',
-  6: '주사위처럼 3+3! 굴러가는 걸 좋아해요.',
+  5: '손가락 다섯 개, 하이파이브! 예쁜 속눈썹이 있어요.',
+  6: '2×3에 주사위 점! 굴러가는 걸 좋아해요.',
   7: '무지개 색 일곱 개! 행운의 숫자라서 기분이 늘 좋아요.',
   8: '팔이 여덟 개인 문어 친구! 2×4로 서면 멋진 네모예요.',
   9: '3×3 정사각형! 에취~ 재채기하면 블록이 튀어나가요.',
@@ -94,13 +118,14 @@ const SPECIAL = {
   12: '10 하나에 2! 3×4, 2×6, 여러 모양으로 설 수 있어요.',
   13: '10 하나에 3! 운이 좋을 때도, 없을 때도 있대요.',
   14: '10 하나에 4! 스케이트보드를 타고 슝~',
-  15: '10 하나에 5! 계단 모양(1+2+3+4+5)으로 설 수 있어요.',
+  15: '1+2+3+4+5, 계단 모양! 스텝 스쿼드 대장이에요.',
   16: '10 하나에 6! 4×4 정사각형이 되는 네모 친구예요.',
   17: '10 하나에 7! 그림 그리기를 좋아하는 예술가예요.',
   18: '10 하나에 8! 힘이 세고 빠른 친구예요.',
   19: '10 하나에 9! 20 바로 앞이라 늘 한 개가 아쉬워요.',
   20: '10이 두 묶음! 2×10, 4×5로 설 수 있어요.',
   25: '5×5 정사각형! 10이 둘, 5가 하나예요.',
+  26: '선글라스를 낀 록스타! 10이 둘, 6이 하나예요.',
   30: '10이 세 묶음! 3이 열 명 모인 거예요.',
   36: '6×6 정사각형! 10이 셋, 6이 하나예요.',
   40: '10이 네 묶음! 4가 열 명이에요.',
@@ -122,6 +147,9 @@ export function factOf(n) {
   const parts = [`10이 ${tens}묶음, 1이 ${units}개예요.`];
   parts.push(n % 2 === 0 ? '둘씩 짝지으면 딱 맞는 짝수!' : '둘씩 짝지으면 하나 남는 홀수!');
   if (SQUARES.includes(n)) parts.push('정사각형으로 서 있어요.');
+  else if (STAIRS[n]) parts.push('1부터 차례로 더한 계단 모양이에요.');
+  else if (shapeOf(n).length === 1) parts.push('한 줄로 길쭉하게 서요 (소수!).');
+  else parts.push(`${shapeOf(n).length}×${shapeOf(n)[0]} 직사각형이에요.`);
   return parts.join(' ');
 }
 

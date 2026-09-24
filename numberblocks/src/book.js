@@ -40,13 +40,16 @@ export function drawBlockIcon(cv, n, ghost = false) {
         const b = Math.max(2, unit * 0.2);
         g.fillStyle = RIM_FILL; g.fillRect(x + b, y + b, unit - b * 2, unit - b * 2);
       }
+      if (col.dot[j] && !ghost) {                // 6 — 주사위 점
+        g.fillStyle = '#fff'; g.beginPath(); g.arc(x + unit / 2, y + unit / 2, unit * 0.14, 0, Math.PI * 2); g.fill();
+      }
     }
   });
   if (ghost) return;                           // 실루엣은 얼굴을 안 그린다
   // 얼굴 — 정사각형은 가운데 위쪽, 아니면 맨 오른쪽 기둥 꼭대기. 눈 배치는 3D와 같다 (1은 하나, 3은 셋)
   const fc = cols.length - 1;
   const square = cols.length > 1 && cols.every(c => c.k === cols[0].k);
-  const face = square ? unit * Math.min(cols.length, 5) * 0.8 : unit;   // 얼굴 한 변 (100은 4칸 크기)
+  const face = square ? Math.min(unit * Math.min(cols.length, 5) * 0.8, unit * cols[0].k * 0.5) : unit;   // 얼굴 한 변
   const fx = square ? S / 2 : x0 + fc * unit + unit / 2;
   const fy = square ? y0 - cols[fc].k * unit + face * 0.62 : y0 - cols[fc].k * unit + unit / 2;
   const k = face / 256;                          // 256 얼굴 캔버스 → 그림 크기

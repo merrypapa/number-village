@@ -10,7 +10,7 @@
 import * as THREE from 'three';
 import { registerBuilder } from '../../src/characters.js';
 import { GEO, MAT_DARK } from '../../src/character-parts.js';
-import { columnsOf, hex, RAINBOW, RIM_FILL, UNIT_COLORS } from './block-data.js';
+import { columnsOf, shapeOf, hex, RAINBOW, RIM_FILL, UNIT_COLORS } from './block-data.js';
 
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
@@ -21,11 +21,10 @@ const WIDTH_MAX  = 2.4;     // 기둥이 많아도 이 폭을 넘지 않게
 const GAP        = 0.09;    // 블록 사이 어두운 줄 두께 (텍스처 비율)
 const EYE_BLINK  = 4.0;     // 몇 초마다 눈을 깜빡일까
 
-/** 숫자 n에 맞는 블록 크기 — 커질수록 블록이 작아진다 */
+/** 숫자 n에 맞는 블록 크기 — 모양(shapeOf)이 클수록 블록이 작아진다 */
 export function cubeSize(n) {
-  const cols = n === 100 ? 10 : Math.ceil(n / 10);
-  const rows = Math.min(n, 10);
-  return Math.min(CUBE_MAX, HEIGHT_MAX / rows, WIDTH_MAX / cols);
+  const shape = shapeOf(n);
+  return Math.min(CUBE_MAX, HEIGHT_MAX / Math.max(...shape), WIDTH_MAX / shape.length);
 }
 
 // -----------------------------------------------------------
@@ -36,8 +35,8 @@ const _topCache  = new Map();   // 색 → 윗면 재질
 const _faceCache = new Map();   // 숫자 → 얼굴 재질
 
 /** 기둥 옆면 — 블록 k개가 쌓인 줄무늬 텍스처. rim 블록은 원작 열 묶음처럼 흰 바탕 + 색 테두리 */
-function sideMat(colors, rims) {
-  const key = colors.join(',') + '|' + rims.join(',');
+function sideMat(colors, rims, dots) {
+  const key = colors.join(',') + '|' + rims.join(',') + '|' + dots.join(',');
   if (_sideCache.has(key)) return _sideCache.get(key);
   const k = colors.length;
   const cv = document.createElement('canvas');
@@ -52,6 +51,9 @@ function sideMat(colors, rims) {
     if (rims[i]) {                              // 테두리만 색, 안은 흰색
       g.fillStyle = RIM_FILL;
       g.fillRect(p + 9, y + p + 9, 64 - p * 2 - 18, 64 - p * 2 - 18);
+    }
+    if (dots[i]) {                              // 6 — 주사위 점
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(32, y + 32, 9, 0, Math.PI * 2); g.fill();
     }
     g.fillStyle = 'rgba(255,255,255,0.22)';     // 윗쪽 살짝 밝게 (입체감)
     g.fillRect(p, y + p, 64 - p * 2, 8);
@@ -104,6 +106,19 @@ function drawFace(g, n, blink) {
     else { g.beginPath(); g.arc(e.x, e.y + 6, e.r * 0.5, 0, Math.PI * 2); g.fill(); }
     g.fillStyle = '#fff';
     g.beginPath(); g.arc(e.x - e.r * 0.25, e.y - e.r * 0.15, e.r * 0.2, 0, Math.PI * 2); g.fill();
+  }
+  // 5는 예쁜 속눈썹
+  if (n === 5) {
+    g.strokeStyle = '#1b1430'; g.lineWidth = 5; g.lineCap = 'round';
+    for (const e of eyes) for (const dx of [-18, 0, 18]) {
+      g.beginPath(); g.moveTo(e.x + dx, e.y - e.r * 1.05); g.lineTo(e.x + dx * 1.4, e.y - e.r * 1.05 - 16); g.stroke();
+    }
+  }
+  // 26은 록스타 선글라스
+  if (n === 26) {
+    g.fillStyle = '#1b1430';
+    for (const e of eyes) { g.beginPath(); g.roundRect(e.x - e.r - 4, e.y - e.r * 0.7, e.r * 2 + 8, e.r * 1.5, 12); g.fill(); }
+    g.fillRect(S / 2 - 12, 92, 24, 8);
   }
   // 눈썹 — 숫자마다 각도가 다르다. 9는 굵고 처진 눈썹(재채기 직전). 1·3은 눈 배치가 달라서 눈썹 없음
   if (n !== 1 && n !== 3 && n !== 100) {
@@ -160,10 +175,10 @@ export function makeNumberblock(def) {
   const cols = columnsOf(n);
   const totalW = cols.length * S;
   const x0 = -totalW / 2 + S / 2;
-  const square = cols.length > 1 && cols.every(c => c.k === cols[0].k);   // 4·9·16… 정사각형
+  const square = cols.length > 1 && cols.every(c => c.k === cols[0].k);   // 정사각형·직사각형 (얼굴을 가운데 위에)
 
   cols.forEach((col, i) => {
-    const side = sideMat(col.colors, col.rim);
+    const side = sideMat(col.colors, col.rim, col.dot);
     const top = topMat(col.rim[col.k - 1] ? 0xfbfbfb : col.colors[col.k - 1]);
     const bottom = topMat(col.rim[0] ? 0xfbfbfb : col.colors[0]);
     const mesh = new THREE.Mesh(GEO.cube, [side, side, top, bottom, side, side]);
@@ -179,7 +194,9 @@ export function makeNumberblock(def) {
   const faceH = cols[faceCol].k * S;
   const face = new THREE.Mesh(FACE_GEO, faceMat(n));
   const wide = square || (n >= 20 && cols.length >= 2);   // 큰 숫자는 블록이 작아서 얼굴을 두 칸 너비로
-  const faceS = square ? S * Math.min(cols.length, 5) * 0.8 : S * (wide ? 1.9 : 0.96);   // 100은 4칸 크기
+  //  얼굴 크기 — 넓은 모양은 가로 4칸까지, 세로로는 블록 높이의 절반까지만 (2×11처럼 좁고 긴 것)
+  const faceS = square ? Math.min(S * Math.min(cols.length, 5) * 0.8, S * cols[0].k * 0.5)
+                       : S * (wide ? 1.9 : 0.96);
   face.scale.setScalar(faceS);
   if (square) face.position.set(0, faceH - faceS * 0.62, S / 2 + 0.01);
   else face.position.set(x0 + faceCol * S - (wide ? S / 2 : 0), faceH - S / 2 + (wide ? S * 0.45 : 0), S / 2 + 0.01);
