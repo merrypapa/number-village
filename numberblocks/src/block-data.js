@@ -1,10 +1,7 @@
 // ===========================================================
-//  🔢 숫자 블록 친구 100명 — 데이터 (이름 · 색 · 소개말)
-//  3D 모양은 blocks.js, 도감 그림은 book.js가 이 데이터를 쓴다.
-//
-//  ★ 색을 바꾸고 싶으면 UNIT_COLORS 만 고치면 된다.
-//    1~9는 자기 색, 10·20·30…의 '열 묶음' 블록은 원작처럼 흰 블록에 그 숫자 색 테두리다.
-//    (23 = 주황 테두리 흰 기둥 두 개 + 노란 3)
+//  🔢 숫자 블록 친구 100명 — 데이터 (이름 · 소개말)
+//  친구 모습은 원작 표에서 잘라낸 그림 assets/numberblocks/nbN.png 이다 (blocks.js · book.js).
+//  UNIT_COLORS 는 숫자의 집 벽 색 띠에 쓴다.
 // ===========================================================
 
 // -----------------------------------------------------------
@@ -19,89 +16,16 @@ export const UNIT_COLORS = [
   0x5bb646,   // 4 초록
   0x4fc3f7,   // 5 하늘
   0x5e4b9c,   // 6 남보라
-  0xffffff,   // 7 (무지개 — 블록마다 색이 다르다, 아래 RAINBOW)
+  0xb04fd6,   // 7 (무지개 친구 — 벽 띠에는 보라)
   0xe83e8c,   // 8 분홍
   0x8fa3bf,   // 9 회색
 ];
-export const RAINBOW = [0xe8412c, 0xf7941d, 0xfbe323, 0x5bb646, 0x4fc3f7, 0x5e4b9c, 0xb04fd6];
-export const RIM_FILL = '#fbfbfb'; // 열 묶음 블록의 안쪽 색 (원작처럼 거의 흰색)
 
-// -----------------------------------------------------------
-//  색 도우미
-// -----------------------------------------------------------
-/** 색을 하얗게 옅힌다 (0~1) */
-export function paler(color, amount) {
-  const r = (color >> 16) & 255, g = (color >> 8) & 255, b = color & 255;
-  const f = (c) => Math.round(c + (255 - c) * amount);
-  return (f(r) << 16) | (f(g) << 8) | f(b);
-}
 export const hex = (c) => '#' + c.toString(16).padStart(6, '0');
 
-/**
- * 숫자 n이 서는 모양 — 기둥 높이 목록 (왼쪽부터). 원작 표(1~100)를 보고 정한 규칙:
- *   · 제곱수(4·9·16·25·36·49·64·81·100) → 정사각형
- *   · 계단 수(15·45·55·66·78·91 = 1+2+…+k) → 계단 모양
- *   · 소수(11·13·23…) → 한 줄 기둥 (원작처럼 길쭉하다)
- *   · 나머지 → 가로 w × 세로 h 직사각형. 세로가 10 이하인 것 중 가장 좁은 것
- *     (12 = 2×6, 20 = 2×10, 30 = 3×10, 48 = 6×8, 72 = 8×9). 없으면 가장 정사각형에 가까운 것 (84 = 7×12)
- *   · 그래도 너무 가늘면(세로 15 이상: 46 = 2×23 등) 소수처럼 열 묶음 기둥들 + 나머지
- */
+// 제곱수·계단수 — 소개말에 쓴다
 export const SQUARES = [4, 9, 16, 25, 36, 49, 64, 81, 100];
-export const STAIRS  = { 15: 5, 45: 9, 55: 10, 66: 11, 78: 12, 91: 13 };   // n: 계단 수
-
-export function shapeOf(n) {
-  if (STAIRS[n]) return Array.from({ length: STAIRS[n] }, (_, i) => i + 1);
-  if (SQUARES.includes(n)) { const k = Math.round(Math.sqrt(n)); return Array(k).fill(k); }
-  if (n === 6 || n === 8) return [n / 2, n / 2];      // 6 = 2×3, 8 = 2×4 (원작)
-  if (n === 12) return [4, 4, 4];                     // 12 = 3×4 (원작 표)
-  if (n <= 10) return [n];                            // 1~10은 한 줄 (10도 길쭉한 한 줄)
-  if (n % 10 === 0) return Array(n / 10).fill(10);    // 20·30·40… = 열 묶음 기둥이 나란히
-  const pairs = [];                                   // [w, h]  (w ≤ h, w ≥ 2)
-  for (let w = 2; w * w <= n; w++) if (n % w === 0) pairs.push([w, n / w]);
-  if (pairs.length === 0) {                           // 소수
-    if (n < 20) return [n];                           //   11·13·17·19 → 한 줄 (원작처럼 길쭉)
-    const cols = Array(Math.floor(n / 10)).fill(10);  //   23·29·31… → 열 묶음 기둥들 + 나머지 기둥
-    return [...cols, n % 10];
-  }
-  const low = pairs.filter(([, h]) => h <= 10);
-  const [w, h] = low.length ? low[0] : pairs[pairs.length - 1];
-  if (h > 14) {                                       // 2×23처럼 너무 가늘면 열 묶음 기둥들 + 나머지 (98 = 7×14는 그대로)
-    return [...Array(Math.floor(n / 10)).fill(10), n % 10];
-  }
-  return Array(w).fill(h);
-}
-
-/** 블록 n개를 아래부터 차례로 칠할 색 목록 — 열 묶음은 rim(흰 블록 + 색 테두리), 나머지는 자기 색 */
-function blockList(n) {
-  const tens = Math.floor(n / 10), units = n % 10;
-  const list = [];
-  for (let i = 0; i < tens; i++) {
-    const c = n === 100 ? UNIT_COLORS[1] : tens === 7 ? RAINBOW[i % 7] : UNIT_COLORS[tens];
-    for (let j = 0; j < 10; j++) list.push({ c, rim: true, dot: null });
-  }
-  //  dot = 블록 가운데 점 색. 6은 주사위처럼 하얀 점, 3은 몸에 빨간 점 셋 (원작 표)
-  const dot = n === 6 ? '#ffffff' : n === 3 ? '#c8102e' : null;
-  for (let j = 0; j < units; j++) {
-    list.push({ c: units === 7 ? RAINBOW[j] : UNIT_COLORS[units], rim: false, dot });
-  }
-  return list;
-}
-
-/**
- * 숫자 n의 기둥 목록 — 왼쪽부터 [{ k: 블록 수, colors: [블록마다 색], rim: [테두리만 색인지], dot: [주사위 점] }, …]
- *   블록은 왼쪽 기둥부터 아래→위로 채운다. 열 묶음(rim)이 먼저, 나머지(자기 색)가 맨 끝(오른쪽 위)에 온다
- *   22 → 주황 테두리 흰 블록 11 · 흰 블록 9 + 주황 2
- */
-export function columnsOf(n) {
-  const blocks = blockList(n);
-  const cols = [];
-  let at = 0;
-  for (const k of shapeOf(n)) {
-    const part = blocks.slice(at, at + k); at += k;
-    cols.push({ k, colors: part.map(b => b.c), rim: part.map(b => b.rim), dot: part.map(b => b.dot) });
-  }
-  return cols;
-}
+export const STAIRS  = { 15: 5, 45: 9, 55: 10, 66: 11, 78: 12, 91: 13 };
 
 // -----------------------------------------------------------
 //  소개말 — 도감에서 친구를 누르면 나온다
@@ -151,8 +75,6 @@ export function factOf(n) {
   parts.push(n % 2 === 0 ? '둘씩 짝지으면 딱 맞는 짝수!' : '둘씩 짝지으면 하나 남는 홀수!');
   if (SQUARES.includes(n)) parts.push('정사각형으로 서 있어요.');
   else if (STAIRS[n]) parts.push('1부터 차례로 더한 계단 모양이에요.');
-  else if (shapeOf(n).length === 1) parts.push('한 줄로 길쭉하게 서요 (소수!).');
-  else parts.push(`${shapeOf(n).length}×${shapeOf(n)[0]} 직사각형이에요.`);
   return parts.join(' ');
 }
 

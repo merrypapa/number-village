@@ -3,84 +3,50 @@
 //  포켓몬 도감처럼 한 페이지에 10명씩. 구한 친구는 그림·이름·소개말이 보인다.
 //  못 찾은 친구는 물음표(?)다. 100은 나라서 처음부터 보인다.
 //
-//  그림은 3D를 띄우지 않고 캔버스에 블록을 그린다 (100장이어도 가볍다).
+//  그림은 원작 표에서 잘라낸 png를 그대로 쓴다. 못 찾은 친구는 그 모양의 회색 실루엣.
 // ===========================================================
-import { BLOCKS, columnsOf, hex, RIM_FILL } from './block-data.js';
-import { eyeLayout } from './blocks.js';
+import { BLOCKS } from './block-data.js';
 
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
 // -----------------------------------------------------------
 const ICON = 160;           // 도감 카드 그림 크기(px)
 const PER_PAGE = 10;        // 한 페이지에 몇 명 (1~10, 11~20 …)
-const GHOST_FILL = '#d3dbe6'; // 못 찾은 친구 실루엣 색
-const GHOST_LINE = '#b9c4d2';
+const GHOST_FILL = '#c9d3df'; // 못 찾은 친구 실루엣 색
 const BIG  = 220;           // 크게 보기 그림 크기(px)
 
+// 원작 표에서 잘라낸 그림 (blocks.js와 같은 파일)
+const SPRITE_DIR = new URL('../../assets/numberblocks/', import.meta.url).href;
+const IMGS = {};                    // n → Image
+let onLoaded = null;                // 그림이 다 읽히면 도감을 다시 그린다
+function imageOf(n) {
+  if (!IMGS[n]) {
+    const im = new Image();
+    im.onload = () => onLoaded?.();
+    im.src = `${SPRITE_DIR}nb${n}.png`;
+    IMGS[n] = im;
+  }
+  return IMGS[n];
+}
+
 /**
- * 캔버스에 숫자 블록 친구를 그린다 (정면에서 본 모습)
- *   ghost=true 면 아직 못 찾은 친구 — 색 없이 회색 **실루엣**만 그린다 (얼굴 없음)
+ * 캔버스에 숫자 블록 친구 그림을 그린다 (칸 안에 꽉 차게, 비율 유지)
+ *   ghost=true 면 아직 못 찾은 친구 — 회색 **실루엣**만
  */
 export function drawBlockIcon(cv, n, ghost = false) {
   const g = cv.getContext('2d');
   const S = cv.width;
   g.clearRect(0, 0, S, S);
-  const cols = columnsOf(n);
-  const rows = Math.max(...cols.map(c => c.k));
-  const unit = Math.floor(Math.min((S - 10) / cols.length, (S - 14) / rows));
-  const w = unit * cols.length;
-  const x0 = (S - w) / 2, y0 = S - 6;
-  cols.forEach((col, i) => {
-    for (let j = 0; j < col.k; j++) {
-      const x = x0 + i * unit, y = y0 - (j + 1) * unit;
-      g.fillStyle = ghost ? GHOST_LINE : '#2a2233'; g.fillRect(x, y, unit, unit);
-      g.fillStyle = ghost ? GHOST_FILL : hex(col.colors[j]);
-      g.fillRect(x + 1, y + 1, unit - 2, unit - 2);
-      if (col.rim[j] && !ghost) {                          // 열 묶음 블록 — 흰 바탕에 색 테두리
-        const b = Math.max(2, unit * 0.2);
-        g.fillStyle = RIM_FILL; g.fillRect(x + b, y + b, unit - b * 2, unit - b * 2);
-      }
-      if (col.dot[j] && !ghost) {                // 6 — 하얀 주사위 점, 3 — 빨간 점
-        g.fillStyle = col.dot[j]; g.beginPath(); g.arc(x + unit / 2, y + unit / 2, unit * 0.14, 0, Math.PI * 2); g.fill();
-      }
-    }
-  });
-  if (ghost) return;                           // 실루엣은 얼굴을 안 그린다
-  // 얼굴 — 정사각형은 가운데 위쪽, 아니면 맨 오른쪽 기둥 꼭대기. 눈 배치는 3D와 같다 (1은 하나, 3은 셋)
-  const fc = cols.length - 1;
-  const square = cols.length > 1 && cols.every(c => c.k === cols[0].k);
-  const face = square ? Math.min(unit * Math.min(cols.length, 5) * 0.8, unit * cols[0].k * 0.5) : unit;   // 얼굴 한 변
-  const lowFace = cols.length === 1 && n > 10;   // 11~19는 얼굴이 아래쪽
-  const fx = square ? S / 2 : x0 + fc * unit + unit / 2;
-  const fy = square ? y0 - cols[fc].k * unit + face * 0.62 : lowFace ? y0 - unit * 1.5 : y0 - cols[fc].k * unit + unit / 2;
-  // 👑 3의 빨간 뿔 왕관 · 🎩 20·52·87의 모자
-  const topY = y0 - Math.max(...cols.map(c => c.k)) * unit;
-  if (n === 3) {
-    g.fillStyle = '#c8102e';
-    for (const dx of [-0.3, 0, 0.3]) {
-      g.beginPath(); g.moveTo(fx + (dx - 0.14) * unit, topY); g.lineTo(fx + (dx + 0.14) * unit, topY);
-      g.lineTo(fx + dx * unit, topY - unit * 0.45); g.closePath(); g.fill();
-    }
+  const im = imageOf(n);
+  if (!im.complete || !im.naturalWidth) return;
+  const k = Math.min((S - 8) / im.naturalWidth, (S - 8) / im.naturalHeight);
+  const w = im.naturalWidth * k, h = im.naturalHeight * k;
+  g.drawImage(im, (S - w) / 2, S - 4 - h, w, h);
+  if (ghost) {                                   // 그림 모양 그대로 회색으로 덮는다
+    g.globalCompositeOperation = 'source-in';
+    g.fillStyle = GHOST_FILL; g.fillRect(0, 0, S, S);
+    g.globalCompositeOperation = 'source-over';
   }
-  if (n === 20 || n === 52 || n === 87) {
-    const hx = square ? S / 2 : fx;
-    g.fillStyle = n === 20 ? '#5e4b9c' : '#2a2233';
-    g.fillRect(hx - unit * 0.8, topY - unit * 0.14, unit * 1.6, unit * 0.14);
-    g.fillRect(hx - unit * 0.5, topY - unit * 1.0, unit * 1.0, unit * 0.9);
-  }
-  const k = face / 256;                          // 256 얼굴 캔버스 → 그림 크기
-  for (const e of eyeLayout(n)) {
-    const ex = fx + (e.x - 128) * k, ey = fy + (e.y - 128) * k, r = Math.max(1.5, e.r * k);
-    g.fillStyle = '#fff';
-    if (e.square) g.fillRect(ex - r, ey - r, r * 2, r * 2);
-    else { g.beginPath(); g.arc(ex, ey, r, 0, Math.PI * 2); g.fill(); }
-    g.fillStyle = '#1b1430';
-    if (e.square) g.fillRect(ex - r * 0.45, ey - r * 0.35, r * 0.9, r * 0.9);
-    else { g.beginPath(); g.arc(ex, ey + r * 0.15, r * 0.5, 0, Math.PI * 2); g.fill(); }
-  }
-  g.strokeStyle = '#1b1430'; g.lineWidth = Math.max(1.5, face * 0.05);
-  const my = fy + ((n === 1 || n === 100) ? 40 : 22) * k;
-  g.beginPath(); g.arc(fx, my, face * 0.16, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
 }
 
 /**
@@ -144,6 +110,7 @@ export function createBook(isFound, onReset) {
     for (const d of BLOCKS) if (d.number < 100 && isFound(d.number)) n++;
     count.textContent = `${n} / 99 찾았어요`;
   }
+  onLoaded = () => { if (screen.classList.contains('on')) render(); };
   function go(d) { page = (page + d + pages) % pages; render(); }
   document.getElementById('bookPrev').onclick = () => go(-1);
   document.getElementById('bookNext').onclick = () => go(1);
