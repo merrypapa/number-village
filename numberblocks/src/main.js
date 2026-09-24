@@ -31,6 +31,7 @@ import { toast, createActionButton, createRideButtons, setupMusicButton, createC
 const TAP_MOVE = 14;      // 손가락이 이보다 덜 움직였으면 '두드림'으로 본다 (px)
 const TAP_TIME = 450;     // 이보다 짧게 눌렀다 떼면 '두드림' (ms)
 const DAY_KEY  = 'nb-day';
+const ADMIN_PW = '0000';  // 관리자 모드 비밀번호
 
 // -----------------------------------------------------------
 //  렌더러 / 씬 / 카메라 / 조명 (티니핑 월드와 같다)
@@ -79,7 +80,7 @@ function startGame() {
   player = createPlayer(model, camera, world);
   player.onMount = (ride) => toast(ride.label);
   player.onSpot = (spot) => spot.use?.(toast, player);
-  setupTouchControls(player, sayHi);
+  setupTouchControls(player, toggleRun);       // 🏃 오른쪽 아래 버튼 = 달리기 켜기/끄기
   updateAction = createActionButton(player);
   updateRideBtns = createRideButtons(player);
   updateCompass = createCompass(camera, player);
@@ -87,7 +88,8 @@ function startGame() {
   rescue = createRescue(world, camera, onRescue);
   travel = createTravel({ world, envMap, charId: ME.id, music, player: () => player, toast,
                           rescued: rescue.rescued });
-  moon = createMoon(world, () => rescue.remaining, challenge);
+  //  관리자 모드면 달님이 처음부터 '게임 신청'을 받아준다
+  moon = createMoon(world, () => (admin ? 0 : rescue.remaining), challenge);
   book = createBook(n => rescue.rescued.has(n), () => { clearSave(); location.reload(); });
   topGame = createTopGame(onTopEnd);
   travel.initVillage();
@@ -113,18 +115,27 @@ function onRescue(def, count) {
   else toast(`숫자 ${def.name}을(를) 구했어요! (${count} / 99)`);
 }
 
-// 인사 버튼 — 가장 가까운 친구가 반응한다
-function sayHi() {
-  if (!playing || !travel.npcs) return;
-  travel.npcs.greetNearest(player.model.position, name => toast(`${name} 만났어요!`));
+// 🏃 달리기 — 버튼을 한 번 누르면 계속 빨리 달리고, 다시 누르면 걷는다
+//  (player.js는 Shift 키가 눌린 것으로 알아듣는다)
+let running = false;
+function toggleRun() {
+  if (!playing) return;
+  running = !running;
+  if (running) player.keys.add('ShiftLeft'); else player.keys.delete('ShiftLeft');
+  document.getElementById('hi').classList.toggle('on', running);
+  toast(running ? '🏃 빨리 달려요!' : '🚶 천천히 걸어요');
 }
-addEventListener('keydown', e => { if (e.code === 'Enter') sayHi(); });
+// 엔터 = 인사 (키보드용). 가장 가까운 친구가 반응한다
+addEventListener('keydown', e => {
+  if (e.code === 'Enter' && playing && travel.npcs)
+    travel.npcs.greetNearest(player.model.position, name => toast(`${name} 만났어요!`));
+});
 document.getElementById('bookBtn').onclick = () => book?.open();
 setupMusicButton(music);
 
 // 🌙 달님과 팽이치기
 function challenge() {
-  if (!rescue.allFound) return;
+  if (!admin && !rescue.allFound) return;
   toast('달님: 좋아, 팽이치기로 겨루자! 🌀');
   topGame.open();
 }
@@ -158,6 +169,16 @@ renderer.domElement.addEventListener('pointerup', e => {
 //  스토리 화면 → 시작
 // -----------------------------------------------------------
 document.getElementById('storyBtn').onclick = startGame;
+//  🔧 관리자 모드 (아빠용) — 비밀번호를 맞히면 친구를 안 찾아도 달님이 깨어 있고 팽이치기 버튼이 바로 뜬다
+let admin = false;
+document.getElementById('adminBtn').onclick = () => {
+  if (prompt('관리자 비밀번호') !== ADMIN_PW) return;
+  admin = true;
+  document.getElementById('topBtn').style.display = 'block';
+  startGame();
+  toast('🔧 관리자 모드 — 달님이 바로 게임을 받아줘요', 3500);
+};
+document.getElementById('topBtn').onclick = () => { if (admin) topGame.open(); };
 addEventListener('keydown', e => { if (!playing && (e.code === 'Space' || e.code === 'Enter')) startGame(); });
 
 // -----------------------------------------------------------

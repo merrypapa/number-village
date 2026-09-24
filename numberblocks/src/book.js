@@ -60,7 +60,7 @@ export function drawBlockIcon(cv, n, ghost = false) {
     else { g.beginPath(); g.arc(ex, ey + r * 0.15, r * 0.5, 0, Math.PI * 2); g.fill(); }
   }
   g.strokeStyle = '#1b1430'; g.lineWidth = Math.max(1.5, face * 0.05);
-  const my = fy + (n === 1 ? 40 : 22) * k;
+  const my = fy + ((n === 1 || n === 100) ? 40 : 22) * k;
   g.beginPath(); g.arc(fx, my, face * 0.16, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
 }
 

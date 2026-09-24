@@ -6,6 +6,13 @@
 <title>Inruha World — 넘버블럭스 월드</title>
 <link rel="stylesheet" href="./style.css">
 <link rel="stylesheet" href="./world.css">
+<link rel="icon" type="image/svg+xml" href="../assets/icon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/icon-32.png">
+<link rel="apple-touch-icon" href="../assets/icon-180.png">
+<link rel="manifest" href="../manifest.webmanifest">
+<meta name="theme-color" content="#7ad4ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Inruha World">
 <script type="importmap">
 {
   "imports": {
@@ -27,6 +34,7 @@
     <p>나는 <b>숫자 100</b>. 불빛을 들고<br>친구들을 모두 찾아서 달님을 이겨요!</p>
     <button id="storyBtn">🔦 친구 찾으러 가기</button>
     <a id="storyHome" href="../">◀ 월드 고르기</a>
+    <button id="adminBtn">관리자 모드</button>
   </div>
 </div>
 
@@ -45,7 +53,9 @@
   <!-- 오른쪽: 타기(놀이기구 옆에서만) · 점프 · 인사 -->
   <button id="ride" class="no-drag">타기</button>
   <button id="jump" class="no-drag">점프</button>
-  <button id="hi" class="no-drag">👋</button>
+  <button id="hi" class="no-drag">🏃</button>
+  <!-- 🌀 관리자 모드에서만 보이는 팽이치기 바로가기 -->
+  <button id="topBtn" class="no-drag">🌀</button>
 
   <div id="toast"></div>
   <div id="hint">동그라미를 밀어서 걷고, 화살표 🧭 를 따라가요<br>친구한테 <b>걸어가서 닿으면</b> 저절로 구해져요 (톡 두드려도 돼요)<br>📖 오른쪽 위 책에서 찾은 친구를 봐요<br>🔢 구한 친구는 광장 북동쪽 <b>숫자의 집</b>에 모여요<br>🌙 99명을 다 찾으면 광장 달님에게 <b>게임 신청</b>!</div>

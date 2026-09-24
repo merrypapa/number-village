@@ -76,7 +76,7 @@ function topMat(color) {
  *   256×256 얼굴 캔버스 기준 [{ x, y, r, square }]
  */
 export function eyeLayout(n) {
-  if (n === 1) return [{ x: 128, y: 100, r: 46 }];
+  if (n === 1 || n === 100) return [{ x: 128, y: 100, r: 46 }];   // 1과 100은 눈 하나
   if (n === 3) return [{ x: 128, y: 62, r: 26 }, { x: 84, y: 112, r: 26 }, { x: 172, y: 112, r: 26 }];
   const seed = (n * 7919) % 97;
   const r = 34 + (seed % 5) * 2;
@@ -106,7 +106,7 @@ function drawFace(g, n, blink) {
     g.beginPath(); g.arc(e.x - e.r * 0.25, e.y - e.r * 0.15, e.r * 0.2, 0, Math.PI * 2); g.fill();
   }
   // 눈썹 — 숫자마다 각도가 다르다. 9는 굵고 처진 눈썹(재채기 직전). 1·3은 눈 배치가 달라서 눈썹 없음
-  if (n !== 1 && n !== 3) {
+  if (n !== 1 && n !== 3 && n !== 100) {
     g.strokeStyle = '#1b1430'; g.lineWidth = n === 9 ? 16 : 9; g.lineCap = 'round';
     const tilt = n === 9 ? -8 : ((seed % 7) - 3) * 3;
     for (const e of eyes) {
@@ -115,8 +115,8 @@ function drawFace(g, n, blink) {
     }
   }
   // 입 — 웃는 입 / 활짝 벌린 입 / 씩 웃는 입 (1·7은 늘 활짝, 3은 큰 웃음)
-  const kind = (n === 7 || n === 1) ? 1 : n === 3 ? 0 : seed % 3;
-  const mouthY = n === 1 ? 168 : 150;
+  const kind = (n === 7 || n === 1 || n === 100) ? 1 : n === 3 ? 0 : seed % 3;
+  const mouthY = (n === 1 || n === 100) ? 168 : 150;
   g.fillStyle = '#1b1430';
   if (kind === 0) {
     g.strokeStyle = '#1b1430'; g.lineWidth = 10; g.beginPath(); g.arc(S / 2, mouthY, 40, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();

@@ -18,6 +18,12 @@
 #storyBtn:active { transform:translateY(5px); box-shadow:0 3px 0 #c98a00; animation:none; }
 @keyframes pop { 0%,100% { transform:scale(1); } 50% { transform:scale(1.05); } }
 #storyHome { color:#3a78b0; font-weight:800; text-decoration:none; font-size:15px; }
+#adminBtn { border:none; background:none; color:#b9c4d2; font-size:12px; font-weight:700; cursor:pointer;
+  padding:2px 8px; }
+/* 🏃 달리기 버튼 — 켜져 있으면 초록색 */
+#hi.on { background:#7ad48f; box-shadow:0 6px 0 #2f9a55; }
+#topBtn { position:absolute; top:160px; right:16px; width:64px; height:64px; border:none; border-radius:20px;
+  background:#ffd93d; font-size:30px; pointer-events:auto; cursor:pointer; display:none; }
 @media (max-height:520px) { #storyCard { padding:12px 16px; gap:4px; } #storyCard p { font-size:14px; } }
 
 /* ---- 🧭 나침반 ---- */
