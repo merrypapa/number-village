@@ -37,8 +37,7 @@ export function createTravel(ctx) {
   }
 
   /** 숫자의 집에 구한 친구를 채워 넣는다 (들어갈 때마다 새로 구한 친구만 더한다) */
-  function fillHouse() {
-    const made = areaNpcs.numbers;
+  function fillHouse(made) {
     for (const n of ctx.rescued) {
       if (inHouse.has(n) || inVillage.has(n)) continue;
       inHouse.add(n);
@@ -79,7 +78,8 @@ export function createTravel(ctx) {
       const player = ctx.player();
       area.onLeave?.(player);
       area = getArea(door.to, door);
-      if (door.to === 'numbers') fillHouse();
+      //  ★ 문 이름은 'art'(그림의 집 자리)지만 안쪽 공간 이름은 'numbers'다 → 공간 이름으로 본다
+      if (area.name === 'numbers') fillHouse(areaNpcs[door.to]);
       npcs = areaNpcs[door.to];
       ctx.music.setScene(area.name);
       player.moveTo(area, door.arrive, door.arriveYaw);

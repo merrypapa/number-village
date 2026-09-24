@@ -15,7 +15,8 @@ import { FRIENDS } from './block-data.js';
 const SPREAD_MIN  = 18;     // 광장 한가운데서 이만큼은 떨어져서
 const SPREAD_MAX  = 118;    // 마을 끝(128) 안쪽까지 흩어진다
 const TAP_REACH   = 20;     // 이 거리 안에서 두드려야 구해진다 (불빛이 닿는 거리쯤)
-const TOUCH_REACH = 1.6;    // 몸이 이만큼 닿으면 저절로 구해진다 (아이템 먹듯이)
+const TOUCH_REACH = 2.0;    // 몸이 이만큼 닿으면 저절로 구해진다 (아이템 먹듯이)
+const RIDE_REACH  = 3.4;    // 🐴 말을 타고 있을 때는 말 몸집만큼 더 넓게
 const NEAR_HINT   = 22;     // 이 거리 안에 친구가 있으면 머리 위 '!' 가 보인다
 const JUMP_TIME   = 0.9;    // 구해질 때 폴짝 뛰는 시간 (초)
 const SAVE_KEY    = 'nb-rescued';
@@ -69,6 +70,7 @@ export function createRescue(world, camera, onRescue) {
     if (rescued.has(def.number)) continue;
     const model = createCharacter(def, 'simple');
     model.traverse(o => { if (o.isMesh && !o.userData.noShadow) o.castShadow = true; });
+    model.userData.block = def;               // 머리 위 '!'를 두드려도 누구인지 알 수 있게
     const p = placeOf(def.number);
     model.position.set(p.x, 0, p.z);
     model.rotation.y = seeded(def.number) * Math.PI * 2;
@@ -103,7 +105,8 @@ export function createRescue(world, camera, onRescue) {
       while (o && !o.userData.block) o = o.parent;
       const entry = o && lost.find(e => e.def === o.userData.block);
       if (!entry) continue;
-      if (entry.model.position.distanceTo(playerPos) > TAP_REACH) return false;
+      const q = entry.model.position;
+      if (Math.hypot(q.x - playerPos.x, q.z - playerPos.z) > TAP_REACH) return false;
       rescue(entry);
       return true;
     }
@@ -120,13 +123,20 @@ export function createRescue(world, camera, onRescue) {
     return best ? { entry: best, dist: bd } : null;
   }
 
-  function update(dt, t, playerPos) {
+  /**
+   * playerPos : 내 자리,  riding : 🐴 말을 타고 있으면 true (닿는 거리를 넓힌다)
+   *  ★ 거리는 **땅 위(x, z)로만** 잰다 — 말 위에 있거나 점프 중이면 높이가 더해져서
+   *    바로 옆 친구도 못 구하던 버그가 있었다
+   */
+  function update(dt, t, playerPos, riding = false) {
+    const reach = riding ? RIDE_REACH : TOUCH_REACH;
     for (const e of lost) {
-      const d = e.model.position.distanceTo(playerPos);
+      const q = e.model.position;
+      const d = Math.hypot(q.x - playerPos.x, q.z - playerPos.z);
       e.exclaim.visible = d < NEAR_HINT;
       if (d < 60) e.model.userData.update?.(t, false);
-      //  몸이 닿으면 저절로 구해진다 (친구 몸 반쪽 + 내 몸 반쪽 + 여유)
-      if (d < e.halfW + TOUCH_REACH) { rescue(e); break; }
+      //  몸이 닿으면 저절로 구해진다 (친구 몸 반쪽 + 여유)
+      if (d < e.halfW + reach) rescue(e);
     }
     // 구해진 친구는 폴짝 뛰고 나서 사라진다 (숫자의 집으로 간다)
     //  ★ 여러 명이 한꺼번에 뛰어도 된다 — 옆 친구를 바로 이어서 구할 수 있게

@@ -14,6 +14,7 @@ import { createPlayer } from '../../src/player.js';
 import { makeStudioEnv } from '../../src/environment.js';
 import { setupTouchControls } from '../../src/touch.js';
 import { createMusic } from '../../src/music.js';
+import { ART } from '../../src/village-sites.js';
 import './blocks.js';                                   // 'numberblock' 캐릭터 종류 등록
 import { ME } from './block-data.js';
 import { createNight } from './night.js';
@@ -64,6 +65,10 @@ const world = buildWorld(scene, {
   artHouse: { variant: 'numbers', label: '숫자의 집! 🔢 구한 친구들이 여기 살아요', build: buildNumberHouse },
 });
 const night = createNight(scene, hemi, sun);
+//  🔢 숫자의 집은 밤에도 불이 켜져 있어서 멀리서도 보인다 (집 겉모습 창문 옆 + 문 앞)
+night.addHouseLight(ART.x, ART.doorZ, 0xffe9a8);
+night.addHouseLight(ART.x - 5, ART.z + 7, 0x7ad4ff);
+night.addHouseLight(ART.x + 5, ART.z + 7, 0x7ad4ff);
 const music = createMusic();
 
 // -----------------------------------------------------------
@@ -204,7 +209,7 @@ function loop() {
   player.update(dt, t);
   travel.npcs?.update(dt, t, player.model.position);
   if (travel.inVillage) {
-    rescue.update(dt, t, player.model.position);
+    rescue.update(dt, t, player.model.position, !!player.ride);   // 🐴 말 타는 중이면 더 넓게 닿는다
     moon.update(dt, t);
     night.update(dt, player.model.position);
     updateCompass(night.isDay || book.isOpen ? null : rescue.nearest(player.model.position));

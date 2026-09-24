@@ -21,6 +21,7 @@ const LAMP_COLOR  = 0xfff0c2;   // 나를 감싸는 불빛 색
 const LAMP_POWER  = 70;         // 불빛 세기
 const LAMP_RANGE  = 26;         // 불빛이 닿는 거리 — 이 안에 있는 친구가 보인다
 const LAMP_HEIGHT = 6;          // 불빛이 떠 있는 높이
+const HOUSE_LAMP_POWER = 160;   // 🏠 숫자의 집 문 앞 등불 세기
 const DAWN_TIME   = 7;          // 아침이 밝아오는 데 걸리는 시간 (초)
 const STAR_COUNT  = 500;
 
@@ -60,6 +61,8 @@ export function createNight(scene, hemi, sun) {
   halo.position.copy(moon.position);
   scene.add(halo);
 
+  const houseLamps = [];   // 🏠 집 앞 등불들 (addHouseLight)
+
   // 💡 나를 따라다니는 불빛
   const lamp = new THREE.PointLight(LAMP_COLOR, LAMP_POWER, LAMP_RANGE, 1.6);
   scene.add(lamp);
@@ -77,6 +80,7 @@ export function createNight(scene, hemi, sun) {
     scene.fog.near = NIGHT_FOG[0] + (DAY_FOG[0] - NIGHT_FOG[0]) * k;
     scene.fog.far = NIGHT_FOG[1] + (DAY_FOG[1] - NIGHT_FOG[1]) * k;
     lamp.intensity = LAMP_POWER * (1 - k);
+    for (const h of houseLamps) { h.l.intensity = HOUSE_LAMP_POWER * (1 - k); h.bulb.visible = k < 0.95; }
     starMat.opacity = 1 - k;
     moon.material.opacity = 1;
     moon.visible = halo.visible = k < 0.95;
@@ -92,8 +96,24 @@ export function createNight(scene, hemi, sun) {
     }
   }
 
+  /**
+   * 🏠 집 앞 불빛 — 밤에도 그 집이 어디 있는지 보이게 문 위에 등을 켠다 (낮이 되면 꺼진다)
+   *   x, z = 문 앞 자리,  color = 불빛 색
+   */
+  function addHouseLight(x, z, color = 0xffe9a8) {
+    const l = new THREE.PointLight(color, HOUSE_LAMP_POWER, 34, 1.5);
+    l.position.set(x, 7, z + 2);
+    scene.add(l);
+    // 불빛이 보이는 전구 (스스로 빛나서 멀리서도 보인다)
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.6, 12, 10),
+      new THREE.MeshBasicMaterial({ color, fog: false }));
+    bulb.position.copy(l.position);
+    scene.add(bulb);
+    houseLamps.push({ l, bulb });
+  }
+
   return {
-    update,
+    update, addHouseLight,
     /** 아침을 부른다 (instant=true면 바로 낮) */
     setDay(instant = false) { target = 1; if (instant) { day = 1; apply(); } },
     get isDay() { return day >= 1; },
