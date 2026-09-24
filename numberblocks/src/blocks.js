@@ -71,51 +71,60 @@ function topMat(color) {
 // -----------------------------------------------------------
 //  얼굴 — 캔버스 그림 (숫자마다 표정이 조금씩 다르다)
 // -----------------------------------------------------------
+/**
+ * 눈 자리 — 원작처럼 1은 눈 하나(한가운데 크게), 3은 눈 셋(위 하나 아래 둘), 4는 네모 눈, 나머지는 둘
+ *   256×256 얼굴 캔버스 기준 [{ x, y, r, square }]
+ */
+export function eyeLayout(n) {
+  if (n === 1) return [{ x: 128, y: 100, r: 46 }];
+  if (n === 3) return [{ x: 128, y: 62, r: 26 }, { x: 84, y: 112, r: 26 }, { x: 172, y: 112, r: 26 }];
+  const seed = (n * 7919) % 97;
+  const r = 34 + (seed % 5) * 2;
+  return [{ x: 76, y: 96, r, square: n === 4 }, { x: 180, y: 96, r, square: n === 4 }];
+}
+
 function drawFace(g, n, blink) {
   const S = 256;
   g.clearRect(0, 0, S, S);
   const seed = (n * 7919) % 97;
-  const eyeY = 96, gap = 52, eyeR = 34 + (seed % 5) * 2;
+  const eyes = eyeLayout(n);
   // 8 = 옥토블록! 눈 둘레에 슈퍼히어로 가면
   if (n === 8) {
     g.fillStyle = '#5e4b9c';
-    g.beginPath(); g.ellipse(S / 2, eyeY, 118, 58, 0, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.ellipse(S / 2, 96, 118, 58, 0, 0, Math.PI * 2); g.fill();
   }
-  // 눈 — 하얀 동그라미 + 까만 눈동자 + 반짝이
-  for (const sx of [-1, 1]) {
-    const x = S / 2 + sx * gap;
+  // 눈 — 하얀 동그라미(4는 네모) + 까만 눈동자 + 반짝이
+  for (const e of eyes) {
     g.fillStyle = '#fff';
-    g.beginPath(); g.ellipse(x, eyeY, eyeR, blink ? 4 : eyeR * 1.1, 0, 0, Math.PI * 2); g.fill();
-    if (!blink) {
-      g.fillStyle = '#1b1430';
-      g.beginPath(); g.arc(x + sx * 4, eyeY + 6, eyeR * 0.5, 0, Math.PI * 2); g.fill();
-      g.fillStyle = '#fff';
-      g.beginPath(); g.arc(x + sx * 4 - 8, eyeY - 4, 7, 0, Math.PI * 2); g.fill();
+    if (blink) { g.fillRect(e.x - e.r, e.y - 4, e.r * 2, 8); continue; }
+    if (e.square) g.fillRect(e.x - e.r, e.y - e.r, e.r * 2, e.r * 2);
+    else { g.beginPath(); g.ellipse(e.x, e.y, e.r, e.r * 1.1, 0, 0, Math.PI * 2); g.fill(); }
+    g.fillStyle = '#1b1430';
+    if (e.square) g.fillRect(e.x - e.r * 0.45, e.y - e.r * 0.35, e.r * 0.9, e.r * 0.9);
+    else { g.beginPath(); g.arc(e.x, e.y + 6, e.r * 0.5, 0, Math.PI * 2); g.fill(); }
+    g.fillStyle = '#fff';
+    g.beginPath(); g.arc(e.x - e.r * 0.25, e.y - e.r * 0.15, e.r * 0.2, 0, Math.PI * 2); g.fill();
+  }
+  // 눈썹 — 숫자마다 각도가 다르다. 9는 굵고 처진 눈썹(재채기 직전). 1·3은 눈 배치가 달라서 눈썹 없음
+  if (n !== 1 && n !== 3) {
+    g.strokeStyle = '#1b1430'; g.lineWidth = n === 9 ? 16 : 9; g.lineCap = 'round';
+    const tilt = n === 9 ? -8 : ((seed % 7) - 3) * 3;
+    for (const e of eyes) {
+      const sx = e.x < S / 2 ? -1 : 1;
+      g.beginPath(); g.moveTo(e.x - 26, e.y - 52 + sx * tilt); g.lineTo(e.x + 26, e.y - 52 - sx * tilt); g.stroke();
     }
   }
-  // 4는 네모를 좋아해서 네모 안경
-  if (n === 4) {
-    g.strokeStyle = '#1b1430'; g.lineWidth = 8;
-    for (const sx of [-1, 1]) g.strokeRect(S / 2 + sx * gap - 42, eyeY - 40, 84, 80);
-    g.beginPath(); g.moveTo(S / 2 - 10, eyeY); g.lineTo(S / 2 + 10, eyeY); g.stroke();
-  }
-  // 눈썹 — 숫자마다 각도가 다르다. 9는 굵고 처진 눈썹(재채기 직전)
-  g.strokeStyle = '#1b1430'; g.lineWidth = n === 9 ? 16 : 9; g.lineCap = 'round';
-  const tilt = n === 9 ? -8 : ((seed % 7) - 3) * 3;
-  for (const sx of [-1, 1]) {
-    const x = S / 2 + sx * gap;
-    g.beginPath(); g.moveTo(x - 26, eyeY - 52 + sx * tilt); g.lineTo(x + 26, eyeY - 52 - sx * tilt); g.stroke();
-  }
-  // 입 — 웃는 입 / 활짝 벌린 입 / 씩 웃는 입 (7은 늘 활짝)
-  const kind = n === 7 ? 1 : seed % 3;
+  // 입 — 웃는 입 / 활짝 벌린 입 / 씩 웃는 입 (1·7은 늘 활짝, 3은 큰 웃음)
+  const kind = (n === 7 || n === 1) ? 1 : n === 3 ? 0 : seed % 3;
+  const mouthY = n === 1 ? 168 : 150;
   g.fillStyle = '#1b1430';
   if (kind === 0) {
-    g.lineWidth = 10; g.beginPath(); g.arc(S / 2, 150, 40, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
+    g.strokeStyle = '#1b1430'; g.lineWidth = 10; g.beginPath(); g.arc(S / 2, mouthY, 40, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
   } else if (kind === 1) {
-    g.beginPath(); g.arc(S / 2, 150, 46, 0, Math.PI); g.fill();
-    g.fillStyle = '#ff6b8a'; g.beginPath(); g.arc(S / 2, 178, 20, Math.PI, 0); g.fill();
+    g.beginPath(); g.arc(S / 2, mouthY, 46, 0, Math.PI); g.fill();
+    g.fillStyle = '#ff6b8a'; g.beginPath(); g.arc(S / 2, mouthY + 28, 20, Math.PI, 0); g.fill();
   } else {
-    g.lineWidth = 10; g.beginPath(); g.moveTo(S / 2 - 40, 150); g.quadraticCurveTo(S / 2 + 10, 190, S / 2 + 44, 140); g.stroke();
+    g.strokeStyle = '#1b1430'; g.lineWidth = 10; g.beginPath(); g.moveTo(S / 2 - 40, mouthY); g.quadraticCurveTo(S / 2 + 10, mouthY + 40, S / 2 + 44, mouthY - 10); g.stroke();
   }
 }
 function faceMat(n) {

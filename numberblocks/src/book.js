@@ -6,6 +6,7 @@
 //  그림은 3D를 띄우지 않고 캔버스에 블록을 그린다 (100장이어도 가볍다).
 // ===========================================================
 import { BLOCKS, columnsOf, hex, RIM_FILL } from './block-data.js';
+import { eyeLayout } from './blocks.js';
 
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
@@ -42,18 +43,25 @@ export function drawBlockIcon(cv, n, ghost = false) {
     }
   });
   if (ghost) return;                           // 실루엣은 얼굴을 안 그린다
-  // 얼굴 — 맨 오른쪽 기둥 꼭대기
+  // 얼굴 — 정사각형은 가운데 위쪽, 아니면 맨 오른쪽 기둥 꼭대기. 눈 배치는 3D와 같다 (1은 하나, 3은 셋)
   const fc = cols.length - 1;
   const square = cols.length > 1 && cols.every(c => c.k === cols[0].k);
+  const face = square ? Math.min(unit * cols.length * 0.8, unit * 2.6) : unit;   // 얼굴 한 변
   const fx = square ? S / 2 : x0 + fc * unit + unit / 2;
-  const fy = y0 - cols[fc].k * unit + (square ? unit * cols.length * 0.35 : unit / 2);
-  const r = Math.max(2, unit * 0.13);
-  for (const sx of [-1, 1]) {
-    g.fillStyle = '#fff'; g.beginPath(); g.arc(fx + sx * unit * 0.2, fy - unit * 0.1, r, 0, Math.PI * 2); g.fill();
-    g.fillStyle = '#1b1430'; g.beginPath(); g.arc(fx + sx * unit * 0.2, fy - unit * 0.08, r * 0.5, 0, Math.PI * 2); g.fill();
+  const fy = square ? y0 - cols[fc].k * unit + face * 0.62 : y0 - cols[fc].k * unit + unit / 2;
+  const k = face / 256;                          // 256 얼굴 캔버스 → 그림 크기
+  for (const e of eyeLayout(n)) {
+    const ex = fx + (e.x - 128) * k, ey = fy + (e.y - 128) * k, r = Math.max(1.5, e.r * k);
+    g.fillStyle = '#fff';
+    if (e.square) g.fillRect(ex - r, ey - r, r * 2, r * 2);
+    else { g.beginPath(); g.arc(ex, ey, r, 0, Math.PI * 2); g.fill(); }
+    g.fillStyle = '#1b1430';
+    if (e.square) g.fillRect(ex - r * 0.45, ey - r * 0.35, r * 0.9, r * 0.9);
+    else { g.beginPath(); g.arc(ex, ey + r * 0.15, r * 0.5, 0, Math.PI * 2); g.fill(); }
   }
-  g.strokeStyle = '#1b1430'; g.lineWidth = Math.max(1.5, unit * 0.06);
-  g.beginPath(); g.arc(fx, fy + unit * 0.1, unit * 0.2, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
+  g.strokeStyle = '#1b1430'; g.lineWidth = Math.max(1.5, face * 0.05);
+  const my = fy + (n === 1 ? 40 : 22) * k;
+  g.beginPath(); g.arc(fx, my, face * 0.16, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
 }
 
 /**
