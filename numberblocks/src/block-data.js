@@ -44,7 +44,7 @@ export const hex = (c) => '#' + c.toString(16).padStart(6, '0');
  *   · 소수(11·13·23…) → 한 줄 기둥 (원작처럼 길쭉하다)
  *   · 나머지 → 가로 w × 세로 h 직사각형. 세로가 10 이하인 것 중 가장 좁은 것
  *     (12 = 2×6, 20 = 2×10, 30 = 3×10, 48 = 6×8, 72 = 8×9). 없으면 가장 정사각형에 가까운 것 (84 = 7×12)
- *   · 그래도 너무 가늘면(세로 14 이상: 46 = 2×23 등) 소수처럼 열 묶음 기둥들 + 나머지
+ *   · 그래도 너무 가늘면(세로 15 이상: 46 = 2×23 등) 소수처럼 열 묶음 기둥들 + 나머지
  */
 export const SQUARES = [4, 9, 16, 25, 36, 49, 64, 81, 100];
 export const STAIRS  = { 15: 5, 45: 9, 55: 10, 66: 11, 78: 12, 91: 13 };   // n: 계단 수
@@ -53,6 +53,7 @@ export function shapeOf(n) {
   if (STAIRS[n]) return Array.from({ length: STAIRS[n] }, (_, i) => i + 1);
   if (SQUARES.includes(n)) { const k = Math.round(Math.sqrt(n)); return Array(k).fill(k); }
   if (n === 6 || n === 8) return [n / 2, n / 2];      // 6 = 2×3, 8 = 2×4 (원작)
+  if (n === 12) return [4, 4, 4];                     // 12 = 3×4 (원작 표)
   if (n <= 10) return [n];                            // 1~10은 한 줄 (10도 길쭉한 한 줄)
   if (n % 10 === 0) return Array(n / 10).fill(10);    // 20·30·40… = 열 묶음 기둥이 나란히
   const pairs = [];                                   // [w, h]  (w ≤ h, w ≥ 2)
@@ -64,7 +65,7 @@ export function shapeOf(n) {
   }
   const low = pairs.filter(([, h]) => h <= 10);
   const [w, h] = low.length ? low[0] : pairs[pairs.length - 1];
-  if (h > 13) {                                       // 2×23처럼 너무 가늘면 열 묶음 기둥들 + 나머지
+  if (h > 14) {                                       // 2×23처럼 너무 가늘면 열 묶음 기둥들 + 나머지 (98 = 7×14는 그대로)
     return [...Array(Math.floor(n / 10)).fill(10), n % 10];
   }
   return Array(w).fill(h);
@@ -76,10 +77,12 @@ function blockList(n) {
   const list = [];
   for (let i = 0; i < tens; i++) {
     const c = n === 100 ? UNIT_COLORS[1] : tens === 7 ? RAINBOW[i % 7] : UNIT_COLORS[tens];
-    for (let j = 0; j < 10; j++) list.push({ c, rim: true, dot: false });
+    for (let j = 0; j < 10; j++) list.push({ c, rim: true, dot: null });
   }
+  //  dot = 블록 가운데 점 색. 6은 주사위처럼 하얀 점, 3은 몸에 빨간 점 셋 (원작 표)
+  const dot = n === 6 ? '#ffffff' : n === 3 ? '#c8102e' : null;
   for (let j = 0; j < units; j++) {
-    list.push({ c: units === 7 ? RAINBOW[j] : UNIT_COLORS[units], rim: false, dot: n === 6 });   // 6은 주사위 점
+    list.push({ c: units === 7 ? RAINBOW[j] : UNIT_COLORS[units], rim: false, dot });
   }
   return list;
 }
@@ -106,7 +109,7 @@ export function columnsOf(n) {
 const SPECIAL = {
   1: '제일 먼저 태어난 친구! 블록 하나, 눈도 하나. 뭐든지 처음이 좋아요.',
   2: '블록 둘이 나란히! 춤추는 걸 좋아하고 신발이 두 짝이에요.',
-  3: '블록 셋, 눈도 셋! 노래하고 저글링하는 걸 좋아하는 무대 스타예요.',
+  3: '빨간 뿔 왕관을 쓴 무대 스타! 노래하고 저글링하는 걸 좋아해요.',
   4: '네모난 걸 제일 좋아해서 눈도 네모! 2×2 정사각형이에요.',
   5: '손가락 다섯 개, 하이파이브! 예쁜 속눈썹이 있어요.',
   6: '2×3에 주사위 점! 굴러가는 걸 좋아해요.',
@@ -115,7 +118,7 @@ const SPECIAL = {
   9: '3×3 정사각형! 에취~ 재채기하면 블록이 튀어나가요.',
   10: '열 개가 한 묶음! 1이 열 명 모이면 내가 돼요.',
   11: '10 하나에 1 하나. 축구를 제일 좋아해요.',
-  12: '10 하나에 2! 3×4, 2×6, 여러 모양으로 설 수 있어요.',
+  12: '10 하나에 2! 3×4 직사각형, 여러 모양으로 설 수 있어요.',
   13: '10 하나에 3! 운이 좋을 때도, 없을 때도 있대요.',
   14: '10 하나에 4! 스케이트보드를 타고 슝~',
   15: '1+2+3+4+5, 계단 모양! 스텝 스쿼드 대장이에요.',
@@ -123,7 +126,7 @@ const SPECIAL = {
   17: '10 하나에 7! 그림 그리기를 좋아하는 예술가예요.',
   18: '10 하나에 8! 힘이 세고 빠른 친구예요.',
   19: '10 하나에 9! 20 바로 앞이라 늘 한 개가 아쉬워요.',
-  20: '10이 두 묶음! 2×10, 4×5로 설 수 있어요.',
+  20: '10이 두 묶음! 멋진 모자를 쓴 신사예요.',
   25: '5×5 정사각형! 10이 둘, 5가 하나예요.',
   26: '선글라스를 낀 록스타! 10이 둘, 6이 하나예요.',
   30: '10이 세 묶음! 3이 열 명 모인 거예요.',

@@ -52,8 +52,8 @@ function sideMat(colors, rims, dots) {
       g.fillStyle = RIM_FILL;
       g.fillRect(p + 9, y + p + 9, 64 - p * 2 - 18, 64 - p * 2 - 18);
     }
-    if (dots[i]) {                              // 6 — 주사위 점
-      g.fillStyle = '#fff'; g.beginPath(); g.arc(32, y + 32, 9, 0, Math.PI * 2); g.fill();
+    if (dots[i]) {                              // 6 — 하얀 주사위 점, 3 — 빨간 점
+      g.fillStyle = dots[i]; g.beginPath(); g.arc(32, y + 32, 9, 0, Math.PI * 2); g.fill();
     }
     g.fillStyle = 'rgba(255,255,255,0.22)';     // 윗쪽 살짝 밝게 (입체감)
     g.fillRect(p, y + p, 64 - p * 2, 8);
@@ -74,12 +74,11 @@ function topMat(color) {
 //  얼굴 — 캔버스 그림 (숫자마다 표정이 조금씩 다르다)
 // -----------------------------------------------------------
 /**
- * 눈 자리 — 원작처럼 1은 눈 하나(한가운데 크게), 3은 눈 셋(위 하나 아래 둘), 4는 네모 눈, 나머지는 둘
+ * 눈 자리 — 원작처럼 1과 100은 눈 하나(한가운데 크게), 4는 네모 눈, 나머지는 둘
  *   256×256 얼굴 캔버스 기준 [{ x, y, r, square }]
  */
 export function eyeLayout(n) {
   if (n === 1 || n === 100) return [{ x: 128, y: 100, r: 46 }];   // 1과 100은 눈 하나
-  if (n === 3) return [{ x: 128, y: 62, r: 26 }, { x: 84, y: 112, r: 26 }, { x: 172, y: 112, r: 26 }];
   const seed = (n * 7919) % 97;
   const r = 34 + (seed % 5) * 2;
   return [{ x: 76, y: 96, r, square: n === 4 }, { x: 180, y: 96, r, square: n === 4 }];
@@ -90,9 +89,9 @@ function drawFace(g, n, blink) {
   g.clearRect(0, 0, S, S);
   const seed = (n * 7919) % 97;
   const eyes = eyeLayout(n);
-  // 8 = 옥토블록! 눈 둘레에 슈퍼히어로 가면
-  if (n === 8) {
-    g.fillStyle = '#5e4b9c';
+  // 8 = 옥토블록, 15 = 스텝 스쿼드! 눈 둘레에 슈퍼히어로 가면
+  if (n === 8 || n === 15) {
+    g.fillStyle = n === 8 ? '#5e4b9c' : '#1b3f8f';
     g.beginPath(); g.ellipse(S / 2, 96, 118, 58, 0, 0, Math.PI * 2); g.fill();
   }
   // 눈 — 하얀 동그라미(4는 네모) + 까만 눈동자 + 반짝이
@@ -107,8 +106,8 @@ function drawFace(g, n, blink) {
     g.fillStyle = '#fff';
     g.beginPath(); g.arc(e.x - e.r * 0.25, e.y - e.r * 0.15, e.r * 0.2, 0, Math.PI * 2); g.fill();
   }
-  // 5는 예쁜 속눈썹
-  if (n === 5) {
+  // 5와 25는 예쁜 속눈썹
+  if (n === 5 || n === 25) {
     g.strokeStyle = '#1b1430'; g.lineWidth = 5; g.lineCap = 'round';
     for (const e of eyes) for (const dx of [-18, 0, 18]) {
       g.beginPath(); g.moveTo(e.x + dx, e.y - e.r * 1.05); g.lineTo(e.x + dx * 1.4, e.y - e.r * 1.05 - 16); g.stroke();
@@ -120,8 +119,8 @@ function drawFace(g, n, blink) {
     for (const e of eyes) { g.beginPath(); g.roundRect(e.x - e.r - 4, e.y - e.r * 0.7, e.r * 2 + 8, e.r * 1.5, 12); g.fill(); }
     g.fillRect(S / 2 - 12, 92, 24, 8);
   }
-  // 눈썹 — 숫자마다 각도가 다르다. 9는 굵고 처진 눈썹(재채기 직전). 1·3은 눈 배치가 달라서 눈썹 없음
-  if (n !== 1 && n !== 3 && n !== 100) {
+  // 눈썹 — 숫자마다 각도가 다르다. 9는 굵고 처진 눈썹(재채기 직전). 1·100은 눈이 하나라 눈썹 없음
+  if (n !== 1 && n !== 100) {
     g.strokeStyle = '#1b1430'; g.lineWidth = n === 9 ? 16 : 9; g.lineCap = 'round';
     const tilt = n === 9 ? -8 : ((seed % 7) - 3) * 3;
     for (const e of eyes) {
@@ -130,7 +129,7 @@ function drawFace(g, n, blink) {
     }
   }
   // 입 — 웃는 입 / 활짝 벌린 입 / 씩 웃는 입 (1·7은 늘 활짝, 3은 큰 웃음)
-  const kind = (n === 7 || n === 1 || n === 100) ? 1 : n === 3 ? 0 : seed % 3;
+  const kind = (n === 7 || n === 1 || n === 100) ? 1 : seed % 3;
   const mouthY = (n === 1 || n === 100) ? 168 : 150;
   g.fillStyle = '#1b1430';
   if (kind === 0) {
@@ -198,10 +197,34 @@ export function makeNumberblock(def) {
   const faceS = square ? Math.min(S * Math.min(cols.length, 5) * 0.8, S * cols[0].k * 0.5)
                        : S * (wide ? 1.9 : 0.96);
   face.scale.setScalar(faceS);
+  //  11~19 처럼 한 줄로 긴 친구는 원작처럼 얼굴이 아래쪽(둘째 블록)에 있다
+  const lowFace = cols.length === 1 && n > 10;
   if (square) face.position.set(0, faceH - faceS * 0.62, S / 2 + 0.01);
+  else if (lowFace) face.position.set(0, S * 1.5, S / 2 + 0.01);
   else face.position.set(x0 + faceCol * S - (wide ? S / 2 : 0), faceH - S / 2 + (wide ? S * 0.45 : 0), S / 2 + 0.01);
   face.userData.noShadow = true;
   g.add(face);
+
+  // 👑 3의 빨간 뿔 왕관 (뾰족 셋)  ·  🎩 20·52·87의 모자
+  const topY = Math.max(...cols.map(c => c.k)) * S;
+  if (n === 3) {
+    const crown = topMat(0xc8102e);
+    for (const dx of [-0.3, 0, 0.3]) {
+      const spike = new THREE.Mesh(GEO.cone, crown);
+      spike.scale.set(S * 0.28, S * 0.45, S * 0.28);
+      spike.position.set(dx * S, topY + S * 0.2, 0);
+      g.add(spike);
+    }
+  }
+  if (n === 20 || n === 52 || n === 87) {
+    const hatMat = topMat(n === 20 ? 0x5e4b9c : 0x2a2233);
+    const hx = square ? 0 : x0 + faceCol * S;
+    const brim = new THREE.Mesh(GEO.cyl, hatMat);
+    brim.scale.set(S * 1.6, S * 0.12, S * 1.6); brim.position.set(hx, topY + S * 0.06, 0);
+    const top = new THREE.Mesh(GEO.cyl, hatMat);
+    top.scale.set(S * 1.0, S * 0.9, S * 1.0); top.position.set(hx, topY + S * 0.55, 0);
+    g.add(brim, top);
+  }
 
   // 팔다리 — 원작처럼 가는 팔에 동그란 손, 까만 다리에 동그란 발. 8은 문어처럼 팔 8개, 2는 큰 신발
   const limbs = [];

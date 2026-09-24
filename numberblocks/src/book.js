@@ -40,8 +40,8 @@ export function drawBlockIcon(cv, n, ghost = false) {
         const b = Math.max(2, unit * 0.2);
         g.fillStyle = RIM_FILL; g.fillRect(x + b, y + b, unit - b * 2, unit - b * 2);
       }
-      if (col.dot[j] && !ghost) {                // 6 — 주사위 점
-        g.fillStyle = '#fff'; g.beginPath(); g.arc(x + unit / 2, y + unit / 2, unit * 0.14, 0, Math.PI * 2); g.fill();
+      if (col.dot[j] && !ghost) {                // 6 — 하얀 주사위 점, 3 — 빨간 점
+        g.fillStyle = col.dot[j]; g.beginPath(); g.arc(x + unit / 2, y + unit / 2, unit * 0.14, 0, Math.PI * 2); g.fill();
       }
     }
   });
@@ -50,8 +50,24 @@ export function drawBlockIcon(cv, n, ghost = false) {
   const fc = cols.length - 1;
   const square = cols.length > 1 && cols.every(c => c.k === cols[0].k);
   const face = square ? Math.min(unit * Math.min(cols.length, 5) * 0.8, unit * cols[0].k * 0.5) : unit;   // 얼굴 한 변
+  const lowFace = cols.length === 1 && n > 10;   // 11~19는 얼굴이 아래쪽
   const fx = square ? S / 2 : x0 + fc * unit + unit / 2;
-  const fy = square ? y0 - cols[fc].k * unit + face * 0.62 : y0 - cols[fc].k * unit + unit / 2;
+  const fy = square ? y0 - cols[fc].k * unit + face * 0.62 : lowFace ? y0 - unit * 1.5 : y0 - cols[fc].k * unit + unit / 2;
+  // 👑 3의 빨간 뿔 왕관 · 🎩 20·52·87의 모자
+  const topY = y0 - Math.max(...cols.map(c => c.k)) * unit;
+  if (n === 3) {
+    g.fillStyle = '#c8102e';
+    for (const dx of [-0.3, 0, 0.3]) {
+      g.beginPath(); g.moveTo(fx + (dx - 0.14) * unit, topY); g.lineTo(fx + (dx + 0.14) * unit, topY);
+      g.lineTo(fx + dx * unit, topY - unit * 0.45); g.closePath(); g.fill();
+    }
+  }
+  if (n === 20 || n === 52 || n === 87) {
+    const hx = square ? S / 2 : fx;
+    g.fillStyle = n === 20 ? '#5e4b9c' : '#2a2233';
+    g.fillRect(hx - unit * 0.8, topY - unit * 0.14, unit * 1.6, unit * 0.14);
+    g.fillRect(hx - unit * 0.5, topY - unit * 1.0, unit * 1.0, unit * 0.9);
+  }
   const k = face / 256;                          // 256 얼굴 캔버스 → 그림 크기
   for (const e of eyeLayout(n)) {
     const ex = fx + (e.x - 128) * k, ey = fy + (e.y - 128) * k, r = Math.max(1.5, e.r * k);
