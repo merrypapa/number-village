@@ -210,9 +210,13 @@
   #fade { position:fixed; inset:0; z-index:30; background:#fff;
     opacity:0; pointer-events:none; transition:opacity .3s ease; }
   #fade.on { opacity:1; }
+  /* ★ 긴 문장은 단어 중간이 아니라 띄어쓰기에서만 줄을 바꾼다 (word-break:keep-all).
+       화면이 좁으면 글씨를 줄이고, 너무 길면 두 줄까지만 */
   #toast { position:absolute; left:50%; top:18%; transform:translateX(-50%);
-    background:#fff; color:#5b3d8f; font-size:28px; font-weight:800;
-    padding:14px 28px; border-radius:24px; box-shadow:0 6px 18px #0003;
+    width:max-content; max-width:min(88vw, 640px); text-align:center;
+    white-space:normal; word-break:keep-all; overflow-wrap:anywhere; line-height:1.3;
+    background:#fff; color:#5b3d8f; font-size:clamp(17px,3.6vw,28px); font-weight:800;
+    padding:12px 24px; border-radius:24px; box-shadow:0 6px 18px #0003;
     opacity:0; transition:opacity .3s; }
   #toast.on { opacity:1; }
   /* 안내문 — 조작부 위에 두고, 8초 뒤 스르륵 사라진다 */
