@@ -92,7 +92,9 @@ function startGame() {
 
   rescue = createRescue(world, camera, onRescue);
   travel = createTravel({ world, envMap, charId: ME.id, music, player: () => player, toast,
-                          rescued: rescue.rescued });
+                          rescued: rescue.rescued,
+                          onAreaBuilt: (name, a) => rescue.attachArea(name, a),
+                          onAreaChange: (name) => rescue.setArea(name) });
   //  관리자 모드면 달님이 처음부터 '게임 신청'을 받아준다
   moon = createMoon(world, () => (admin ? 0 : rescue.remaining), challenge);
   book = createBook(n => rescue.rescued.has(n), () => { clearSave(); location.reload(); });
@@ -166,7 +168,7 @@ renderer.domElement.addEventListener('pointerup', e => {
   const moved = Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y);
   const held = performance.now() - tapStart.t;
   tapStart = null;
-  if (!playing || !travel.inVillage || moved > TAP_MOVE || held > TAP_TIME) return;
+  if (!playing || moved > TAP_MOVE || held > TAP_TIME) return;
   rescue.tap(e.clientX, e.clientY, player.model.position);
 });
 
@@ -208,13 +210,11 @@ function loop() {
   area.update(dt, t, player.model.position);
   player.update(dt, t);
   travel.npcs?.update(dt, t, player.model.position);
+  rescue.update(dt, t, player.model.position, !!player.ride);   // 🐴 말 타는 중이면 더 넓게 닿는다 (성 안에서도)
+  updateCompass(night.isDay || book.isOpen ? null : rescue.nearest(player.model.position));
   if (travel.inVillage) {
-    rescue.update(dt, t, player.model.position, !!player.ride);   // 🐴 말 타는 중이면 더 넓게 닿는다
     moon.update(dt, t);
     night.update(dt, player.model.position);
-    updateCompass(night.isDay || book.isOpen ? null : rescue.nearest(player.model.position));
-  } else {
-    updateCompass(null);
   }
   updateAction();
   updateRideBtns();

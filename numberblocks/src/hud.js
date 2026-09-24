@@ -80,12 +80,12 @@ export function createCompass(camera, player) {
   return function update(target) {
     if (!target) { el.style.display = 'none'; return; }
     el.style.display = 'flex';
-    const p = player.model.position, q = target.entry.model.position;
+    const p = player.model.position, q = target;      // target = { x, z, dist, label }
     // 카메라가 보는 방향을 기준으로 화살표를 돌린다 (앞 = 위)
     const camYaw = Math.atan2(camera.position.x - p.x, camera.position.z - p.z);
     const toYaw = Math.atan2(q.x - p.x, q.z - p.z);
     const rel = toYaw - camYaw + Math.PI;
     arrow.style.transform = `rotate(${-rel}rad)`;
-    dist.textContent = `${Math.round(target.dist)}m`;
+    dist.textContent = target.label ? `${target.label} ${Math.round(target.dist)}m` : `${Math.round(target.dist)}m`;
   };
 }

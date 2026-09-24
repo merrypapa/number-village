@@ -13,7 +13,7 @@ import { SAME_FLOOR } from '../../src/rides.js';
 import { blockOf } from './block-data.js';
 
 /**
- * ctx = { world, envMap, charId, music, player(), toast, rescued: Set }
+ * ctx = { world, envMap, charId, music, player(), toast, rescued: Set, onAreaBuilt(name, area), onAreaChange(name) }
  */
 export function createTravel(ctx) {
   const areas = { village: ctx.world };
@@ -32,7 +32,10 @@ export function createTravel(ctx) {
     }
     const a = areas[name];
     //  돌아다니는 친구는 0명으로 만든다 — 요정 친구는 이 월드에 없다
-    if (!areaNpcs[name]) areaNpcs[name] = createNPCs(a.scene, ctx.charId, a, 0);
+    if (!areaNpcs[name]) {
+      areaNpcs[name] = createNPCs(a.scene, ctx.charId, a, 0);
+      ctx.onAreaBuilt?.(name, a);            // 🔦 성 안에 숨은 숫자 친구를 세운다 (rescue.js)
+    }
     return a;
   }
 
@@ -81,6 +84,7 @@ export function createTravel(ctx) {
       //  ★ 문 이름은 'art'(그림의 집 자리)지만 안쪽 공간 이름은 'numbers'다 → 공간 이름으로 본다
       if (area.name === 'numbers') fillHouse(areaNpcs[door.to]);
       npcs = areaNpcs[door.to];
+      ctx.onAreaChange?.(door.to);           // 🔦 지금 어느 공간인지 (rescue.js)
       ctx.music.setScene(area.name);
       player.moveTo(area, door.arrive, door.arriveYaw);
       area.onEnter?.(player);
