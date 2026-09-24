@@ -9,6 +9,10 @@
 // ===========================================================
 import * as THREE from 'three';
 import { registerBuilder } from '../../src/characters.js';
+import { makeHundred } from './block-100.js';
+
+// 진짜 3D 모델이 따로 있는 숫자 — 여기 적힌 숫자는 그림 대신 그 모델을 쓴다
+const REAL_3D = { 100: makeHundred };
 
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
@@ -88,6 +92,7 @@ const SHADOW_MAT = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: t
 //   ★ 두께 = 몸통 폭 ÷ 한 줄 블록 수(≈√n). 1은 정육면체, 100은 얇은 판이 된다
 // -----------------------------------------------------------
 export function makeNumberblock(def) {
+  if (REAL_3D[def.number]) return REAL_3D[def.number](def);   // 🔴 100처럼 진짜 3D 모델이 있으면 그걸로
   const g = new THREE.Group();
   const n = def.number;
   const H = heightOf(n);
