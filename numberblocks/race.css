@@ -44,6 +44,7 @@
 .brow .tm { margin-left:auto; font-size:.85em; color:#6b5b95; font-weight:700; }
 .brow.done { background:#fff8d6ee; }
 .brow.me { outline:3px solid #ffd60a; }
+.brow.out { background:#ffd9cccc; color:#a33; }
 #raceBoard .dots { color:#fff; text-align:center; line-height:1; }
 /* 좁은 화면(휴대폰 세로) — 순위표는 5등까지만, 작게 */
 @media (max-width:600px) {
@@ -73,6 +74,11 @@
 #raceNum button { border:none; border-radius:999px; padding:10px 18px; font-size:18px; font-weight:900;
   background:#eef4ff; color:#3a78b0; box-shadow:0 4px 0 #a8d8f0; cursor:pointer; }
 #raceNum button.on { background:#7ad4ff; color:#fff; box-shadow:0 4px 0 #3aa9e0; }
+#raceLava { border:none; border-radius:999px; padding:10px 20px; font-size:17px; font-weight:900; cursor:pointer;
+  background:#e8f6ff; color:#3a78b0; box-shadow:0 4px 0 #a8d8f0; }
+#raceLava.on { background:linear-gradient(#ff8a3d,#ff4d00); color:#fff; box-shadow:0 4px 0 #b83200; }
+#raceCourse, #raceResultCourse { font-size:clamp(13px,3vw,16px); font-weight:800; color:#6b5b95; text-align:center; line-height:1.5; }
+#raceCourse b { color:#e0518f; }
 #racePick { display:grid; grid-template-columns:repeat(auto-fill,minmax(44px,1fr)); gap:6px; width:100%; }
 #racePick button { border:none; background:#f4f6ff; padding:3px 2px 1px; border-radius:12px; cursor:pointer;
   display:flex; flex-direction:column; align-items:center; gap:1px; font-size:12px; color:#3a2a55; }
@@ -101,6 +107,7 @@
 #raceList li img { width:22px; height:22px; object-fit:contain; }
 #raceList li span:last-child { margin-left:auto; color:#6b5b95; font-size:12px; font-weight:700; }
 #raceList li.me { background:#fff3b0; }
+#raceList li.out { background:#ffe6dd; color:#a33; }
 .sbtns { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
 .sbtns button { border:none; border-radius:999px; padding:12px 20px; font-size:17px; font-weight:900; cursor:pointer; color:#fff; }
 #raceAgain { background:#ff8fc0; box-shadow:0 5px 0 #e0518f; }

@@ -8,14 +8,14 @@
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
 // -----------------------------------------------------------
-export const MAX_RACERS   = 41;          // 구슬 최대 몇 명
-export const RACER_CHOICES = [10, 20, 30, 41];   // 시작 화면의 '몇 명이 달릴까?' 버튼
+export const MAX_RACERS   = 100;         // 구슬 최대 몇 명 (1 ~ 100)
+export const RACER_CHOICES = [10, 30, 50, 100];  // 시작 화면의 '몇 명이 달릴까?' 버튼
 export const MARBLE_R     = 16;          // 구슬 반지름 (코스 픽셀) — 안에 숫자 친구 그림이 들어간다
 export const BOUNCE       = 0.6;         // 통통 튀는 정도 (0 = 안 튐, 1 = 공처럼)
 export const SLIP         = 0.05;        // 미끄러운 정도 (작을수록 잘 미끄러진다)
 export const SPEEDS       = [1, 2, 4];   // 빨리 감기 (1x · 2x · 4x)
 export const COUNTDOWN    = 3;           // 출발 전 3, 2, 1
-export const LATE_LIMIT   = 60;          // 1등이 들어오고 이 시간(초)이 지나면 경기 끝 (꼴찌가 끼어 있을 때)
+export const LATE_LIMIT   = 90;          // 1등이 들어오고 이 시간(초)이 지나면 경기 끝 (꼴찌가 끼어 있을 때)
 
 // 일의 자리 색 (0번 칸 = 10, 20 … 의 하얀 몸)
 export const UNIT_FILL = [
@@ -31,7 +31,8 @@ export const UNIT_FILL = [
   '#8e9aaf',   // 9 회색
 ];
 // 십의 자리 테두리 색 (0번 칸 = 1~9는 자기 몸 색을 조금 진하게)
-export const TENS_RING = [null, '#e0201a', '#ff8000', '#f5c400', '#1f9e3f'];
+export const TENS_RING = [null, '#e0201a', '#ff8000', '#f5c400', '#1f9e3f', '#1aa6e0',
+                          '#4a48c0', '#9b3fd0', '#e0207a', '#6f7a90', '#e0201a'];   // 10 ~ 100
 const RAINBOW = ['#ff3b30', '#ff9500', '#ffd60a', '#34c759', '#32c5ff', '#5856d6', '#af52de'];
 
 /** 구슬 n의 대표 색 하나 (순위표 동그라미에 쓴다) */

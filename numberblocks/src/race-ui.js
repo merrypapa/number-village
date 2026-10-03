@@ -35,13 +35,17 @@ export function createRaceUI(h) {
   $('raceDone').onclick = h.onDone;
   $('raceCsv').onclick = () => saveCsv(results);
 
-  /** 시작 화면 — 몇 명이 달릴지, 응원할 친구 고르기 */
-  function showSetup(racers, cheer) {
+  /** 시작 화면 — 몇 명이 달릴지, 용암 켜기, 응원할 친구 고르기. info = { lava, seed, plan } */
+  function showSetup(racers, cheer, info) {
     result.classList.remove('on');
     setup.classList.add('on');
     $('raceNum').innerHTML = RACER_CHOICES.map(n =>
       `<button data-n="${n}" class="${n === racers ? 'on' : ''}">${n}명</button>`).join('');
     $('raceNum').onclick = (e) => { const n = +e.target.dataset.n; if (n) h.onCount(n); };
+    $('raceLava').textContent = info.lava ? '🌋 용암 있음 (빠지면 탈락!)' : '🌈 용암 없음';
+    $('raceLava').classList.toggle('on', info.lava);
+    $('raceLava').onclick = h.onLava;
+    $('raceCourse').innerHTML = `🗺 오늘의 코스 <b>#${info.seed}</b><br>${info.plan.join(' → ')} → 🏁`;
     let html = '';
     for (let n = 1; n <= racers; n++)
       html += `<button data-n="${n}" class="${n === cheer ? 'on' : ''}"><img src="${picOf(n)}" alt="${n}"><b>${n}</b></button>`;
@@ -71,16 +75,17 @@ export function createRaceUI(h) {
     board.innerHTML = html;
   }
   function row(i, r, cheer) {
-    const cls = [r.time != null ? 'done' : '', r.n === cheer ? 'me' : ''].join(' ');
-    return `<div class="brow ${cls}"><span class="rk">${MEDALS[i] || i + 1}</span>` +
-           `<img src="${picOf(r.n)}"><b>${r.n}</b><span class="tm">${r.time != null ? sec(r.time) : ''}</span></div>`;
+    const cls = [r.out ? 'out' : r.time != null ? 'done' : '', r.n === cheer ? 'me' : ''].join(' ');
+    const tm = r.out ? '🔥' : r.time != null ? sec(r.time) : '';
+    return `<div class="brow ${cls}"><span class="rk">${r.out ? '🔥' : MEDALS[i] || i + 1}</span>` +
+           `<img src="${picOf(r.n)}"><b>${r.n}</b><span class="tm">${tm}</span></div>`;
   }
 
   /** 🏆 결과 — 시상대(1·2·3등)와 모든 순위 */
-  function showResult(list, cheer) {
+  function showResult(list, cheer, sum) {
     results = list;
     const pod = [1, 0, 2].map(i => list[i]).map((r, k) => {
-      if (!r) return '<div class="pod"></div>';
+      if (!r || r.out) return '<div class="pod"></div>';
       const place = [2, 1, 3][k];
       return `<div class="pod p${place}">
         <img class="friend" src="${spriteUrl(r.n)}" alt="${r.n}">
@@ -89,12 +94,15 @@ export function createRaceUI(h) {
     }).join('');
     $('podium').innerHTML = pod;
     const mine = cheer ? list.findIndex(r => r.n === cheer) : -1;
-    $('raceCheerMsg').textContent = mine < 0 ? `🎉 1등은 ${list[0].n}번!`
+    const lavaMsg = sum.survived < sum.total ? `🌋 ${sum.total}명 중 ${sum.survived}명이 살아남았어요! ` : '';
+    $('raceCheerMsg').textContent = lavaMsg + (mine < 0 ? `🎉 1등은 ${list[0].n}번!`
+      : list[mine].out ? `⭐ 내 친구 ${cheer}번은 용암에 빠졌어요 🔥 다음엔 꼭!`
       : mine === 0 ? `⭐ 내 친구 ${cheer}번이 1등! 최고예요! 🎉`
-      : `⭐ 내 친구 ${cheer}번은 ${mine + 1}등! 잘 달렸어요!`;
+      : `⭐ 내 친구 ${cheer}번은 ${mine + 1}등! 잘 달렸어요!`);
+    $('raceResultCourse').textContent = `🗺 코스 #${sum.seed}`;
     $('raceList').innerHTML = list.map((r, i) =>
-      `<li class="${r.n === cheer ? 'me' : ''}"><span>${MEDALS[i] || (i + 1) + '등'}</span>` +
-      `<img src="${picOf(r.n)}"><b>${r.n}</b><span>${r.time != null ? sec(r.time) : '도착 못 함'}</span></li>`).join('');
+      `<li class="${r.n === cheer ? 'me' : ''} ${r.out ? 'out' : ''}"><span>${r.out ? '🔥' : MEDALS[i] || (i + 1) + '등'}</span>` +
+      `<img src="${picOf(r.n)}"><b>${r.n}</b><span>${r.out ? '용암 탈락' : r.time != null ? sec(r.time) : '도착 못 함'}</span></li>`).join('');
     result.classList.add('on');
   }
   function hideResult() { result.classList.remove('on'); }
@@ -104,7 +112,9 @@ export function createRaceUI(h) {
     setPlay(paused) { $('racePlay').textContent = paused ? '▶️' : '⏸'; },
     setSpeed(x) { $('raceSpeed').textContent = `${x}x`; },
     setCam(mode) { $('raceCam').textContent = CAM_LABEL[mode]; },
-    setClock(t) { $('raceClock').textContent = `⏱ ${t.toFixed(1)}초`; },
+    setClock(t, out = 0, alive = 0) {
+      $('raceClock').textContent = `⏱ ${t.toFixed(1)}초` + (out ? ` · 🔥${out} · 남은 ${alive}명` : '');
+    },
     clearBoard() { lastBoard = ''; board.innerHTML = ''; },
   };
 }
@@ -112,7 +122,8 @@ export function createRaceUI(h) {
 /** 💾 결과를 CSV 파일로 내려받는다 (엑셀에서 열린다) */
 function saveCsv(list) {
   if (!list.length) return;
-  const lines = ['순위,번호,기록(초)', ...list.map((r, i) => `${i + 1},${r.n},${r.time != null ? r.time.toFixed(2) : ''}`)];
+  const lines = ['순위,번호,기록(초),결과', ...list.map((r, i) =>
+    `${i + 1},${r.n},${r.time != null ? r.time.toFixed(2) : ''},${r.out ? '용암 탈락' : r.time != null ? '도착' : '도착 못 함'}`)];
   const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
   const d = new Date(), p = (v) => String(v).padStart(2, '0');
   const a = document.createElement('a');
