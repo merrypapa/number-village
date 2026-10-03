@@ -6,6 +6,7 @@
 <title>Inruha World — 넘버블럭스 월드</title>
 <link rel="stylesheet" href="./style.css">
 <link rel="stylesheet" href="./world.css">
+<link rel="stylesheet" href="./race.css">
 <link rel="icon" type="image/svg+xml" href="../assets/icon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="../assets/icon-32.png">
 <link rel="apple-touch-icon" href="../assets/icon-180.png">
@@ -103,6 +104,56 @@
       <div class="rsub"></div>
       <button id="topAgain">🔁 한 번 더</button>
       <button id="topDone">👍 좋아요</button>
+    </div>
+  </div>
+</div>
+
+<!-- 🎮 게임 코너 — 숫자의 집 오락기 앞에서 '게임하기' (src/game-corner.js) -->
+<div id="arcade" class="no-drag">
+  <div id="arcadeCard">
+    <div id="arcadeTitle">🎮 게임 코너</div>
+    <div id="arcadeSub">어떤 게임을 할까요?</div>
+    <div id="arcadeList"></div>
+    <button id="arcadeClose">✕ 나가기</button>
+  </div>
+</div>
+
+<!-- 🏁 숫자 구슬 레이스 (src/race-game.js · race-ui.js) -->
+<div id="race" class="no-drag">
+  <div id="raceBar">
+    <button id="raceExit">✕</button>
+    <div id="raceClock">⏱ 0.0초</div>
+    <button id="racePlay">⏸</button>
+    <button id="raceReset">🔄</button>
+    <button id="raceSpeed">1x</button>
+    <button id="raceCam">🥇 1등 보기</button>
+  </div>
+  <div id="raceStage">
+    <canvas id="raceCanvas"></canvas>
+    <div id="raceBoard"></div>
+    <div id="raceCount"></div>
+    <div id="raceSetup" class="rpanel">
+      <div class="scard">
+        <div class="stitle">🏁 숫자 구슬 레이스</div>
+        <div class="slabel">몇 명이 달릴까요?</div>
+        <div id="raceNum"></div>
+        <div class="slabel">⭐ 응원할 친구를 골라요 <small>(안 골라도 돼요)</small></div>
+        <div id="racePick"></div>
+        <button id="raceGo">🏁 출발!</button>
+      </div>
+    </div>
+    <div id="raceResult" class="rpanel">
+      <div class="scard">
+        <div class="stitle">🏆 경기 결과</div>
+        <div id="podium"></div>
+        <div id="raceCheerMsg"></div>
+        <ol id="raceList"></ol>
+        <div class="sbtns">
+          <button id="raceAgain">🔁 한 번 더</button>
+          <button id="raceCsv">💾 기록 저장</button>
+          <button id="raceDone">👍 끝</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>

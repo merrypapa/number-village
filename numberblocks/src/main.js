@@ -24,6 +24,7 @@ import { buildNumberHouse } from './number-house.js';
 import { createMoon } from './moon.js';
 import { createTopGame } from './top-game.js';
 import { createTravel } from './travel.js';
+import { createGameCorner } from './game-corner.js';
 import { toast, createActionButton, createRideButtons, setupMusicButton, createCompass } from './hud.js';
 
 // -----------------------------------------------------------
@@ -74,7 +75,7 @@ const music = createMusic();
 // -----------------------------------------------------------
 //  게임 시작 — 나는 숫자 100
 // -----------------------------------------------------------
-let player = null, rescue = null, moon = null, book = null, topGame = null, travel = null;
+let player = null, rescue = null, moon = null, book = null, topGame = null, travel = null, games = null;
 let updateAction = null, updateRideBtns = null, updateCompass = null;
 let playing = false;
 
@@ -91,7 +92,8 @@ function startGame() {
   updateCompass = createCompass(camera, player);
 
   rescue = createRescue(world, camera, onRescue);
-  travel = createTravel({ world, envMap, charId: ME.id, music, player: () => player, toast,
+  games = createGameCorner({ music, toast });           // 🎮 숫자의 집 게임 코너
+  travel = createTravel({ world, envMap, charId: ME.id, music, player: () => player, toast, openGames: games.open,
                           rescued: rescue.rescued,
                           onAreaBuilt: (name, a) => rescue.attachArea(name, a),
                           onAreaChange: (name) => rescue.setArea(name) });
@@ -113,7 +115,7 @@ function startGame() {
   music.setScene('village');
   //  브라우저 콘솔에서 확인할 때 쓴다 (F12). 게임 동작에는 영향이 없다
   window.__player = player;
-  window.__nb = { rescue, night, travel, topGame, book, moon, onTopEnd };
+  window.__nb = { rescue, night, travel, topGame, book, moon, games, onTopEnd };
   toast(won ? '☀️ 밝은 마을에서 친구들과 놀아요!' : `🔦 친구 ${rescue.remaining}명을 찾아요!`, 3000);
 }
 function onRescue(def, count) {
@@ -206,6 +208,7 @@ function loop() {
     return;
   }
 
+  if (games.busy) return;                  // 🎮 게임 화면을 보는 동안 3D 마을은 쉰다
   const area = travel.area;
   area.update(dt, t, player.model.position);
   player.update(dt, t);

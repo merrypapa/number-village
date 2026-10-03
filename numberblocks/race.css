@@ -1,0 +1,107 @@
+/* 🎮 게임 코너 · 🏁 숫자 구슬 레이스 (src/game-corner.js · race-*.js) */
+
+/* ---- 🎮 게임 고르기 ---- */
+#arcade { position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center;
+  background:#0b0f2acc; padding:16px; }
+#arcade.on { display:flex; }
+#arcadeCard { width:min(560px,100%); background:#fff; border-radius:28px; padding:20px;
+  display:flex; flex-direction:column; align-items:center; gap:12px; box-shadow:0 14px 40px #0006; }
+#arcadeTitle { font-size:clamp(26px,6vw,40px); font-weight:900; color:#5b3d8f; }
+#arcadeSub { font-size:clamp(15px,3.4vw,20px); font-weight:800; color:#3a78b0; }
+#arcadeList { width:100%; display:flex; flex-direction:column; gap:10px; }
+.agame { display:flex; align-items:center; gap:14px; width:100%; border:none; border-radius:20px; padding:14px;
+  background:linear-gradient(135deg,#fff3b0,#ffd6ec); box-shadow:0 6px 0 #e0b84a; cursor:pointer; text-align:left; }
+.agame:active { transform:translateY(4px); box-shadow:0 2px 0 #e0b84a; }
+.aicon { font-size:48px; }
+.atext { display:flex; flex-direction:column; gap:4px; }
+.atext b { font-size:clamp(18px,4.2vw,26px); color:#3a2a55; }
+.atext small { font-size:clamp(13px,3vw,16px); color:#5b4b7a; font-weight:700; line-height:1.4; }
+#arcadeClose { border:none; border-radius:999px; padding:10px 26px; font-size:17px; font-weight:900;
+  background:#eef4ff; color:#3a78b0; box-shadow:0 4px 0 #a8d8f0; cursor:pointer; }
+
+/* ---- 🏁 경기 화면 ---- */
+#race { position:fixed; inset:0; z-index:41; display:none; flex-direction:column; background:#2b2350;
+  padding:calc(6px + env(safe-area-inset-top)) 6px calc(6px + env(safe-area-inset-bottom)); }
+#race.on { display:flex; }
+#raceBar { flex:none; display:flex; align-items:center; gap:6px; padding-bottom:6px; }
+#raceBar button { flex:none; border:none; border-radius:999px; padding:9px 14px; min-width:46px;
+  font-size:clamp(14px,3.2vw,18px); font-weight:900; cursor:pointer; background:#fff; color:#3a2a55;
+  box-shadow:0 4px 0 #8f7fc0; white-space:nowrap; }
+#raceBar button:active { transform:translateY(3px); box-shadow:none; }
+#raceSpeed { background:#ffd93d !important; }
+#raceClock { flex:1; text-align:center; color:#fff; font-weight:900; font-size:clamp(15px,3.4vw,22px);
+  white-space:nowrap; }
+#raceStage { position:relative; flex:1; min-height:0; }
+#raceCanvas { width:100%; height:100%; display:block; border-radius:16px; touch-action:none; }
+
+/* 오른쪽 실시간 순위표 */
+#raceBoard { position:absolute; top:8px; right:8px; width:clamp(118px,24vw,190px); display:flex;
+  flex-direction:column; gap:3px; pointer-events:none; }
+.brow { display:flex; align-items:center; gap:5px; background:#ffffffdd; border-radius:12px; padding:2px 8px 2px 4px;
+  font-size:clamp(12px,2.6vw,16px); color:#3a2a55; }
+.brow img { width:22px; height:22px; }
+.brow .rk { min-width:22px; text-align:center; font-weight:900; }
+.brow .tm { margin-left:auto; font-size:.85em; color:#6b5b95; font-weight:700; }
+.brow.done { background:#fff8d6ee; }
+.brow.me { outline:3px solid #ffd60a; }
+#raceBoard .dots { color:#fff; text-align:center; line-height:1; }
+/* 좁은 화면(휴대폰 세로) — 순위표는 5등까지만, 작게 */
+@media (max-width:600px) {
+  #raceBoard { width:auto; top:4px; right:4px; opacity:.9; }
+  #raceBoard .brow:nth-child(n+6):not(.me), #raceBoard .dots { display:none; }
+  .brow { padding:1px 6px 1px 2px; font-size:12px; }
+  .brow .tm { display:none; }
+  .brow img { width:18px; height:18px; }
+}
+
+/* 3, 2, 1 · 출발! */
+#raceCount { position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+  pointer-events:none; color:#fff; font-size:clamp(40px,14vw,120px); font-weight:900; text-align:center;
+  text-shadow:0 6px 0 #ff5a8a, 0 10px 24px #0008; }
+#raceCount.on { display:flex; animation:pop 1s ease-in-out infinite; }
+
+/* 시작 · 결과 판 */
+.rpanel { position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+  background:#0b0f2a99; padding:12px; z-index:2; border-radius:16px; }
+.rpanel.on { display:flex; }
+.scard { width:min(640px,100%); max-height:100%; overflow-y:auto; background:#fff; border-radius:24px;
+  padding:16px; display:flex; flex-direction:column; align-items:center; gap:10px; box-shadow:0 12px 30px #0006; }
+.stitle { font-size:clamp(22px,5vw,34px); font-weight:900; color:#5b3d8f; }
+.slabel { font-size:clamp(14px,3.2vw,19px); font-weight:900; color:#3a78b0; text-align:center; }
+.slabel small { color:#8a9ab0; }
+#raceNum { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+#raceNum button { border:none; border-radius:999px; padding:10px 18px; font-size:18px; font-weight:900;
+  background:#eef4ff; color:#3a78b0; box-shadow:0 4px 0 #a8d8f0; cursor:pointer; }
+#raceNum button.on { background:#7ad4ff; color:#fff; box-shadow:0 4px 0 #3aa9e0; }
+#racePick { display:grid; grid-template-columns:repeat(auto-fill,minmax(44px,1fr)); gap:6px; width:100%; }
+#racePick button { border:none; background:none; padding:2px; border-radius:50%; cursor:pointer; }
+#racePick img { width:100%; display:block; }
+#racePick button.on { background:#ffd60a; box-shadow:0 0 0 3px #ffb300; }
+#raceGo { border:none; border-radius:999px; padding:14px 40px; font-size:clamp(20px,4.4vw,28px); font-weight:900;
+  background:linear-gradient(#ffd93d,#ffb300); color:#5b3d1a; box-shadow:0 7px 0 #c98a00; cursor:pointer;
+  animation:pop 1.6s ease-in-out infinite; }
+#raceGo:active { transform:translateY(5px); box-shadow:0 2px 0 #c98a00; animation:none; }
+
+/* 🏆 시상대 */
+#podium { display:flex; align-items:flex-end; justify-content:center; gap:8px; width:100%; }
+.pod { flex:1; max-width:170px; display:flex; flex-direction:column; align-items:center; }
+.pod .friend { height:clamp(60px,16vw,110px); object-fit:contain; }
+.pod .ball { width:34px; height:34px; margin:4px 0; }
+.pod .step { width:100%; border-radius:12px 12px 0 0; background:var(--c); color:#fff; font-weight:900;
+  text-align:center; font-size:clamp(16px,3.6vw,22px); text-shadow:0 2px 3px #0008; padding-top:6px; }
+.pod.p1 .step { height:96px; }
+.pod.p2 .step { height:70px; }
+.pod.p3 .step { height:52px; }
+#raceCheerMsg { font-size:clamp(16px,3.6vw,22px); font-weight:900; color:#e0518f; text-align:center; }
+#raceList { list-style:none; width:100%; max-height:30vh; overflow-y:auto; display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:4px; padding:0; margin:0; }
+#raceList li { display:flex; align-items:center; gap:6px; background:#f4f6ff; border-radius:10px; padding:3px 8px;
+  font-size:14px; color:#3a2a55; }
+#raceList li img { width:22px; height:22px; }
+#raceList li span:last-child { margin-left:auto; color:#6b5b95; font-size:12px; font-weight:700; }
+#raceList li.me { background:#fff3b0; }
+.sbtns { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+.sbtns button { border:none; border-radius:999px; padding:12px 20px; font-size:17px; font-weight:900; cursor:pointer; color:#fff; }
+#raceAgain { background:#ff8fc0; box-shadow:0 5px 0 #e0518f; }
+#raceCsv { background:#7ab8ff; box-shadow:0 5px 0 #3a78b0; }
+#raceDone { background:#7ad48f; box-shadow:0 5px 0 #2f9a55; }
