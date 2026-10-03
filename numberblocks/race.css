@@ -61,6 +61,15 @@
   text-shadow:0 6px 0 #ff5a8a, 0 10px 24px #0008; }
 #raceCount.on { display:flex; animation:pop 1s ease-in-out infinite; }
 
+/* ⬆️ 내 친구 점프 버튼 — 오른쪽 아래 큰 동그라미 */
+#raceJump { position:absolute; right:14px; bottom:14px; width:clamp(84px,18vw,120px); height:clamp(84px,18vw,120px);
+  border:none; border-radius:50%; display:none; z-index:1; cursor:pointer; touch-action:none;
+  background:radial-gradient(circle at 35% 30%,#ffe066,#ffb300); color:#5b3d1a; font-weight:900;
+  font-size:clamp(18px,4vw,26px); line-height:1.15; box-shadow:0 7px 0 #c98a00, 0 10px 20px #0005; }
+#raceJump.on { display:block; }
+#raceJump.wait { opacity:.45; }
+#raceJump:active { transform:translateY(5px); box-shadow:0 2px 0 #c98a00; }
+
 /* 시작 · 결과 판 */
 .rpanel { position:absolute; inset:0; display:none; align-items:center; justify-content:center;
   background:#0b0f2a99; padding:12px; z-index:2; border-radius:16px; }

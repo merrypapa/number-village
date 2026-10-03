@@ -19,6 +19,8 @@ import { createRaceUI } from './race-ui.js';
 const STEP = 1 / 60;          // 물리 한 걸음 (초)
 const MAX_SPEED = 20;         // 구슬이 이보다 빨라지지 않는다 (벽을 뚫지 않게)
 const STUCK_TIME = 2.5;       // 이 시간(초) 동안 꼼짝 않으면 톡 밀어준다
+const JUMP_POWER = 10;        // ⬆️ 점프 힘 (위로 튀어 오르는 빠르기)
+const JUMP_WAIT  = 1.0;       // ⬆️ 한 번 뛰고 다시 뛸 때까지 기다리는 시간(초)
 const MIN_SURVIVORS = 3;      // 🌋 적어도 이만큼은 살아남는다 (그때부터 용암에 빠지면 건져 준다)
 const CAM_MODES = ['leader', 'overview', 'friend'];
 // Matter.js 를 읽어올 곳 — 앞의 곳이 안 되면 다음 곳에서
@@ -53,7 +55,9 @@ export function createMarbleRace(opts = {}) {
   let marbles = [];               // { n, body, done, out, time, still, vt }
   let order = [];                 // 결승선을 지난 순서
   let outOrder = [];              // 🌋 용암에 빠진 순서
-  let burns = [];                 // 🔥 탈락 불꽃 { x, y, age }
+  let burns = [];                 // 🔥 탈락 불꽃 · 💨 점프 바람 { x, y, age, emoji }
+  let jumpWait = 0;               // ⬆️ 점프 다시 하기까지 남은 시간
+  const jumpBtn = document.getElementById('raceJump');
   let later = [];                 // 물리 계산이 끝난 뒤에 할 일 (몸 빼기 · 옮기기)
   let lava = true, seed = 1;      // 용암 켜기 · 코스 번호
   let state = 'setup';            // setup → count → run → done
@@ -177,7 +181,7 @@ export function createMarbleRace(opts = {}) {
     m.out = true;
     m.time = simTime;
     outOrder.push(m);
-    burns.push({ x: m.body.position.x, y: m.body.position.y, age: 0 });
+    burns.push({ x: m.body.position.x, y: m.body.position.y, age: 0, emoji: '🔥' });
     later.push(() => M.Composite.remove(engine.world, m.body));
     opts.music?.ping(40 + (outOrder.length % 5), 'sawtooth');
     if (order.length + outOrder.length === marbles.length) endRace();
@@ -239,6 +243,31 @@ export function createMarbleRace(opts = {}) {
     }
   }
 
+  // ---------- ⬆️ 내 친구 점프 ----------
+  /** 지금 점프할 수 있는 구슬 (응원하는 친구가 아직 달리는 중일 때) */
+  function jumper() {
+    if (state !== 'run' || !cheer) return null;
+    const m = marbles.find(x => x.n === cheer);
+    return m && !m.done && !m.out ? m : null;
+  }
+  function jump() {
+    const m = jumper();
+    if (!m || paused || jumpWait > 0) return;
+    jumpWait = JUMP_WAIT;
+    const b = m.body;
+    M.Body.setVelocity(b, { x: b.velocity.x, y: Math.min(b.velocity.y, 0) - JUMP_POWER });
+    m.still = 0;
+    burns.push({ x: b.position.x, y: b.position.y + 20, age: 0, emoji: '💨' });
+    opts.music?.ping(79);
+    if (cam.mode === 'leader') { cam.mode = 'friend'; ui.setCam(cam.mode); }   // 점프하면 내 친구를 따라간다
+  }
+  jumpBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); jump(); });
+  addEventListener('keydown', (e) => {
+    if (!screen.classList.contains('on') || !(e.code === 'Space' || e.code === 'ArrowUp')) return;
+    e.preventDefault();
+    jump();
+  });
+
   // ---------- 매 프레임 ----------
   function frame(now) {
     if (!screen.classList.contains('on')) return;
@@ -262,7 +291,12 @@ export function createMarbleRace(opts = {}) {
     }
     ui.setClock(simTime, outOrder.length, marbles.length - outOrder.length);
     for (const b of burns) b.age += dt;
-    if (burns.length && burns[0].age > 1.5) burns.shift();
+    while (burns.length && burns[0].age > 1.5) burns.shift();
+    // ⬆️ 점프 버튼 — 응원하는 친구가 달리고 있을 때만
+    jumpWait = Math.max(0, jumpWait - dt);
+    const me = jumper();
+    jumpBtn.classList.toggle('on', !!me);
+    jumpBtn.classList.toggle('wait', jumpWait > 0);
 
     const rank = ranking();
     boardTimer -= dt;
@@ -309,6 +343,7 @@ export function createMarbleRace(opts = {}) {
   }
   function close() {
     screen.classList.remove('on');
+    jumpBtn.classList.remove('on');
     cancelAnimationFrame(raf);
     state = 'setup';
     opts.onClose?.();

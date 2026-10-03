@@ -144,12 +144,12 @@ export function drawRace(g, view, cam, track, marbles, info) {
     else if (m.n === info.cheer) g.fillText('⭐', x, y - R - 2);
   }
 
-  // 🔥 용암에 빠진 자리 — 불꽃이 솟았다 사라진다
+  // 🔥 용암에 빠진 자리 · 💨 점프한 자리 — 솟았다 사라진다
   g.textBaseline = 'middle';
   for (const b of info.burns || []) {
     g.globalAlpha = Math.max(0, 1 - b.age / 1.5);
     g.font = `${30 + b.age * 30}px ${FONT}`;
-    g.fillText('🔥', b.x, b.y - b.age * 70);
+    g.fillText(b.emoji || '🔥', b.x, b.y - b.age * 70);
   }
   g.globalAlpha = 1;
 
