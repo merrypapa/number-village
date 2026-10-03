@@ -9,18 +9,17 @@ import { makeSign } from '../../src/mart-props.js';
 import { makePlant, makeNumberBlocks, makeBookshelf } from '../../src/castle-props.js';
 import { makeCushion } from '../../src/castle-props2.js';
 import { UNIT_COLORS, hex } from './block-data.js';
-import { makeArcadeCabinet, CABINET_COLORS } from './game-corner.js';
+import { makeArcadeCabinet, CABINET_COLORS, openGameCorner } from './game-corner.js';
 
 // -----------------------------------------------------------
 //  ★ 아이랑 같이 바꿔볼 값
 // -----------------------------------------------------------
 const W = 52, D = 44, H = 10;     // 방 크기 — 친구 99명이 돌아다녀도 넉넉하게
 const RUG_R = 9;                  // 가운데 둥근 깔개
-const ARCADE_Z = 2;               // 🎮 게임 코너 자리 (오른쪽 벽, 앞뒤 위치)
+const ARCADE_Z = 6.5;             // 🎮 게임 코너 자리 (오른쪽 벽, 앞뒤 위치) — 화분(z 0)·블록 더미(z 15) 사이
 
 /**
  * ctx.count() : 지금까지 구한 친구 수 (안내판 버튼이 말해준다)
- * ctx.openGames() : 🎮 게임 코너 화면을 연다 (game-corner.js)
  */
 export function buildNumberHouse(ctx) {
   const room = makeInterior({
@@ -90,12 +89,12 @@ export function buildNumberHouse(ctx) {
   room.hang(makeSign('🎮 게임 코너', 5, 1.1, '#2b2350', '#ffd93d'), W / 2 - 0.3, 6.3, ARCADE_Z, -Math.PI / 2);
   room.addSpot({
     x: W / 2 - 4.2, z: ARCADE_Z, r: 3, y: 0, verb: '게임하기',
-    use(toast) { toast('🎮 어떤 게임을 할까?'); ctx.openGames?.(); },
+    use() { openGameCorner(); },
   });
 
   return room.finish({
     // 친구들은 깔개 근처와 방 곳곳을 돌아다닌다
-    wanderZones: [{ x: 0, z: -2, r: RUG_R + 4 }, { x: -14, z: 6, r: 8 }, { x: 14, z: 6, r: 8 },
+    wanderZones: [{ x: 0, z: -2, r: RUG_R + 4 }, { x: -14, z: 6, r: 8 }, { x: 12, z: 8, r: 6 },
                   { x: 0, z: -14, r: 8 }],
   });
 }

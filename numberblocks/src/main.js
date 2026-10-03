@@ -24,7 +24,7 @@ import { buildNumberHouse } from './number-house.js';
 import { createMoon } from './moon.js';
 import { createTopGame } from './top-game.js';
 import { createTravel } from './travel.js';
-import { createGameCorner } from './game-corner.js';
+import { setupGameCorner } from './game-corner.js';
 import { toast, createActionButton, createRideButtons, setupMusicButton, createCompass } from './hud.js';
 
 // -----------------------------------------------------------
@@ -92,8 +92,8 @@ function startGame() {
   updateCompass = createCompass(camera, player);
 
   rescue = createRescue(world, camera, onRescue);
-  games = createGameCorner({ music, toast });           // 🎮 숫자의 집 게임 코너
-  travel = createTravel({ world, envMap, charId: ME.id, music, player: () => player, toast, openGames: games.open,
+  games = setupGameCorner({ music, toast });            // 🎮 숫자의 집 게임 코너
+  travel = createTravel({ world, envMap, charId: ME.id, music, player: () => player, toast,
                           rescued: rescue.rescued,
                           onAreaBuilt: (name, a) => rescue.attachArea(name, a),
                           onAreaChange: (name) => rescue.setArea(name) });

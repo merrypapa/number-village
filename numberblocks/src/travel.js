@@ -13,8 +13,7 @@ import { SAME_FLOOR } from '../../src/rides.js';
 import { blockOf } from './block-data.js';
 
 /**
- * ctx = { world, envMap, charId, music, player(), toast, rescued: Set, onAreaBuilt(name, area), onAreaChange(name),
- *         openGames() }   ← 숫자의 집 🎮 게임 코너
+ * ctx = { world, envMap, charId, music, player(), toast, rescued: Set, onAreaBuilt(name, area), onAreaChange(name) }
  */
 export function createTravel(ctx) {
   const areas = { village: ctx.world };
@@ -28,8 +27,7 @@ export function createTravel(ctx) {
 
   function getArea(name, door) {
     if (!areas[name]) {
-      const c = { envMap: ctx.envMap, charId: ctx.charId, music: ctx.music, count: () => ctx.rescued.size,
-                  openGames: ctx.openGames };
+      const c = { envMap: ctx.envMap, charId: ctx.charId, music: ctx.music, count: () => ctx.rescued.size };
       areas[name] = door?.build ? door.build(c) : buildCastleInterior(ctx.envMap, ctx.charId, { gallery: false });
     }
     const a = areas[name];

@@ -17,8 +17,16 @@ export const GAMES = [
 ];
 const CABINET_COLORS = [0xff5a8a, 0x4fa8ff];   // 오락기 색 (왼쪽, 오른쪽)
 
+// 게임 코너는 하나만 만든다 — 숫자의 집 오락기도, main.js도 같은 것을 쓴다
+let corner = null, cornerOpts = {};
+/** main.js가 처음에 한 번 부른다 (음악 · 안내글 연결) */
+export function setupGameCorner(opts = {}) { cornerOpts = opts; return getGameCorner(); }
+export function getGameCorner() { return (corner ??= createGameCorner(cornerOpts)); }
+/** 🕹 오락기 앞 '게임하기' → "어떤 게임을 할까요?" 화면 */
+export function openGameCorner() { getGameCorner().open(); }
+
 /** opts = { music, toast } — 돌려주는 것: { open(), busy } */
-export function createGameCorner(opts = {}) {
+function createGameCorner(opts = {}) {
   const box = document.getElementById('arcade');
   const list = document.getElementById('arcadeList');
   const race = createMarbleRace({ music: opts.music, onClose: () => opts.toast?.('🎮 또 놀러 와요!') });

@@ -6,7 +6,7 @@
 //  물리 엔진은 Matter.js — 게임을 처음 열 때 CDN에서 읽어온다 (설치 없음).
 //  코스는 race-track.js, 그리기는 race-draw.js, 버튼·순위표는 race-ui.js
 // ===========================================================
-import { MAX_RACERS, MARBLE_R, BOUNCE, SLIP, SPEEDS, COUNTDOWN, LATE_LIMIT } from './race-data.js';
+import { MAX_RACERS, MARBLE_R, BOUNCE, SLIP, SPEEDS, COUNTDOWN, LATE_LIMIT, preloadSprites } from './race-data.js';
 import { buildTrack, TRACK_W, GATE_Y, FINISH_Y, VORTEX } from './race-track.js';
 import { createCamera, drawRace } from './race-draw.js';
 import { createRaceUI } from './race-ui.js';
@@ -90,7 +90,7 @@ export function createMarbleRace(opts = {}) {
     }
     marbles = slots.map((slot, i) => {
       const x = 62 + (slot % COLS) * 52 + (Math.random() - 0.5) * 6;
-      const y = GATE_Y - 24 - Math.floor(slot / COLS) * 34;
+      const y = GATE_Y - 26 - Math.floor(slot / COLS) * 38;
       const body = Bodies.circle(x, y, MARBLE_R, {
         label: 'marble', restitution: BOUNCE, friction: SLIP, frictionStatic: 0, frictionAir: 0.002, density: 0.002,
       });
@@ -252,6 +252,7 @@ export function createMarbleRace(opts = {}) {
 
   async function open() {
     screen.classList.add('on');
+    preloadSprites();
     resize();
     ui.setSpeed(SPEEDS[speedAt]); ui.setCam(cam.mode);
     if (!M) {

@@ -12,9 +12,10 @@ const MEDALS = ['🥇', '🥈', '🥉'];
 const CAM_LABEL = { leader: '🥇 1등 보기', overview: '🗺 전체 보기', friend: '⭐ 내 친구' };
 
 const $ = (id) => document.getElementById(id);
-const icons = {};
-/** 구슬 그림을 <img>로 쓸 수 있는 주소 */
-function iconOf(n) { return (icons[n] ??= marbleSprite(n).toDataURL()); }
+/** 구슬 그림을 <img>로 쓸 수 있는 주소 (시상대) */
+const iconOf = (n) => marbleSprite(n).toDataURL();
+/** 원작 숫자 친구 그림 (고르기 · 순위표) */
+const picOf = spriteUrl;
 const sec = (t) => `${t.toFixed(2)}초`;
 
 /**
@@ -43,7 +44,7 @@ export function createRaceUI(h) {
     $('raceNum').onclick = (e) => { const n = +e.target.dataset.n; if (n) h.onCount(n); };
     let html = '';
     for (let n = 1; n <= racers; n++)
-      html += `<button data-n="${n}" class="${n === cheer ? 'on' : ''}"><img src="${iconOf(n)}" alt="${n}"></button>`;
+      html += `<button data-n="${n}" class="${n === cheer ? 'on' : ''}"><img src="${picOf(n)}" alt="${n}"><b>${n}</b></button>`;
     $('racePick').innerHTML = html;
     $('racePick').onclick = (e) => {
       const b = e.target.closest('button');
@@ -72,7 +73,7 @@ export function createRaceUI(h) {
   function row(i, r, cheer) {
     const cls = [r.time != null ? 'done' : '', r.n === cheer ? 'me' : ''].join(' ');
     return `<div class="brow ${cls}"><span class="rk">${MEDALS[i] || i + 1}</span>` +
-           `<img src="${iconOf(r.n)}"><b>${r.n}</b><span class="tm">${r.time != null ? sec(r.time) : ''}</span></div>`;
+           `<img src="${picOf(r.n)}"><b>${r.n}</b><span class="tm">${r.time != null ? sec(r.time) : ''}</span></div>`;
   }
 
   /** 🏆 결과 — 시상대(1·2·3등)와 모든 순위 */
@@ -93,7 +94,7 @@ export function createRaceUI(h) {
       : `⭐ 내 친구 ${cheer}번은 ${mine + 1}등! 잘 달렸어요!`;
     $('raceList').innerHTML = list.map((r, i) =>
       `<li class="${r.n === cheer ? 'me' : ''}"><span>${MEDALS[i] || (i + 1) + '등'}</span>` +
-      `<img src="${iconOf(r.n)}"><b>${r.n}</b><span>${r.time != null ? sec(r.time) : '도착 못 함'}</span></li>`).join('');
+      `<img src="${picOf(r.n)}"><b>${r.n}</b><span>${r.time != null ? sec(r.time) : '도착 못 함'}</span></li>`).join('');
     result.classList.add('on');
   }
   function hideResult() { result.classList.remove('on'); }

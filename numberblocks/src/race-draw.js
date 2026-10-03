@@ -17,10 +17,10 @@ const COLORS = {
   boost: 'rgba(52,199,89,0.55)', slow: 'rgba(175,82,222,0.45)',
 };
 const BG = ['#c9ecff', '#e9f7ff', '#fff0f7'];   // 코스 배경 (위 → 아래)
-const FOLLOW_VIEW = 640;     // 따라가기 모드에서 화면에 보이는 코스 높이 (작을수록 크게)
+const FOLLOW_VIEW = 480;     // 따라가기 모드에서 화면에 보이는 코스 높이 (작을수록 크게 — 구슬 속 친구가 잘 보이게)
 const CAM_SMOOTH  = 4;       // 카메라가 따라가는 빠르기
 const BOARD_PX    = 200;     // 오른쪽 순위표 너비 — 자리가 남으면 코스를 왼쪽으로 비켜 준다
-const MIN_ZOOM    = 0.72;    // 휴대폰 세로 화면에서도 이만큼은 크게 (그땐 옆으로도 따라간다)
+const MIN_ZOOM    = 0.95;    // 휴대폰 세로 화면에서도 이만큼은 크게 (그땐 옆으로도 따라간다)
 const FONT = '"Apple SD Gothic Neo","Malgun Gothic",sans-serif';
 
 export function createCamera() {
